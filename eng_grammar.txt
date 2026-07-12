@@ -1,0 +1,14 @@
+program = { statement } ;
+
+statement = ang_statement
+        | print_statement ;
+
+ang_statement = "ang" IDENTIFIER [":" TYPE] "=" expression ";" ;
+
+print_statement = "print" expression ";" ;
+
+expression = binary_expression
+
+binary_expression = expression binary_op expression ;
+
+binary_op = "+" | "-" | "*" | "/" ;
