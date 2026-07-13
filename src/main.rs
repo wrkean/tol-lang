@@ -4,10 +4,17 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
+use crate::compiler::Compiler;
+
 mod compiler;
+mod lexer;
+mod tol;
 
 fn main() {
     let args = Args::parse();
+
+    let mut compiler = Compiler::new(args);
+    compiler.compile_entry_point();
 }
 
 #[derive(Parser)]
