@@ -153,6 +153,11 @@ impl<'c> Parser<'c> {
                 let span = self.advance().span().clone();
                 Ok(Expr::new(span, ExprKind::FloatLiteral(x)))
             }
+            TokenKind::Identifier(s) => {
+                let s = s.clone();
+                let span = self.advance().span().clone();
+                Ok(Expr::new(span, ExprKind::Identifier(s)))
+            }
             TokenKind::LParen => {
                 let start = self.advance(); // Consume `(`
                 let expr = self.parse_expression(0)?;

@@ -22,6 +22,7 @@ impl Expr {
 pub enum ExprKind {
     Integer(i64),
     FloatLiteral(f64),
+    Identifier(String),
     Binary {
         left: Box<Expr>,
         right: Box<Expr>,
@@ -34,6 +35,7 @@ impl fmt::Display for Expr {
         match &self.kind {
             ExprKind::Integer(x) => write!(f, "{x}"),
             ExprKind::FloatLiteral(x) => write!(f, "{x}"),
+            ExprKind::Identifier(s) => write!(f, "{s}"),
             ExprKind::Binary { left, right, op } => {
                 write!(f, "({:?} {} {})", op.kind(), left, right)
             }
