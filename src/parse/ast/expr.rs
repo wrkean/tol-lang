@@ -1,20 +1,40 @@
 use std::fmt;
 
-use crate::tol::token::{Span, Token};
+use crate::{
+    analyze::symbol::SymbolId,
+    tol::token::{Span, Token},
+};
 
 /// Ast node representing expressions
 pub struct Expr {
     span: Span,
     kind: ExprKind,
+    symbol_id: Option<SymbolId>,
 }
 
 impl Expr {
     pub fn new(span: Span, kind: ExprKind) -> Self {
-        Self { span, kind }
+        Self {
+            span,
+            kind,
+            symbol_id: None,
+        }
     }
 
     pub fn span(&self) -> &Span {
         &self.span
+    }
+
+    pub fn kind(&self) -> &ExprKind {
+        &self.kind
+    }
+
+    pub fn kind_mut(&mut self) -> &mut ExprKind {
+        &mut self.kind
+    }
+
+    pub fn set_symbol_id(&mut self, id: SymbolId) {
+        self.symbol_id = Some(id);
     }
 }
 

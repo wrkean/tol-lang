@@ -1,17 +1,26 @@
 use crate::{
+    analyze::symbol::SymbolId,
     parse::ast::expr::Expr,
-    tol::{token::Span, types::TolType},
+    tol::{
+        token::{Span, Token},
+        types::TolType,
+    },
 };
 
 /// Ast node representing statements
 pub struct Stmt {
     span: Span,
     kind: StmtKind,
+    symbol_id: Option<SymbolId>,
 }
 
 impl Stmt {
     pub fn new(span: Span, kind: StmtKind) -> Self {
-        Self { span, kind }
+        Self {
+            span,
+            kind,
+            symbol_id: None,
+        }
     }
 
     pub fn span(&self) -> &Span {
@@ -21,12 +30,27 @@ impl Stmt {
     pub fn kind(&self) -> &StmtKind {
         &self.kind
     }
+
+    pub fn kind_mut(&mut self) -> &mut StmtKind {
+        &mut self.kind
+    }
+
+    pub fn set_symbol_id(&mut self, id: SymbolId) {
+        self.symbol_id = Some(id);
+    }
 }
 
 pub enum StmtKind {
     // Name declaration
-    Ang { is_mutable: bool, ty: TolType },
+    Ang {
+        name: Token,
+        is_mutable: bool,
+        ty: TolType,
+        rhs: Expr,
+    },
 
     // Expression statement
-    Expr { expr: Expr },
+    Expr {
+        expr: Expr,
+    },
 }

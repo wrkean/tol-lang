@@ -9,6 +9,7 @@ use std::{
 
 use crate::{
     Args,
+    analyze::symbol::{Symbol, SymbolId},
     module::{Module, ModuleId},
     parse::{
         Parser,
@@ -29,6 +30,9 @@ pub struct GlobalContext {
 
     // Acts as a cache for loaded modules
     module_registry: HashMap<PathBuf, ModuleId>,
+
+    // Symbol table, accessed via symbol id
+    symbols: Vec<Symbol>,
 }
 
 impl GlobalContext {
@@ -38,6 +42,7 @@ impl GlobalContext {
             entry_point: cli_args.input,
             modules: Vec::new(),
             module_registry: HashMap::new(),
+            symbols: Vec::new(),
         }
     }
 
@@ -68,6 +73,16 @@ impl GlobalContext {
     /// Retrieves a mutable reference to a module at the given index
     pub fn module_by_id_mut(&mut self, index: usize) -> &mut Module {
         &mut self.modules[index]
+    }
+
+    pub fn symbol_by_id(&self, index: usize) -> &Symbol {
+        &self.symbols[index]
+    }
+
+    pub fn add_symbol(&mut self, symbol: Symbol) -> SymbolId {
+        self.symbols.push(symbol);
+
+        self.symbols.len() - 1
     }
 
     pub fn entry_point(&self) -> &PathBuf {

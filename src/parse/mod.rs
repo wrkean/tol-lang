@@ -80,7 +80,9 @@ impl<'c> Parser<'c> {
 
     fn parse_ang(&mut self) -> DiagResult<Stmt> {
         let start = self.advance().span().start;
-        let name = self.consume_ident("umaasa ako ng variable dito para sa pag-deklara")?;
+        let name = self
+            .consume_ident("umaasa ako ng variable dito para sa pag-deklara")?
+            .clone();
         let ty = match self.peek().kind() {
             TokenKind::Colon => {
                 self.advance();
@@ -101,8 +103,10 @@ impl<'c> Parser<'c> {
         Ok(Stmt::new(
             start..end,
             StmtKind::Ang {
+                name,
                 is_mutable: true,
                 ty,
+                rhs,
             },
         ))
     }

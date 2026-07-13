@@ -117,4 +117,14 @@ pub mod predefined_diagnostics {
             types::type_list().join(",")
         ))
     }
+
+    pub fn use_of_undeclared_variable(current_module: &Module, label_span: Span) -> TolDiagnostic {
+        TolDiagnostic::err(
+            current_module.source_arc(),
+            current_module.filename(),
+            "paggamit ng hindi pa na-ideklarang variable",
+        )
+        .label(Label::new(label_span).message("hindi mo pa ito na-ideklara"))
+        .help("kailangan munang ma-ideklara ang variable bago mo ito magamit")
+    }
 }

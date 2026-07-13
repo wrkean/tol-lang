@@ -103,6 +103,17 @@ impl Module {
     pub fn path(&self) -> &PathBuf {
         &self.path
     }
+
+    /// Takes the ast with std::mem::take
+    ///
+    /// This should be often times temporary and only used for resolving borrow issues
+    pub fn take_ast(&mut self) -> Ast {
+        mem::take(&mut self.ast)
+    }
+
+    pub fn set_ast(&mut self, ast: Ast) {
+        self.ast = ast;
+    }
 }
 
 /// A module's compile state, composed of three states:
