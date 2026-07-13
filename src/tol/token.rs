@@ -1,7 +1,8 @@
-use std::ops::Range;
+use std::{fmt, ops::Range};
 
 pub type Span = Range<usize>;
 
+#[derive(Debug, Clone)]
 pub struct Token {
     span: Span,
     kind: TokenKind,
@@ -14,6 +15,10 @@ impl Token {
 
     pub fn kind(&self) -> &TokenKind {
         &self.kind
+    }
+
+    pub fn span(&self) -> &Span {
+        &self.span
     }
 }
 

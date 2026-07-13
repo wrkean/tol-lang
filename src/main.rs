@@ -8,6 +8,7 @@ use crate::compiler::Compiler;
 
 mod compiler;
 mod parse;
+mod prelude;
 mod tol;
 
 fn main() {

@@ -7,7 +7,10 @@ use std::{
     sync::Arc,
 };
 
-use crate::{Args, parse::lexer::Lexer};
+use crate::{
+    Args,
+    parse::{Parser, lexer::Lexer},
+};
 
 pub type ModuleId = usize;
 
@@ -42,6 +45,13 @@ impl Compiler {
         self.compile_module(id);
     }
 
+    /// Compiles the given module by module id
+    pub fn compile_module(&mut self, module_id: ModuleId) {
+        let module = &mut self.modules[module_id];
+        module.set_compile_state(ModuleCompileState::Compiling);
+        self.parse_module(module_id);
+    }
+
     /// Registers the module into the module registry.
     ///
     /// If the module already exists in the registry, it returns the module id defined in that registry.
@@ -61,16 +71,22 @@ impl Compiler {
         *self.module_registry.get(path).unwrap()
     }
 
-    fn compile_module(&mut self, module_id: ModuleId) {
-        let module = &mut self.modules[module_id];
-        module.set_compile_state(ModuleCompileState::Compiling);
-        self.parse_module(module_id);
+    /// Retrieves a reference to a module at the given index
+    pub fn module_by_id(&self, index: usize) -> &Module {
+        &self.modules[index]
+    }
+
+    /// Retrieves a mutable reference to a module at the given index
+    pub fn module_by_id_mut(&mut self, index: usize) -> &mut Module {
+        &mut self.modules[index]
     }
 
     fn parse_module(&mut self, module_id: ModuleId) {
         let module = &self.modules[module_id];
 
         let tokens = Lexer::new(module.source()).lex();
+        let expr = Parser::new(tokens, self, module_id).parse();
+        println!("{expr}");
     }
 
     fn module_from_path(&mut self, path: impl Into<PathBuf> + AsRef<Path>) -> Module {
@@ -123,6 +139,10 @@ impl Module {
     /// Sets the compile state of the module
     pub fn set_compile_state(&mut self, compile_state: ModuleCompileState) {
         self.compile_state = compile_state;
+    }
+
+    pub fn filename(&self) -> String {
+        self.name.clone() + ".tol"
     }
 }
 
