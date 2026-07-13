@@ -8,6 +8,7 @@ use crate::{
     },
 };
 
+/// Responsible for turning source to a vector of tokens
 pub struct Lexer<'src> {
     source: &'src str,
     source_iter: Peekable<Chars<'src>>,

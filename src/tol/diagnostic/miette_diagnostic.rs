@@ -1,3 +1,6 @@
+//! Module for implementing a trait to turn TolDiagnostic into a MietteDiagnostic for beautiful
+//! error reporting
+
 use std::sync::Arc;
 
 use miette::{LabeledSpan, NamedSource};

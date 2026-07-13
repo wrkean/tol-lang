@@ -2,6 +2,7 @@ use std::fmt;
 
 use crate::tol::token::{Span, Token};
 
+/// Ast node representing expressions
 pub struct Expr {
     span: Span,
     kind: ExprKind,
@@ -17,6 +18,7 @@ impl Expr {
     }
 }
 
+/// The kind of expression AST node. Should be owned by `Expr`
 pub enum ExprKind {
     Integer(i64),
     FloatLiteral(f64),

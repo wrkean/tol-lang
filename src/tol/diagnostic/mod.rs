@@ -4,6 +4,7 @@ use crate::tol::token::Span;
 
 pub mod miette_diagnostic;
 
+/// Diagnostic struct used to construct diagnostics at error site
 #[derive(Debug)]
 pub struct TolDiagnostic {
     source: Arc<str>,
@@ -15,6 +16,7 @@ pub struct TolDiagnostic {
 }
 
 impl TolDiagnostic {
+    /// Generate a new diagnostic with severity = Error
     pub fn err(source: Arc<str>, filename: String, message: impl Into<String>) -> Self {
         Self {
             source,
@@ -26,12 +28,14 @@ impl TolDiagnostic {
         }
     }
 
+    /// Attach a label to this diagnostic
     pub fn label(mut self, label: Label) -> Self {
         self.labels.push(label);
 
         self
     }
 
+    /// Attach a help message to this diagnostic
     pub fn help(mut self, help: impl Into<String>) -> Self {
         self.help = Some(help.into());
 
@@ -39,6 +43,7 @@ impl TolDiagnostic {
     }
 }
 
+/// The severity of the diagnostic
 #[derive(Debug)]
 pub enum Severity {
     Error,
@@ -46,6 +51,8 @@ pub enum Severity {
     Advice,
 }
 
+/// Label pointing to the diagnostic, does not own the source. We are responsible for pointing this
+/// label to the correct source
 #[derive(Debug)]
 pub struct Label {
     span: Span,
@@ -53,6 +60,7 @@ pub struct Label {
 }
 
 impl Label {
+    /// Generate a new label
     pub fn new(span: Span) -> Self {
         Self {
             span,
@@ -60,6 +68,7 @@ impl Label {
         }
     }
 
+    /// Attach a message to this label
     pub fn message(mut self, message: impl Into<String>) -> Self {
         self.message = Some(message.into());
 
@@ -68,6 +77,8 @@ impl Label {
 }
 
 pub mod predefined_diagnostics {
+    //! Module containing functions that construct predefined TolDiagnostic like unexpected token errors
+
     use crate::{
         global_ctx::Module,
         tol::{
