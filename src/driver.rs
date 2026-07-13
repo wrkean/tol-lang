@@ -25,14 +25,16 @@ pub fn compile_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     let module = ctx.module_by_id_mut(module_id);
     module.set_compile_state(ModuleCompileState::Compiling);
     parse_module(module_id, ctx);
+
+    let module = ctx.module_by_id_mut(module_id);
+    module.report_diagnostics();
 }
 
 fn parse_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     let module = ctx.module_by_id(module_id);
 
     let tokens = Lexer::new(module.source()).lex();
-    let expr = Parser::new(tokens, ctx, module_id).parse();
-    println!("{expr}");
+    Parser::new(tokens, ctx, module_id).parse();
 }
 
 fn module_from_path(path: impl Into<PathBuf> + AsRef<Path>) -> Module {

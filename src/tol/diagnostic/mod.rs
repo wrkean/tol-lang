@@ -41,10 +41,14 @@ impl TolDiagnostic {
 
         self
     }
+
+    pub fn severity(&self) -> &Severity {
+        &self.severity
+    }
 }
 
 /// The severity of the diagnostic
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Severity {
     Error,
     Warning,
@@ -84,6 +88,7 @@ pub mod predefined_diagnostics {
         tol::{
             diagnostic::{Label, TolDiagnostic},
             token::Span,
+            types,
         },
     };
 
@@ -98,5 +103,18 @@ pub mod predefined_diagnostics {
             "may nakita akong hindi inaasahang token",
         )
         .label(Label::new(label_span).message(message.into()))
+    }
+
+    pub fn unrecognized_type(current_module: &Module, label_span: Span) -> TolDiagnostic {
+        TolDiagnostic::err(
+            current_module.source_arc(),
+            current_module.filename(),
+            "may nakita akong invalid na tipo",
+        )
+        .label(Label::new(label_span).message("hindi makilala ang tipo na ito"))
+        .help(format!(
+            "mga halimbawa ng tipo sa tol: {}",
+            types::type_list().join(",")
+        ))
     }
 }

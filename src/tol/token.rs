@@ -67,4 +67,9 @@ impl TokenKind {
             RParen | RSquare | Identifier(_) | IntLiteral(_) | FloatLiteral(_)
         )
     }
+
+    pub fn is_synchronization_point(&self) -> bool {
+        use TokenKind::*;
+        matches!(self, Ang | Print)
+    }
 }

@@ -1,7 +1,7 @@
 use std::{
     cell::{Ref, RefCell},
     collections::{HashMap, hash_map::Entry},
-    fs,
+    fs, mem,
     path::{Path, PathBuf},
     rc::Rc,
     sync::Arc,
@@ -9,7 +9,12 @@ use std::{
 
 use crate::{
     Args,
-    parse::{Parser, lexer::Lexer},
+    parse::{
+        Parser,
+        ast::{Ast, stmt::Stmt},
+        lexer::Lexer,
+    },
+    tol::diagnostic::{Severity, TolDiagnostic, miette_diagnostic::MietteDiagnostic},
 };
 
 pub type ModuleId = usize;
@@ -90,6 +95,15 @@ pub struct Module {
 
     // The compilation state of this module
     compile_state: ModuleCompileState,
+
+    // The Abstract Syntax Tree for this module
+    ast: Ast,
+
+    // Diagnostics accumulated during the compilation of this module
+    diagnostics: Vec<TolDiagnostic>,
+
+    // True when one of the diagnostic has a severity = Error
+    has_an_error: bool,
 }
 
 impl Module {
@@ -100,6 +114,9 @@ impl Module {
             name,
             source: Arc::from(source),
             compile_state: ModuleCompileState::Initialized,
+            ast: Ast::new(),
+            diagnostics: Vec::new(),
+            has_an_error: false,
         }
     }
 
@@ -118,8 +135,42 @@ impl Module {
         self.compile_state = compile_state;
     }
 
+    /// Adds a new statement to the ast
+    pub fn add_statement(&mut self, statement: Stmt) {
+        self.ast.push(statement);
+    }
+
+    /// Adds a new diagnostic to this module
+    pub fn add_diagnostic(&mut self, diagnostic: TolDiagnostic) {
+        if diagnostic.severity() == &Severity::Error {
+            self.has_an_error = true;
+        }
+
+        self.diagnostics.push(diagnostic);
+    }
+
+    /// The module name + .tol extension
     pub fn filename(&self) -> String {
         self.name.clone() + ".tol"
+    }
+
+    /// This module has an error if one of the pushed diagnostic has a severity = Error
+    pub fn has_an_error(&self) -> bool {
+        self.has_an_error
+    }
+
+    /// Reports the diagnostics for this module one by one
+    ///
+    /// NOTE: This consumes this module's diagnostics. As such, this is only to be called one
+    /// per module as the diagnostics are already consumed at the point when this is accessed again
+    pub fn report_diagnostics(&mut self) {
+        let diagnostics = mem::take(&mut self.diagnostics);
+        for diagnostic in diagnostics {
+            eprintln!(
+                "{:?}",
+                miette::Report::new(MietteDiagnostic::from(diagnostic))
+            );
+        }
     }
 }
 
