@@ -8,6 +8,7 @@ use crate::global_ctx::GlobalContext;
 
 mod driver;
 mod global_ctx;
+mod module;
 mod parse;
 mod prelude;
 mod tol;

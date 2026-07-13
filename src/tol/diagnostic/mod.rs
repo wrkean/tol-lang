@@ -84,7 +84,7 @@ pub mod predefined_diagnostics {
     //! Module containing functions that construct predefined TolDiagnostic like unexpected token errors
 
     use crate::{
-        global_ctx::Module,
+        module::Module,
         tol::{
             diagnostic::{Label, TolDiagnostic},
             token::Span,

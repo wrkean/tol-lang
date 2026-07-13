@@ -1,7 +1,7 @@
 use std::{cell::RefCell, iter::Peekable, mem, rc::Rc, str::Chars, sync::Arc};
 
 use crate::{
-    global_ctx::Module,
+    module::Module,
     tol::{
         keywords::KEYWORDS,
         token::{Span, Token, TokenKind},

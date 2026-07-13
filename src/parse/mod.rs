@@ -1,7 +1,8 @@
 //! Handles the lexing and the parsing of the source
 
 use crate::{
-    global_ctx::{GlobalContext, Module, ModuleId},
+    global_ctx::GlobalContext,
+    module::{Module, ModuleId},
     parse::ast::{
         expr::{Expr, ExprKind},
         stmt::{Stmt, StmtKind},

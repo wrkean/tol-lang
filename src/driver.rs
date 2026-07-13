@@ -8,7 +8,8 @@ use std::{
 
 use crate::{
     Args,
-    global_ctx::{GlobalContext, Module, ModuleCompileState, ModuleId},
+    global_ctx::GlobalContext,
+    module::{Module, ModuleCompileState, ModuleId},
     parse::{Parser, lexer::Lexer},
 };
 
