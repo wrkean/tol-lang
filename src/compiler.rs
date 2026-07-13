@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::{Args, lexer::Lexer};
+use crate::{Args, parse::lexer::Lexer};
 
 pub type ModuleId = usize;
 

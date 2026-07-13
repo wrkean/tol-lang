@@ -7,7 +7,7 @@ use clap::Parser;
 use crate::compiler::Compiler;
 
 mod compiler;
-mod lexer;
+mod parse;
 mod tol;
 
 fn main() {
