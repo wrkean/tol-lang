@@ -34,7 +34,6 @@ pub enum TokenKind {
     FloatLiteral(f64),
     Identifier(String),
 
-    Eof,
     LParen,
     LSquare,
     RParen,
@@ -48,6 +47,11 @@ pub enum TokenKind {
     LessEq,
     Lesser,
     Comma,
+
+    Indent,
+    Dedent,
+
+    Eof,
 }
 
 impl TokenKind {
