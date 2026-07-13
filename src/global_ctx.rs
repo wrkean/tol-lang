@@ -14,7 +14,7 @@ use crate::{
 
 pub type ModuleId = usize;
 
-/// Handles the compilation of all the modules. Handles the entire compilation pipeline
+/// Stores all the information of the whole compilation pipeline
 pub struct GlobalContext {
     // Entry point derived from CLI arguments
     // TODO: Make this optional later when we support REPLs
@@ -28,28 +28,13 @@ pub struct GlobalContext {
 }
 
 impl GlobalContext {
-    /// Creates a new compiler with the arguments
+    /// Creates a new global context with the arguments
     pub fn new(cli_args: Args) -> Self {
         Self {
             entry_point: cli_args.input,
             modules: Vec::new(),
             module_registry: HashMap::new(),
         }
-    }
-
-    /// Compiles the entry point derived from the initialized CLI arguments.
-    pub fn compile_entry_point(&mut self) {
-        let main_module = self.module_from_path(self.entry_point.clone());
-        let id = self.register_module(main_module);
-
-        self.compile_module(id);
-    }
-
-    /// Compiles the given module by module id
-    pub fn compile_module(&mut self, module_id: ModuleId) {
-        let module = &mut self.modules[module_id];
-        module.set_compile_state(ModuleCompileState::Compiling);
-        self.parse_module(module_id);
     }
 
     /// Registers the module into the module registry.
@@ -81,20 +66,12 @@ impl GlobalContext {
         &mut self.modules[index]
     }
 
-    fn parse_module(&mut self, module_id: ModuleId) {
-        let module = &self.modules[module_id];
-
-        let tokens = Lexer::new(module.source()).lex();
-        let expr = Parser::new(tokens, self, module_id).parse();
-        println!("{expr}");
+    pub fn entry_point(&self) -> &PathBuf {
+        &self.entry_point
     }
 
-    fn module_from_path(&mut self, path: impl Into<PathBuf> + AsRef<Path>) -> Module {
-        let path = path.into();
-        let name = path.file_stem().unwrap().to_str().unwrap().to_string();
-        let source = fs::read_to_string(&path).unwrap();
-
-        Module::new(path, name, source)
+    pub fn modules(&self) -> &[Module] {
+        &self.modules
     }
 }
 
