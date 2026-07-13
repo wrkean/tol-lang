@@ -15,7 +15,7 @@ use crate::{
 pub type ModuleId = usize;
 
 /// Handles the compilation of all the modules. Handles the entire compilation pipeline
-pub struct Compiler {
+pub struct GlobalContext {
     // Entry point derived from CLI arguments
     // TODO: Make this optional later when we support REPLs
     entry_point: PathBuf,
@@ -27,7 +27,7 @@ pub struct Compiler {
     module_registry: HashMap<PathBuf, ModuleId>,
 }
 
-impl Compiler {
+impl GlobalContext {
     /// Creates a new compiler with the arguments
     pub fn new(cli_args: Args) -> Self {
         Self {

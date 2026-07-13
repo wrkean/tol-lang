@@ -69,7 +69,7 @@ impl Label {
 
 pub mod predefined_diagnostics {
     use crate::{
-        compiler::Module,
+        global_ctx::Module,
         tol::{
             diagnostic::{Label, TolDiagnostic},
             token::Span,

@@ -4,9 +4,9 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-use crate::compiler::Compiler;
+use crate::global_ctx::GlobalContext;
 
-mod compiler;
+mod global_ctx;
 mod parse;
 mod prelude;
 mod tol;
@@ -14,7 +14,7 @@ mod tol;
 fn main() {
     let args = Args::parse();
 
-    let mut compiler = Compiler::new(args);
+    let mut compiler = GlobalContext::new(args);
     compiler.compile_entry_point();
 }
 

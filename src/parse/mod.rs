@@ -1,7 +1,7 @@
 //! Handles the lexing and the parsing of the source
 
 use crate::{
-    compiler::{Compiler, Module, ModuleId},
+    global_ctx::{GlobalContext, Module, ModuleId},
     parse::ast::expr::{Expr, ExprKind},
     prelude::DiagResult,
     tol::{
@@ -22,16 +22,16 @@ pub struct Parser<'c> {
     tokens: Vec<Token>,
     current: usize,
     module_id: usize,
-    compiler: &'c mut Compiler,
+    ctx: &'c mut GlobalContext,
 }
 
 impl<'c> Parser<'c> {
-    pub fn new(tokens: Vec<Token>, compiler: &'c mut Compiler, module_id: ModuleId) -> Self {
+    pub fn new(tokens: Vec<Token>, ctx: &'c mut GlobalContext, module_id: ModuleId) -> Self {
         Self {
             tokens,
             current: 0,
             module_id,
-            compiler,
+            ctx,
         }
     }
 
@@ -141,7 +141,7 @@ impl<'c> Parser<'c> {
     }
 
     fn current_module(&self) -> &Module {
-        self.compiler.module_by_id(self.module_id)
+        self.ctx.module_by_id(self.module_id)
     }
 
     fn at_end(&self) -> bool {
