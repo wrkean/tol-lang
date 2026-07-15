@@ -42,7 +42,8 @@ impl<'gctx> BytecodeCompiler<'gctx> {
     fn compile_statement(&mut self, statement: &Stmt) {
         match statement.kind() {
             StmtKind::Ang { .. } => self.compile_ang(statement),
-            StmtKind::Expr { expr } => self.compile_expression_statement(statement),
+            StmtKind::Print { .. } => self.compile_print(statement),
+            StmtKind::Expr { .. } => self.compile_expression_statement(statement),
         }
     }
 
@@ -61,6 +62,16 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         let id = ang.symbol_id();
         let line = self.current_module().line_of(ang.span().start);
         self.store_symbol(id, line);
+    }
+
+    fn compile_print(&mut self, print: &Stmt) {
+        let StmtKind::Print { expr } = print.kind() else {
+            unreachable!()
+        };
+
+        let line = self.current_module().line_of(print.span().start);
+        self.compile_expression(expr);
+        self.chunk.emit_opcode(OpCode::Print, line);
     }
 
     fn store_symbol(&mut self, symbol_id: SymbolId, line: usize) {

@@ -1,15 +1,15 @@
 pub enum OpCode {
     Constant,
-    Pop,
-    Halt,
-
-    Add,
-    Sub,
-    Mult,
-    Div,
-
+    Print,
     StoreGlobal,
     StoreLocal,
     LoadGlobal,
     LoadLocal,
+
+    Pop,
+    Halt,
+    Add,
+    Sub,
+    Mult,
+    Div,
 }

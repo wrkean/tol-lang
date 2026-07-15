@@ -31,7 +31,6 @@ impl VM {
 
     pub fn run(&mut self) {
         while self.frames.last().is_some() {
-            println!("{:?}", &self.stack);
             let opcode = self.read_byte();
 
             match opcode {
@@ -66,6 +65,10 @@ impl VM {
                     let index = self.read_byte() as usize;
                     let value = self.current_frame().locals.get(index).unwrap().clone();
                     self.push(value);
+                }
+                op if op == OpCode::Print as u8 => {
+                    let value = self.pop();
+                    println!("{value}");
                 }
                 op if op == OpCode::Halt as u8 => {
                     break;

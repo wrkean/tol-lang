@@ -115,6 +115,7 @@ impl Chunk {
             op if op == OpCode::Div as u8 => self.simple_instruction("DIV", offset),
             op if op == OpCode::Pop as u8 => self.simple_instruction("POP", offset),
             op if op == OpCode::Halt as u8 => self.simple_instruction("HALT", offset),
+            op if op == OpCode::Print as u8 => self.simple_instruction("PRINT", offset),
             op if op == OpCode::Constant as u8 => {
                 self.disassemble_constant_instruction("CONSTANT", offset)
             }

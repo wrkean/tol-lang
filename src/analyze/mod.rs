@@ -60,6 +60,7 @@ impl<'gctx> Analyzer<'gctx> {
     fn resolve_statement(&mut self, statement: &mut Stmt) -> DiagResult<()> {
         match statement.kind_mut() {
             StmtKind::Ang { .. } => self.resolve_ang(statement),
+            StmtKind::Print { expr } => self.resolve_expression(expr),
             StmtKind::Expr { expr } => self.resolve_expression(expr),
         }
     }

@@ -1,2 +1,4 @@
 ang x = 5 + 5 / 2
 ang y = x + 2
+
+print x + y

@@ -53,6 +53,9 @@ pub enum StmtKind {
         ty: TolType,
         rhs: Expr,
     },
+    Print {
+        expr: Expr,
+    },
 
     // Expression statement
     Expr {
