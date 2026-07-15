@@ -34,6 +34,10 @@ impl Symbol {
     pub fn span(&self) -> &Span {
         &self.span
     }
+
+    pub fn storage(&self) -> &Storage {
+        &self.storage
+    }
 }
 
 pub enum SymbolKind {

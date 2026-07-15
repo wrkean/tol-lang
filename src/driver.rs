@@ -8,6 +8,8 @@ use std::{
 
 use crate::{
     Args,
+    analyze::Analyzer,
+    codegen::bytecode_compiler::BytecodeCompiler,
     global_ctx::GlobalContext,
     module::{Module, ModuleCompileState, ModuleId},
     parse::{Parser, lexer::Lexer},
@@ -26,6 +28,19 @@ pub fn compile_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     let module = ctx.module_by_id_mut(module_id);
     module.set_compile_state(ModuleCompileState::Compiling);
     parse_module(module_id, ctx);
+    analyze_module(module_id, ctx);
+
+    let module = ctx.module_by_id_mut(module_id);
+
+    // Stop compilation
+    if module.has_an_error() {
+        module.report_diagnostics();
+        return;
+    }
+
+    let mut compiler = BytecodeCompiler::new(ctx, module_id);
+    let chunk = compiler.compile();
+    chunk.disassemble("main");
 
     let module = ctx.module_by_id_mut(module_id);
     module.report_diagnostics();
@@ -36,6 +51,11 @@ fn parse_module(module_id: ModuleId, ctx: &mut GlobalContext) {
 
     let tokens = Lexer::new(module.source()).lex();
     Parser::new(tokens, ctx, module_id).parse();
+}
+
+fn analyze_module(module_id: ModuleId, ctx: &mut GlobalContext) {
+    let mut analyzer = Analyzer::new(ctx, module_id);
+    analyzer.analyze();
 }
 
 fn module_from_path(path: impl Into<PathBuf> + AsRef<Path>) -> Module {

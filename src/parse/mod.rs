@@ -155,7 +155,7 @@ impl<'c> Parser<'c> {
             TokenKind::FloatLiteral(x) => {
                 let x = *x;
                 let span = self.advance().span().clone();
-                Ok(Expr::new(span, ExprKind::FloatLiteral(x)))
+                Ok(Expr::new(span, ExprKind::Float(x)))
             }
             TokenKind::Identifier(s) => {
                 let s = s.clone();

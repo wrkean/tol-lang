@@ -50,7 +50,9 @@ impl<'gctx> Analyzer<'gctx> {
     fn resolve_names(&mut self) {
         let mut ast = self.current_module_mut().take_ast();
         for statement in ast.iter_mut() {
-            self.resolve_statement(statement);
+            if let Err(diag) = self.resolve_statement(statement) {
+                self.current_module_mut().add_diagnostic(*diag);
+            }
         }
         self.current_module_mut().set_ast(ast);
     }
@@ -101,7 +103,7 @@ impl<'gctx> Analyzer<'gctx> {
     fn resolve_expression(&mut self, expression: &mut Expr) -> DiagResult<()> {
         match expression.kind_mut() {
             ExprKind::Integer(_) => Ok(()),
-            ExprKind::FloatLiteral(_) => Ok(()),
+            ExprKind::Float(_) => Ok(()),
             ExprKind::Identifier(ident) => match self.lookup_symbol(ident) {
                 Some(id) => {
                     expression.set_symbol_id(id);

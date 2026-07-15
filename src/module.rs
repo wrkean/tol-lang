@@ -31,11 +31,24 @@ pub struct Module {
 
     // True when one of the diagnostic has a severity = Error
     has_an_error: bool,
+
+    // Offsets that points to where each line starts begin, used for determining the line from the
+    // given offset in the compiler during runtime
+    line_starts: Vec<usize>,
 }
 
 impl Module {
     /// Creates a new module derived from the given arguments
     pub fn new(path: PathBuf, name: String, source: String) -> Self {
+        // Initialize line_starts
+        let mut line_starts = vec![0];
+
+        for (i, ch) in source.char_indices() {
+            if ch == '\n' {
+                line_starts.push(i + 1);
+            }
+        }
+
         Self {
             path,
             name,
@@ -44,6 +57,7 @@ impl Module {
             ast: Ast::new(),
             diagnostics: Vec::new(),
             has_an_error: false,
+            line_starts,
         }
     }
 
@@ -111,8 +125,17 @@ impl Module {
         mem::take(&mut self.ast)
     }
 
+    /// Returns the line number in the source code from the given offset
+    pub fn line_of(&self, offset: usize) -> usize {
+        self.line_starts.partition_point(|&x| x <= offset)
+    }
+
     pub fn set_ast(&mut self, ast: Ast) {
         self.ast = ast;
+    }
+
+    pub fn ast(&self) -> &[Stmt] {
+        &self.ast
     }
 }
 
