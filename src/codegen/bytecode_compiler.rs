@@ -12,11 +12,17 @@ use crate::{
     vm::{chunk::Chunk, function::Function, opcode::OpCode, value::Value},
 };
 
+struct LoopContext {
+    break_jumps: Vec<usize>,
+    loop_start: usize,
+}
+
 /// Compiles the target module into chunks of bytecode
 pub struct BytecodeCompiler<'gctx> {
     ctx: &'gctx GlobalContext,
     module_id: ModuleId,
     chunk: Chunk,
+    loop_stack: Vec<LoopContext>,
 }
 
 impl<'gctx> BytecodeCompiler<'gctx> {
@@ -26,6 +32,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             ctx,
             module_id,
             chunk: Chunk::new(),
+            loop_stack: Vec::new(),
         }
     }
 
@@ -46,6 +53,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             StmtKind::Paraan { .. } => self.compile_paraan(statement),
             StmtKind::Print { .. } => self.compile_print(statement),
             StmtKind::Kung { .. } => self.compile_kung(statement),
+            StmtKind::Habang { .. } => self.compile_habang(statement),
             StmtKind::Expr { .. } => self.compile_expression_statement(statement),
             StmtKind::Block { statements } => {
                 for statement in statements {
@@ -152,6 +160,35 @@ impl<'gctx> BytecodeCompiler<'gctx> {
 
         for end in end_jumps {
             self.chunk.patch_jump(end);
+        }
+    }
+
+    fn compile_habang(&mut self, habang: &Stmt) {
+        let StmtKind::Habang { condition, block } = habang.kind() else {
+            unreachable!()
+        };
+
+        let loop_start = self.chunk.code().len();
+
+        self.loop_stack.push(LoopContext {
+            loop_start,
+            break_jumps: Vec::new(),
+        });
+
+        let line = self.current_module().line_of(condition.span().start);
+
+        self.compile_expression(condition);
+        let exit_jump = self.chunk.emit_jump(OpCode::JumpIfFalse, line);
+        self.chunk.emit_opcode(OpCode::Pop, line);
+
+        self.compile_statement(block);
+        self.chunk.emit_loop(loop_start, line);
+        self.chunk.patch_jump(exit_jump);
+        self.chunk.emit_opcode(OpCode::Pop, line);
+
+        let ctx = self.loop_stack.pop().unwrap();
+        for jump in ctx.break_jumps {
+            self.chunk.patch_jump(jump);
         }
     }
 

@@ -70,6 +70,10 @@ pub enum StmtKind {
         then_branches: Vec<Branch>,
         else_branch: Option<Box<Branch>>,
     },
+    Habang {
+        condition: Expr,
+        block: Box<Stmt>,
+    },
 
     // Expression statement
     Expr {

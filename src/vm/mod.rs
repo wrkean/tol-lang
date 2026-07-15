@@ -110,6 +110,10 @@ impl VM {
                     let offset = self.read_u16() as usize;
                     self.current_frame_mut().ip += offset;
                 }
+                x if x == OpCode::Loop as u8 => {
+                    let offset = self.read_u16() as usize;
+                    self.current_frame_mut().ip -= offset;
+                }
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }
         }

@@ -64,6 +64,7 @@ impl<'c> Parser<'c> {
             TokenKind::Print => self.parse_print(),
             TokenKind::Paraan => self.parse_paraan(),
             TokenKind::Kung => self.parse_kung(),
+            TokenKind::Habang => self.parse_habang(),
 
             _ => {
                 let expr = self.parse_expression(0)?;
@@ -194,6 +195,22 @@ impl<'c> Parser<'c> {
             StmtKind::Kung {
                 then_branches,
                 else_branch,
+            },
+        ))
+    }
+
+    fn parse_habang(&mut self) -> DiagResult<Stmt> {
+        let start = self.advance().span().start;
+        let condition = self.parse_expression(0)?;
+        self.consume(TokenKind::Colon, "umaasa ng `:` pagkatapos ng kondisyon")?;
+        let block = self.parse_block()?;
+        let end = block.span().end;
+
+        Ok(Stmt::new(
+            start..end,
+            StmtKind::Habang {
+                condition,
+                block: Box::new(block),
             },
         ))
     }

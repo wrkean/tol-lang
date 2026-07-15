@@ -3,7 +3,8 @@ program = statement* ;
 statement = ang_statement
         | print_statement
         | paraan_statement
-        | kung_statement ;
+        | kung_statement
+        | habang_statement ;
 
 ang_statement = "ang" "iiba"? identifier ( ":" TYPE )? "=" expression ";" ;
 
@@ -11,7 +12,9 @@ print_statement = "print" expression ";" ;
 
 paraan_statement = "paraan" identifier param_list ( "->" TYPE )? ":" block ;
 
-kung_statement = "kung" expression ":" block ( "kundi" expression ":" block )* ( "kungwala" block )?
+kung_statement = "kung" expression ":" block ( "kundi" expression ":" block )* ( "kungwala" block )? ;
+
+habang_statement = "habang" expression ":" block ;
 
 param_list "(" param* ","? ")" ;
 

@@ -66,6 +66,7 @@ impl<'gctx> Analyzer<'gctx> {
             StmtKind::Print { expr } => self.resolve_expression(expr),
             StmtKind::Expr { expr } => self.resolve_expression(expr),
             StmtKind::Kung { .. } => self.resolve_kung(statement),
+            StmtKind::Habang { .. } => self.resolve_habang(statement),
             StmtKind::Block { statements } => {
                 for statement in statements {
                     if let Err(diag) = self.resolve_statement(statement) {
@@ -191,6 +192,17 @@ impl<'gctx> Analyzer<'gctx> {
         if let Some(else_) = else_branch {
             self.resolve_statement(&mut else_.block)?;
         }
+
+        Ok(())
+    }
+
+    fn resolve_habang(&mut self, habang: &mut Stmt) -> DiagResult<()> {
+        let StmtKind::Habang { condition, block } = habang.kind_mut() else {
+            unreachable!()
+        };
+
+        self.resolve_expression(condition)?;
+        self.resolve_statement(block)?;
 
         Ok(())
     }

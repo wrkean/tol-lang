@@ -8,6 +8,7 @@ pub enum OpCode {
     Call,
     JumpIfFalse,
     Jump,
+    Loop,
 
     Pop,
     Halt,

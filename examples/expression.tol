@@ -6,3 +6,6 @@ kundi x != 5:
     print x + 5
 kundi x == 5:
     print x - 5
+
+habang 1 == 1:
+    print x

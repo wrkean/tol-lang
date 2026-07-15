@@ -31,6 +31,7 @@ pub enum TokenKind {
     Kung,
     Kundi,
     Kungwala,
+    Habang,
 
     SemiColon,
     Colon,

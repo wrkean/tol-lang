@@ -82,6 +82,19 @@ impl Chunk {
         self.code.len() - 2
     }
 
+    pub fn emit_loop(&mut self, loop_start: usize, line: usize) {
+        self.emit_opcode(OpCode::Loop, line);
+
+        let offset = self.code.len() - loop_start + 2;
+
+        if offset > u16::MAX as usize {
+            panic!("Loop body too large.");
+        }
+
+        self.emit_byte((offset >> 8) as u8, line);
+        self.emit_byte(offset as u8, line);
+    }
+
     pub fn patch_jump(&mut self, offset: usize) {
         let jump = self.code.len() - offset - 2;
 
