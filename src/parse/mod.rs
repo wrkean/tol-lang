@@ -81,14 +81,14 @@ impl<'c> Parser<'c> {
 
     fn parse_ang(&mut self) -> DiagResult<Stmt> {
         let start = self.advance().span().start;
-        let name = self
-            .consume_ident("umaasa ako ng variable dito para sa pag-deklara")?
-            .clone();
         let mut is_mutable = false;
         if self.peek().kind() == &TokenKind::Iiba {
             self.advance();
             is_mutable = true;
         }
+        let name = self
+            .consume_ident("umaasa ako ng variable dito para sa pag-deklara")?
+            .clone();
         let ty = match self.peek().kind() {
             TokenKind::Colon => {
                 self.advance();
@@ -214,7 +214,11 @@ impl<'c> Parser<'c> {
         };
 
         match op_kind {
-            TokenKind::Plus | TokenKind::Minus | TokenKind::Star | TokenKind::Slash => {
+            TokenKind::Plus
+            | TokenKind::Minus
+            | TokenKind::Star
+            | TokenKind::Slash
+            | TokenKind::Equal => {
                 let right = self.parse_expression(0)?;
                 let span = left.span().start..right.span().end;
 

@@ -3,7 +3,7 @@ program = { statement } ;
 statement = ang_statement
         | print_statement ;
 
-ang_statement = "ang" identifier [":" TYPE] "=" expression ";" ;
+ang_statement = "ang" ["iiba"] identifier [":" TYPE] "=" expression ";" ;
 
 print_statement = "print" expression ";" ;
 
@@ -13,7 +13,7 @@ expression = binary_expression
 
 binary_expression = expression binary_op expression ;
 
-binary_op = "+" | "-" | "*" | "/" ;
+binary_op = "+" | "-" | "*" | "/" | "=" ;
 
 number = int_literal | float_literal
 

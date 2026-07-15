@@ -73,6 +73,9 @@ impl VM {
                 op if op == OpCode::Halt as u8 => {
                     break;
                 }
+                op if op == OpCode::Null as u8 => {
+                    self.push(Value::Null);
+                }
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }
         }

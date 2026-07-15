@@ -12,4 +12,5 @@ pub enum OpCode {
     Sub,
     Mult,
     Div,
+    Null,
 }

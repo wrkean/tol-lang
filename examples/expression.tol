@@ -1,4 +1,6 @@
-ang x = 5 + 5 / 2
+ang iiba x = 5 + 5 / 2
 ang y = x + 2
+
+x = 1
 
 print x + y

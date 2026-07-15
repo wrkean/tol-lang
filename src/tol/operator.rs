@@ -4,8 +4,9 @@ use crate::tol::token::TokenKind;
 pub fn precedence(kind: &TokenKind) -> u8 {
     use TokenKind::*;
     match kind {
-        Plus | Minus => 1,
-        Star | Slash => 2,
+        Equal => 1,
+        Plus | Minus => 2,
+        Star | Slash => 3,
         _ => 0,
     }
 }

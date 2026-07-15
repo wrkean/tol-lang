@@ -41,6 +41,11 @@ impl Expr {
         self.symbol_id
             .expect("this expression's symbol id is never set")
     }
+
+    pub fn is_lvalue(&self) -> bool {
+        use ExprKind::*;
+        matches!(self.kind(), Identifier(_))
+    }
 }
 
 /// The kind of expression AST node. Should be owned by `Expr`

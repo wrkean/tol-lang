@@ -12,7 +12,7 @@ use crate::{
     prelude::DiagResult,
     tol::{
         diagnostic::{Label, TolDiagnostic, predefined_diagnostics},
-        token::TokenKind,
+        token::{Token, TokenKind},
     },
 };
 
@@ -123,9 +123,54 @@ impl<'gctx> Analyzer<'gctx> {
             ExprKind::Binary { left, right, op } => {
                 if let Err(diag) = self.resolve_expression(left) {
                     self.current_module_mut().add_diagnostic(*diag);
+                    dbg!(&self.scopes);
+                    println!("it errored: {left}")
+                }
+
+                if op.kind() == &TokenKind::Equal {
+                    self.ensure_valid_assignment(left, op)?;
                 }
 
                 self.resolve_expression(right)
+            }
+        }
+    }
+
+    fn ensure_valid_assignment(&mut self, left: &Expr, op: &Token) -> DiagResult<()> {
+        let current_module = self.current_module();
+        if !left.is_lvalue() {
+            let diagnostic = TolDiagnostic::err(
+                current_module.source_arc(),
+                current_module.filename(),
+                "pag-assign sa hindi \"lvalue\"",
+            )
+            .label(Label::new(left.span().clone()).message("hindi ito isang \"lvalue\""));
+
+            return Err(Box::new(diagnostic));
+        }
+
+        let left_symbol = self.ctx.symbol_by_id(left.symbol_id());
+        match left_symbol.kind() {
+            SymbolKind::Name { is_mutable, ty } => {
+                if !*is_mutable {
+                    let diagnostic = TolDiagnostic::err(
+                        current_module.source_arc(),
+                        current_module.filename(),
+                        "pag-iba ng hindi naiibang variable",
+                    )
+                    .label(
+                        Label::new(left_symbol.span().clone())
+                            .message("i-dineklara itong hindi naiiba"),
+                    )
+                    .label(
+                        Label::new(left.span().clone())
+                            .message("ngunit sinubukan mong ibahin dito"),
+                    );
+
+                    Err(Box::new(diagnostic))
+                } else {
+                    Ok(())
+                }
             }
         }
     }

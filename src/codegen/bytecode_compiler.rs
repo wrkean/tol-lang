@@ -8,6 +8,7 @@ use crate::{
         expr::{Expr, ExprKind},
         stmt::{Stmt, StmtKind},
     },
+    tol::token::TokenKind,
     vm::{chunk::Chunk, opcode::OpCode, value::Value},
 };
 
@@ -123,11 +124,27 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             ExprKind::Binary { left, right, op } => {
                 let line = self.current_module().line_of(op.span().start);
 
-                self.compile_expression(left);
-                self.compile_expression(right);
-                self.chunk.emit_operator(op.kind(), line);
+                if op.kind() == &TokenKind::Equal {
+                    self.compile_assignment(expression);
+                } else {
+                    self.compile_expression(left);
+                    self.compile_expression(right);
+                    self.chunk.emit_operator(op.kind(), line);
+                }
             }
         }
+    }
+
+    fn compile_assignment(&mut self, assignment: &Expr) {
+        let ExprKind::Binary { left, right, op } = assignment.kind() else {
+            unreachable!()
+        };
+
+        self.compile_expression(right);
+        let line = self.current_module().line_of(assignment.span().start);
+        self.store_symbol(left.symbol_id(), line);
+
+        self.chunk.emit_opcode(OpCode::Null, line);
     }
 
     fn current_module(&self) -> &Module {
