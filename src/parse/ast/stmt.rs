@@ -38,6 +38,11 @@ impl Stmt {
     pub fn set_symbol_id(&mut self, id: SymbolId) {
         self.symbol_id = Some(id);
     }
+
+    pub fn symbol_id(&self) -> usize {
+        self.symbol_id
+            .expect("this statement's symbol id is never set")
+    }
 }
 
 pub enum StmtKind {

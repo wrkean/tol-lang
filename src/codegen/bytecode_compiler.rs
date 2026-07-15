@@ -1,7 +1,7 @@
 use std::mem;
 
 use crate::{
-    analyze::symbol::Storage,
+    analyze::symbol::{Storage, SymbolId},
     global_ctx::GlobalContext,
     module::{Module, ModuleId},
     parse::ast::{
@@ -40,13 +40,39 @@ impl<'gctx> BytecodeCompiler<'gctx> {
 
     fn compile_statement(&mut self, statement: &Stmt) {
         match statement.kind() {
-            StmtKind::Ang {
-                name,
-                is_mutable,
-                ty,
-                rhs,
-            } => todo!(),
+            StmtKind::Ang { .. } => self.compile_ang(statement),
             StmtKind::Expr { expr } => self.compile_expression_statement(statement),
+        }
+    }
+
+    fn compile_ang(&mut self, ang: &Stmt) {
+        let StmtKind::Ang {
+            name,
+            is_mutable,
+            ty,
+            rhs,
+        } = ang.kind()
+        else {
+            unreachable!()
+        };
+
+        self.compile_expression(rhs);
+        let id = ang.symbol_id();
+        let line = self.current_module().line_of(ang.span().start);
+        self.store_symbol(id, line);
+    }
+
+    fn store_symbol(&mut self, symbol_id: SymbolId, line: usize) {
+        let symbol = self.ctx.symbol_by_id(symbol_id);
+        match symbol.storage() {
+            Storage::Global(slot) => {
+                self.chunk.emit_opcode(OpCode::StoreGlobal, line);
+                self.chunk.emit_byte(*slot as u8, line);
+            }
+            Storage::Local(slot) => {
+                self.chunk.emit_opcode(OpCode::StoreLocal, line);
+                self.chunk.emit_byte(*slot as u8, line);
+            }
         }
     }
 
