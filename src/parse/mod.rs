@@ -218,7 +218,13 @@ impl<'c> Parser<'c> {
             | TokenKind::Minus
             | TokenKind::Star
             | TokenKind::Slash
-            | TokenKind::Equal => {
+            | TokenKind::Equal
+            | TokenKind::EqualEq
+            | TokenKind::NotEq
+            | TokenKind::Greater
+            | TokenKind::GreatEq
+            | TokenKind::Lesser
+            | TokenKind::LessEq => {
                 let right = self.parse_expression(0)?;
                 let span = left.span().start..right.span().end;
 

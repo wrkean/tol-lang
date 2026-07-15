@@ -12,5 +12,11 @@ pub enum OpCode {
     Sub,
     Mult,
     Div,
+    EqualEq,
+    NotEq,
+    Greater,
+    GreatEq,
+    Lesser,
+    LessEq,
     Null,
 }

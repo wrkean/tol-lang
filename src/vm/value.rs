@@ -2,6 +2,7 @@
 pub enum Value {
     Int(i64),
     Float(f64),
+    Bool(bool),
     Null,
 }
 
@@ -41,6 +42,56 @@ impl Value {
             (l, r) => panic!("cannot div {l} and {r} together"),
         }
     }
+
+    pub fn eqeq(self, right: Self) -> Self {
+        match (self, right) {
+            (Int(a), Int(b)) => Bool(a == b),
+            (Float(a), Float(b)) => Bool(a == b),
+            (Bool(a), Bool(b)) => Bool(a == b),
+            (l, r) => panic!("cannot mult {l} and {r} together"),
+        }
+    }
+
+    pub fn neq(self, right: Self) -> Self {
+        match (self, right) {
+            (Int(a), Int(b)) => Bool(a != b),
+            (Float(a), Float(b)) => Bool(a != b),
+            (Bool(a), Bool(b)) => Bool(a != b),
+            (l, r) => panic!("cannot mult {l} and {r} together"),
+        }
+    }
+
+    pub fn gt(self, right: Self) -> Self {
+        match (self, right) {
+            (Int(a), Int(b)) => Bool(a > b),
+            (Float(a), Float(b)) => Bool(a > b),
+            (l, r) => panic!("cannot mult {l} and {r} together"),
+        }
+    }
+
+    pub fn ge(self, right: Self) -> Self {
+        match (self, right) {
+            (Int(a), Int(b)) => Bool(a >= b),
+            (Float(a), Float(b)) => Bool(a >= b),
+            (l, r) => panic!("cannot mult {l} and {r} together"),
+        }
+    }
+
+    pub fn lt(self, right: Self) -> Self {
+        match (self, right) {
+            (Int(a), Int(b)) => Bool(a < b),
+            (Float(a), Float(b)) => Bool(a < b),
+            (l, r) => panic!("cannot mult {l} and {r} together"),
+        }
+    }
+
+    pub fn le(self, right: Self) -> Self {
+        match (self, right) {
+            (Int(a), Int(b)) => Bool(a <= b),
+            (Float(a), Float(b)) => Bool(a <= b),
+            (l, r) => panic!("cannot mult {l} and {r} together"),
+        }
+    }
 }
 
 impl fmt::Display for Value {
@@ -48,6 +99,8 @@ impl fmt::Display for Value {
         match self {
             Int(x) => write!(f, "{x}"),
             Float(x) => write!(f, "{x}"),
+            Bool(true) => write!(f, "totoo"),
+            Bool(false) => write!(f, "mali"),
             Null => write!(f, "<NULL>"),
         }
     }

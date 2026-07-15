@@ -46,6 +46,12 @@ impl VM {
                 op if op == OpCode::Sub as u8 => self.binary_op(Value::sub),
                 op if op == OpCode::Mult as u8 => self.binary_op(Value::mult),
                 op if op == OpCode::Div as u8 => self.binary_op(Value::div),
+                op if op == OpCode::EqualEq as u8 => self.binary_op(Value::eqeq),
+                op if op == OpCode::NotEq as u8 => self.binary_op(Value::neq),
+                op if op == OpCode::Greater as u8 => self.binary_op(Value::gt),
+                op if op == OpCode::GreatEq as u8 => self.binary_op(Value::ge),
+                op if op == OpCode::Lesser as u8 => self.binary_op(Value::lt),
+                op if op == OpCode::LessEq as u8 => self.binary_op(Value::le),
                 op if op == OpCode::StoreGlobal as u8 => {
                     let index = self.read_byte() as usize;
                     let value = self.pop();
