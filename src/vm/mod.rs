@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::vm::{chunk::Chunk, opcode::OpCode, value::Value};
 
 pub mod chunk;
@@ -6,7 +8,7 @@ pub mod opcode;
 pub mod value;
 
 struct Frame {
-    chunk: Chunk,
+    chunk: Rc<Chunk>,
     ip: usize,
     locals: Vec<Value>,
 }
@@ -23,7 +25,7 @@ impl VM {
             stack: Vec::new(),
             globals: Vec::new(),
             frames: vec![Frame {
-                chunk,
+                chunk: Rc::new(chunk),
                 ip: 0,
                 locals: Vec::new(),
             }],
@@ -129,7 +131,7 @@ impl VM {
         };
 
         self.frames.push(Frame {
-            chunk: func.chunk.clone(),
+            chunk: Rc::clone(&func.chunk),
             ip: 0,
             locals,
         })
