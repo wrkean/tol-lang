@@ -108,8 +108,6 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
                 )
                 .help("sa tol, maaari lamang mag-\"indent\" pagkatapos ng isang `:`");
                 self.current_module_mut().add_diagnostic(diagnostic);
-                // do NOT push, do NOT emit Indent — Option 1 from last message:
-                // treat this line as continuing at the current depth
             } else {
                 self.indent_stack.push(current_indent);
                 self.add_token(TokenKind::Indent, self.current_span());
@@ -120,7 +118,22 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
                 self.add_token(TokenKind::Dedent, self.current_span());
             }
             if current_indent != *self.indent_stack.last().unwrap() {
-                panic!("Invalid indentation");
+                let current_module = self.current_module();
+                let levels = self
+                    .indent_stack
+                    .iter()
+                    .map(|n| n.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let diagnostic = TolDiagnostic::err(
+                    current_module.source_arc(),
+                    current_module.filename(),
+                    "hindi tumutugma ang antas ng indentasyon",
+                )
+                .label(Label::new(self.current_span()).message(format!(
+                    "{current_indent} na espasyo, pero ang mga bukas na antas ay: {levels}"
+                )));
+                self.current_module_mut().add_diagnostic(diagnostic);
             }
         }
     }
@@ -215,7 +228,20 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
             ' ' | '\t' | '\r' => { /* skip irrelevant whitespace */ }
             ch if ch.is_ascii_alphabetic() || ch == '_' => self.lex_identifier(),
             ch if ch.is_ascii_digit() => self.lex_number(),
-            _ => todo!("unrecognized character: {current_char}"),
+            _ => {
+                let current_module = self.current_module();
+                let diagnostic = TolDiagnostic::err(
+                    current_module.source_arc(),
+                    current_module.filename(),
+                    "paggamit ng karakter na hindi parte ng sintax",
+                )
+                .label(
+                    Label::new(self.current_span())
+                        .message("ang karakter na ito ay hindi parte ng sintax ng tol"),
+                )
+                .help("subukan mo itong tanggalin");
+                self.current_module_mut().add_diagnostic(diagnostic);
+            }
         }
     }
 
