@@ -52,8 +52,9 @@ pub fn compile_module(module_id: ModuleId, ctx: &mut GlobalContext) {
 
 fn parse_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     let module = ctx.module_by_id(module_id);
+    let source = module.source_arc();
 
-    let tokens = Lexer::new(module.source()).lex();
+    let tokens = Lexer::new(&source, ctx, module_id).lex();
     for token in tokens.iter() {
         println!("{:?}", token.kind());
     }

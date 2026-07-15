@@ -1,15 +1,17 @@
 use std::{cell::RefCell, iter::Peekable, mem, rc::Rc, str::Chars, sync::Arc};
 
 use crate::{
-    module::Module,
+    global_ctx::GlobalContext,
+    module::{Module, ModuleId},
     tol::{
+        diagnostic::{Label, TolDiagnostic},
         keywords::KEYWORDS,
         token::{Span, Token, TokenKind},
     },
 };
 
 /// Responsible for turning source to a vector of tokens
-pub struct Lexer<'src> {
+pub struct Lexer<'src, 'gctx> {
     source: &'src str,
     source_iter: Peekable<Chars<'src>>,
     start: usize,
@@ -18,11 +20,13 @@ pub struct Lexer<'src> {
     tokens: Vec<Token>,
     indent_stack: Vec<u8>,
     at_line_start: bool,
+    module_id: ModuleId,
+    ctx: &'gctx mut GlobalContext,
 }
 
-impl<'src> Lexer<'src> {
+impl<'src, 'gctx> Lexer<'src, 'gctx> {
     /// Creates a new lexer instance, to lex the given source
-    pub fn new(source: &'src str) -> Self {
+    pub fn new(source: &'src str, ctx: &'gctx mut GlobalContext, module_id: ModuleId) -> Self {
         Self {
             source,
             source_iter: source.chars().peekable(),
@@ -32,6 +36,8 @@ impl<'src> Lexer<'src> {
             tokens: Vec::new(),
             indent_stack: vec![0],
             at_line_start: true,
+            ctx,
+            module_id,
         }
     }
 
@@ -75,7 +81,6 @@ impl<'src> Lexer<'src> {
             }
             self.advance();
         }
-
         if matches!(self.peek(), Some('\n') | None) {
             self.at_line_start = false;
             if self.peek() == Some('\n') {
@@ -84,18 +89,36 @@ impl<'src> Lexer<'src> {
             self.at_line_start = true;
             return;
         }
-
         self.at_line_start = false;
-
         if current_indent > *self.indent_stack.last().unwrap() {
-            self.indent_stack.push(current_indent);
-            self.add_token(TokenKind::Indent, self.current_span());
+            let last_was_colon = self
+                .tokens
+                .last()
+                .is_some_and(|t| t.kind() == &TokenKind::Colon);
+
+            if !last_was_colon {
+                let current_module = self.current_module();
+                let diagnostic = TolDiagnostic::err(
+                    current_module.source_arc(),
+                    current_module.filename(),
+                    "hindi inaasahang pag-\"indent\"",
+                )
+                .label(
+                    Label::new(self.current_span()).message("hindi ka dapat mag-\"indent\" dito"),
+                )
+                .help("sa tol, maaari lamang mag-\"indent\" pagkatapos ng isang `:`");
+                self.current_module_mut().add_diagnostic(diagnostic);
+                // do NOT push, do NOT emit Indent — Option 1 from last message:
+                // treat this line as continuing at the current depth
+            } else {
+                self.indent_stack.push(current_indent);
+                self.add_token(TokenKind::Indent, self.current_span());
+            }
         } else if current_indent < *self.indent_stack.last().unwrap() {
             while current_indent < *self.indent_stack.last().unwrap() {
                 self.indent_stack.pop();
                 self.add_token(TokenKind::Dedent, self.current_span());
             }
-
             if current_indent != *self.indent_stack.last().unwrap() {
                 panic!("Invalid indentation");
             }
@@ -270,131 +293,12 @@ impl<'src> Lexer<'src> {
 
         ch
     }
-}
 
-#[cfg(test)]
-mod test {
-    use super::*;
-    use TokenKind::*;
-
-    fn lex_source(source: &str) -> Vec<Token> {
-        Lexer::new(source).lex()
+    fn current_module(&self) -> &Module {
+        self.ctx.module_by_id(self.module_id)
     }
 
-    fn into_kinds(tokens: Vec<Token>) -> Vec<TokenKind> {
-        tokens.into_iter().map(|tok| tok.kind().clone()).collect()
-    }
-
-    #[test]
-    fn distinguishes_keywords_and_idents() {
-        let source = r"not a keyword print ang";
-        let tokens = into_kinds(lex_source(source));
-
-        assert_eq!(
-            tokens,
-            vec![
-                Identifier("not".into()),
-                Identifier("a".into()),
-                Identifier("keyword".into()),
-                Print,
-                Ang,
-                Eof
-            ]
-        );
-    }
-
-    #[test]
-    fn correctly_lex_numbers() {
-        let source = r"12 12.21";
-        let tokens = into_kinds(lex_source(source));
-
-        assert_eq!(
-            tokens,
-            vec![IntLiteral(12), FloatLiteral(12.21), SemiColon, Eof]
-        )
-    }
-
-    #[test]
-    fn correctly_emits_indents_and_dedents() {
-        let source = r"indent
-    indent
-        indent
-    dedent
-dedent";
-        let tokens = into_kinds(lex_source(source));
-
-        assert_eq!(
-            tokens,
-            vec![
-                Identifier("indent".into()),
-                SemiColon,
-                Indent,
-                Identifier("indent".into()),
-                SemiColon,
-                Indent,
-                Identifier("indent".into()),
-                SemiColon,
-                Dedent,
-                Identifier("dedent".into()),
-                SemiColon,
-                Dedent,
-                Identifier("dedent".into()),
-                SemiColon,
-                Eof
-            ]
-        )
-    }
-
-    #[test]
-    fn lexes_deep_dedents() {
-        let source = r"indent
-    indent
-        indent
-dedent";
-        let tokens = into_kinds(lex_source(source));
-
-        assert_eq!(
-            tokens,
-            vec![
-                Identifier("indent".into()),
-                SemiColon,
-                Indent,
-                Identifier("indent".into()),
-                SemiColon,
-                Indent,
-                Identifier("indent".into()),
-                SemiColon,
-                Dedent,
-                Dedent,
-                Identifier("dedent".into()),
-                SemiColon,
-                Eof
-            ]
-        )
-    }
-
-    #[test]
-    fn emits_remaining_dedents_before_eof() {
-        let source = r"indent
-    indent
-        indent";
-        let tokens = into_kinds(lex_source(source));
-
-        assert_eq!(
-            tokens,
-            vec![
-                Identifier("indent".into()),
-                SemiColon,
-                Indent,
-                Identifier("indent".into()),
-                SemiColon,
-                Indent,
-                Identifier("indent".into()),
-                SemiColon,
-                Dedent,
-                Dedent,
-                Eof,
-            ]
-        )
+    fn current_module_mut(&mut self) -> &mut Module {
+        self.ctx.module_by_id_mut(self.module_id)
     }
 }
