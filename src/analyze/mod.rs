@@ -205,6 +205,33 @@ impl<'gctx> Analyzer<'gctx> {
 
                 self.resolve_expression(right)
             }
+            ExprKind::Call { left, args } => {
+                if !left.is_lvalue() {
+                    let current_module = self.current_module();
+                    let diagnostic = TolDiagnostic::err(
+                        current_module.source_arc(),
+                        current_module.filename(),
+                        "pag-tawag ng hindi isang \"lvalue\"",
+                    )
+                    .label(
+                        Label::new(left.span().clone())
+                            .message("hindi ito isang \"lvalue\", ngunit tinawag mo ito"),
+                    )
+                    .help("mga \"lvalue\" lamang ang pwede tawagin");
+
+                    return Err(Box::new(diagnostic));
+                }
+
+                self.resolve_expression(left)?;
+
+                for arg in args {
+                    if let Err(diag) = self.resolve_expression(arg) {
+                        self.current_module_mut().add_diagnostic(*diag);
+                    }
+                }
+
+                Ok(())
+            }
         }
     }
 

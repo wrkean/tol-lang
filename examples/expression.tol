@@ -1,15 +1,7 @@
-ang iiba x = 5 + 5 / 2
-ang y = x + 2
-
-x = 1
-
-print x + y
-print 1 == 1
-print 1 != 0
-print 1 > 0
-print 0 < 1
-print 1 >= 1
-print 1 <= 1
-
 paraan gumagana_ba_to(x) -> numero:
-    print 1
+    print x + 5
+
+paraan func(fn):
+    fn(5)
+
+func(gumagana_ba_to)

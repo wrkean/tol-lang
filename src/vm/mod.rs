@@ -83,9 +83,56 @@ impl VM {
                 op if op == OpCode::Null as u8 => {
                     self.push(Value::Null);
                 }
+                op if op == OpCode::Call as u8 => {
+                    let arity = self.read_byte();
+                    self.call_function(arity);
+                }
+                op if op == OpCode::Return as u8 => {
+                    let value = self.pop();
+                    self.return_from_frame(value);
+                }
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }
         }
+    }
+
+    fn return_from_frame(&mut self, return_val: Value) {
+        self.frames.pop();
+        self.push(return_val);
+    }
+
+    fn call_function(&mut self, arity: u8) {
+        let callee_index = self.stack.len() - 1 - arity as usize;
+
+        let is_function = matches!(self.stack[callee_index], Value::Function(_));
+        if !is_function {
+            panic!("popped value isnt a function")
+        }
+        let func_arity = match &self.stack[callee_index] {
+            Value::Function(f) => f.arity,
+            _ => unreachable!(),
+        };
+        if func_arity != arity {
+            panic!(
+                "hindi tugmang bilang ng parametro at argumento: `{}` na bilang ng parametro at `{}` na bilang ng argumento",
+                func_arity, arity
+            )
+        }
+
+        let mut locals = vec![Value::Null; arity as usize];
+        for slot in (0..arity).rev() {
+            locals[slot as usize] = self.pop();
+        }
+
+        let Value::Function(func) = self.pop() else {
+            unreachable!("already verified above")
+        };
+
+        self.frames.push(Frame {
+            chunk: func.chunk.clone(),
+            ip: 0,
+            locals,
+        })
     }
 
     fn store_global(&mut self, index: usize, value: Value) {

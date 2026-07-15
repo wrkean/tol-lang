@@ -5,6 +5,7 @@ pub enum OpCode {
     StoreLocal,
     LoadGlobal,
     LoadLocal,
+    Call,
 
     Pop,
     Halt,

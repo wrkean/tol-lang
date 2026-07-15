@@ -345,8 +345,34 @@ impl<'c> Parser<'c> {
                     },
                 ))
             }
+            TokenKind::LParen => {
+                let args = self.parse_args()?;
+                let end = self.consume(TokenKind::RParen, ")")?.span().end;
+                let span = left.span().start..end;
+
+                Ok(Expr::new(
+                    span,
+                    ExprKind::Call {
+                        left: Box::new(left),
+                        args,
+                    },
+                ))
+            }
             _ => unreachable!(),
         }
+    }
+
+    fn parse_args(&mut self) -> DiagResult<Vec<Expr>> {
+        let mut args = Vec::new();
+        while !self.at_end() && self.peek().kind() != &TokenKind::RParen {
+            args.push(self.parse_expression(0)?);
+
+            if self.peek().kind() == &TokenKind::Comma {
+                self.advance();
+            }
+        }
+
+        Ok(args)
     }
 
     fn synchonize(&mut self) {

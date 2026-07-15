@@ -58,6 +58,10 @@ pub enum ExprKind {
         right: Box<Expr>,
         op: Token,
     },
+    Call {
+        left: Box<Expr>,
+        args: Vec<Expr>,
+    },
 }
 
 impl fmt::Display for Expr {
@@ -69,6 +73,7 @@ impl fmt::Display for Expr {
             ExprKind::Binary { left, right, op } => {
                 write!(f, "({:?} {} {})", op.kind(), left, right)
             }
+            ExprKind::Call { .. } => unimplemented!(),
         }
     }
 }

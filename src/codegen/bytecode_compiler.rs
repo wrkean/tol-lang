@@ -177,6 +177,17 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                     self.chunk.emit_operator(op.kind(), line);
                 }
             }
+            ExprKind::Call { left, args } => {
+                self.compile_expression(left);
+
+                for arg in args {
+                    self.compile_expression(arg);
+                }
+
+                let line = self.current_module().line_of(left.span().start);
+                self.chunk.emit_opcode(OpCode::Call, line);
+                self.chunk.emit_byte(args.len() as u8, line);
+            }
         }
     }
 

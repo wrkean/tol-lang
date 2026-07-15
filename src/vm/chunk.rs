@@ -149,6 +149,7 @@ impl Chunk {
             op if op == OpCode::LoadLocal as u8 => {
                 self.disassemble_byte_instruction("LOAD_LOCAL", offset)
             }
+            op if op == OpCode::Call as u8 => self.disassemble_byte_instruction("CALL", offset),
             _ => {
                 println!("UNKNOWN OPCODE: {:02X}", offset);
                 offset + 1
