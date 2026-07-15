@@ -13,6 +13,7 @@ use crate::{
     global_ctx::GlobalContext,
     module::{Module, ModuleCompileState, ModuleId},
     parse::{Parser, lexer::Lexer},
+    vm::VM,
 };
 
 /// Compiles the entry point derived from the initialized CLI arguments.
@@ -41,6 +42,9 @@ pub fn compile_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     let mut compiler = BytecodeCompiler::new(ctx, module_id);
     let chunk = compiler.compile();
     chunk.disassemble("main");
+
+    let mut vm = VM::new(chunk);
+    vm.run();
 
     let module = ctx.module_by_id_mut(module_id);
     module.report_diagnostics();

@@ -1,6 +1,7 @@
 pub enum OpCode {
     Constant,
     Pop,
+    Halt,
 
     Add,
     Sub,

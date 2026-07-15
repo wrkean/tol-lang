@@ -15,7 +15,6 @@ pub struct Chunk {
     constants: Vec<Value>,
     lines: Vec<LineRun>,
 }
-
 impl Chunk {
     pub fn new() -> Self {
         Self {
@@ -39,6 +38,10 @@ impl Chunk {
         self.constants.push(constant);
 
         (self.constants.len() - 1) as u8
+    }
+
+    pub fn get_constant(&self, constant_index: usize) -> Value {
+        self.constants[constant_index].clone()
     }
 
     pub fn emit_constant(&mut self, index: u8, line: usize) {
@@ -73,6 +76,10 @@ impl Chunk {
         }
     }
 
+    pub fn get_byte(&self, index: usize) -> u8 {
+        self.code[index]
+    }
+
     // Helper function responsible for writing into the bytecode list `self.code`
     // It writes a byte (can be an opcode or a raw byte) and records it's line
     fn write(&mut self, byte: u8, line: usize) -> usize {
@@ -102,24 +109,25 @@ impl Chunk {
 
         let instruction = self.code[offset];
         match instruction {
-            x if x == OpCode::Constant as u8 => {
+            op if op == OpCode::Add as u8 => self.simple_instruction("ADD", offset),
+            op if op == OpCode::Sub as u8 => self.simple_instruction("SUB", offset),
+            op if op == OpCode::Mult as u8 => self.simple_instruction("MULT", offset),
+            op if op == OpCode::Div as u8 => self.simple_instruction("DIV", offset),
+            op if op == OpCode::Pop as u8 => self.simple_instruction("POP", offset),
+            op if op == OpCode::Halt as u8 => self.simple_instruction("HALT", offset),
+            op if op == OpCode::Constant as u8 => {
                 self.disassemble_constant_instruction("CONSTANT", offset)
             }
-            x if x == OpCode::Add as u8 => self.simple_instruction("ADD", offset),
-            x if x == OpCode::Sub as u8 => self.simple_instruction("SUB", offset),
-            x if x == OpCode::Mult as u8 => self.simple_instruction("MULT", offset),
-            x if x == OpCode::Div as u8 => self.simple_instruction("DIV", offset),
-            x if x == OpCode::Pop as u8 => self.simple_instruction("POP", offset),
-            x if x == OpCode::StoreGlobal as u8 => {
+            op if op == OpCode::StoreGlobal as u8 => {
                 self.disassemble_byte_instruction("STORE_GLOBAL", offset)
             }
-            x if x == OpCode::StoreLocal as u8 => {
+            op if op == OpCode::StoreLocal as u8 => {
                 self.disassemble_byte_instruction("STORE_LOCAL", offset)
             }
-            x if x == OpCode::LoadGlobal as u8 => {
+            op if op == OpCode::LoadGlobal as u8 => {
                 self.disassemble_byte_instruction("LOAD_GLOBAL", offset)
             }
-            x if x == OpCode::LoadLocal as u8 => {
+            op if op == OpCode::LoadLocal as u8 => {
                 self.disassemble_byte_instruction("LOAD_LOCAL", offset)
             }
             _ => {

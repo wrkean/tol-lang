@@ -34,6 +34,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         for statement in ast {
             self.compile_statement(statement);
         }
+        self.chunk.emit_opcode(OpCode::Halt, 0);
 
         mem::take(&mut self.chunk)
     }
