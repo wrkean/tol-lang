@@ -1,0 +1,141 @@
+=== main ===
+0000           1 CONSTANT            0 Value(5)
+0002           | STORE_GLOBAL        0
+0004           3 LOAD_GLOBAL         0
+0006           | CONSTANT            1 Value(1)
+0008           | EQUAL_EQ
+0009           | JUMP_IF_FALSE       7
+0012           | POP
+0013           4 LOAD_GLOBAL         0
+0015           | PRINT
+0016           | JUMP               39
+0019           3 POP
+0020           5 LOAD_GLOBAL         0
+0022           | CONSTANT            2 Value(5)
+0024           | NOT_EQ
+0025           | JUMP_IF_FALSE      10
+0028           | POP
+0029           6 LOAD_GLOBAL         0
+0031           | CONSTANT            3 Value(5)
+0033           | ADD
+0034           | PRINT
+0035           | JUMP               20
+0038           5 POP
+0039           7 LOAD_GLOBAL         0
+0041           | CONSTANT            4 Value(5)
+0043           | EQUAL_EQ
+0044           | JUMP_IF_FALSE      10
+0047           | POP
+0048           8 LOAD_GLOBAL         0
+0050           | CONSTANT            5 Value(5)
+0052           | SUB
+0053           | PRINT
+0054           | JUMP                1
+0057           7 POP
+0058          10 CONSTANT            6 Value(1)
+0060           | CONSTANT            7 Value(1)
+0062           | EQUAL_EQ
+0063           | JUMP_IF_FALSE       7
+0066           | POP
+0067          11 JUMP                4
+0070          10 UNKNOWN OPCODE: 46
+0071           | CONSTANT           15 <invalid constant>
+0073           | POP
+0074           0 HALT
+0
+=== main ===
+0000           1 CONSTANT            0 Value(5)
+0002           | STORE_GLOBAL        0
+0004           3 LOAD_GLOBAL         0
+0006           | CONSTANT            1 Value(1)
+0008           | EQUAL_EQ
+0009           | JUMP_IF_FALSE       7
+0012           | POP
+0013           4 LOAD_GLOBAL         0
+0015           | PRINT
+0016           | JUMP               39
+0019           3 POP
+0020           5 LOAD_GLOBAL         0
+0022           | CONSTANT            2 Value(5)
+0024           | NOT_EQ
+0025           | JUMP_IF_FALSE      10
+0028           | POP
+0029           6 LOAD_GLOBAL         0
+0031           | CONSTANT            3 Value(5)
+0033           | ADD
+0034           | PRINT
+0035           | JUMP               20
+0038           5 POP
+0039           7 LOAD_GLOBAL         0
+0041           | CONSTANT            4 Value(5)
+0043           | EQUAL_EQ
+0044           | JUMP_IF_FALSE      10
+0047           | POP
+0048           8 LOAD_GLOBAL         0
+0050           | CONSTANT            5 Value(5)
+0052           | SUB
+0053           | PRINT
+0054           | JUMP                1
+0057           7 POP
+0058          10 CONSTANT            6 Value(1)
+0060           | CONSTANT            7 Value(1)
+0062           | EQUAL_EQ
+0063           | JUMP_IF_FALSE      10
+0066           | POP
+0067          11 LOAD_GLOBAL         0
+0069           | PRINT
+0070          12 JUMP                4
+0073          10 UNKNOWN OPCODE: 49
+0074           | CONSTANT           18 <invalid constant>
+0076           | POP
+0077           0 HALT
+0
+5
+=== main ===
+0000           1 CONSTANT            0 Value(5)
+0002           | STORE_GLOBAL        0
+0004           3 LOAD_GLOBAL         0
+0006           | CONSTANT            1 Value(1)
+0008           | EQUAL_EQ
+0009           | JUMP_IF_FALSE       7
+0012           | POP
+0013           4 LOAD_GLOBAL         0
+0015           | PRINT
+0016           | JUMP               39
+0019           3 POP
+0020           5 LOAD_GLOBAL         0
+0022           | CONSTANT            2 Value(5)
+0024           | NOT_EQ
+0025           | JUMP_IF_FALSE      10
+0028           | POP
+0029           6 LOAD_GLOBAL         0
+0031           | CONSTANT            3 Value(5)
+0033           | ADD
+0034           | PRINT
+0035           | JUMP               20
+0038           5 POP
+0039           7 LOAD_GLOBAL         0
+0041           | CONSTANT            4 Value(5)
+0043           | EQUAL_EQ
+0044           | JUMP_IF_FALSE      10
+0047           | POP
+0048           8 LOAD_GLOBAL         0
+0050           | CONSTANT            5 Value(5)
+0052           | SUB
+0053           | PRINT
+0054           | JUMP                1
+0057           7 POP
+0058          10 CONSTANT            6 Value(1)
+0060           | CONSTANT            7 Value(1)
+0062           | EQUAL_EQ
+0063           | JUMP_IF_FALSE      10
+0066           | POP
+0067          11 LOAD_GLOBAL         0
+0069           | PRINT
+0070          13 JUMP                4
+0073          10 UNKNOWN OPCODE: 49
+0074           | CONSTANT           18 <invalid constant>
+0076           | POP
+0077           0 HALT
+0
+5

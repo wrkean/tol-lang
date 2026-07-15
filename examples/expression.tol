@@ -1,11 +1,4 @@
-ang x = 5
-
-kung x == 1:
-    print x
-kundi x != 5:
-    print x + 5
-kundi x == 5:
-    print x - 5
-
 habang 1 == 1:
-    print x
+   print 1
+
+    biyakin

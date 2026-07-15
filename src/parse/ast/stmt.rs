@@ -79,6 +79,9 @@ pub enum StmtKind {
     Expr {
         expr: Expr,
     },
+
+    Biyakin,
+    Ituloy,
 }
 
 pub struct ParamList {

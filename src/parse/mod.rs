@@ -65,6 +65,19 @@ impl<'c> Parser<'c> {
             TokenKind::Paraan => self.parse_paraan(),
             TokenKind::Kung => self.parse_kung(),
             TokenKind::Habang => self.parse_habang(),
+            TokenKind::Biyakin => {
+                let span = self.advance().span().clone();
+                self.consume(
+                    TokenKind::SemiColon,
+                    "umaasa ng `;` pagkatapos ng `biyakin`",
+                )?;
+                Ok(Stmt::new(span, StmtKind::Biyakin))
+            }
+            TokenKind::Ituloy => {
+                let span = self.advance().span().clone();
+                self.consume(TokenKind::SemiColon, "umaasa ng `;` pagkatapos ng `ituloy`")?;
+                Ok(Stmt::new(span, StmtKind::Ituloy))
+            }
 
             _ => {
                 let expr = self.parse_expression(0)?;
@@ -225,7 +238,10 @@ impl<'c> Parser<'c> {
         while !self.at_end() && self.peek().kind() != &TokenKind::Dedent {
             match self.parse_statement() {
                 Ok(statement) => statements.push(statement),
-                Err(diag) => self.current_module_mut().add_diagnostic(*diag),
+                Err(diag) => {
+                    self.synchonize();
+                    self.current_module_mut().add_diagnostic(*diag);
+                }
             }
         }
 
@@ -361,6 +377,7 @@ impl<'c> Parser<'c> {
                     "hindi ito maaaring mag-simula ng isang expresyon",
                     span,
                 );
+                self.advance();
 
                 Err(Box::new(diagnostic))
             }

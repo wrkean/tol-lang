@@ -32,6 +32,8 @@ pub enum TokenKind {
     Kundi,
     Kungwala,
     Habang,
+    Biyakin,
+    Ituloy,
 
     SemiColon,
     Colon,
@@ -71,12 +73,12 @@ impl TokenKind {
         use TokenKind::*;
         matches!(
             self,
-            RParen | RSquare | Identifier(_) | IntLiteral(_) | FloatLiteral(_)
+            RParen | RSquare | Identifier(_) | IntLiteral(_) | FloatLiteral(_) | Biyakin | Ituloy
         )
     }
 
     pub fn is_synchronization_point(&self) -> bool {
         use TokenKind::*;
-        matches!(self, Ang | Print | Paraan)
+        matches!(self, Ang | Print | Paraan | Biyakin | Ituloy)
     }
 }

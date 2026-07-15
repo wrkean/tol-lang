@@ -76,6 +76,15 @@ impl<'src> Lexer<'src> {
             self.advance();
         }
 
+        if matches!(self.peek(), Some('\n') | None) {
+            self.at_line_start = false;
+            if self.peek() == Some('\n') {
+                self.advance();
+            }
+            self.at_line_start = true;
+            return;
+        }
+
         self.at_line_start = false;
 
         if current_indent > *self.indent_stack.last().unwrap() {

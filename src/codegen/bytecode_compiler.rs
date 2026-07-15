@@ -54,6 +54,8 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             StmtKind::Print { .. } => self.compile_print(statement),
             StmtKind::Kung { .. } => self.compile_kung(statement),
             StmtKind::Habang { .. } => self.compile_habang(statement),
+            StmtKind::Biyakin => self.compile_biyakin(statement),
+            StmtKind::Ituloy => self.compile_ituloy(statement),
             StmtKind::Expr { .. } => self.compile_expression_statement(statement),
             StmtKind::Block { statements } => {
                 for statement in statements {
@@ -190,6 +192,19 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         for jump in ctx.break_jumps {
             self.chunk.patch_jump(jump);
         }
+    }
+
+    fn compile_biyakin(&mut self, biyakin: &Stmt) {
+        let line = self.current_module().line_of(biyakin.span().start);
+        let jump = self.chunk.emit_jump(OpCode::Jump, line);
+        let loop_ctx = self.loop_stack.last_mut().unwrap();
+        loop_ctx.break_jumps.push(jump);
+    }
+
+    fn compile_ituloy(&mut self, ituloy: &Stmt) {
+        let line = self.current_module().line_of(ituloy.span().start);
+        let loop_ctx = self.loop_stack.last().unwrap();
+        self.chunk.emit_loop(loop_ctx.loop_start, line);
     }
 
     fn store_symbol(&mut self, symbol_id: SymbolId, line: usize) {

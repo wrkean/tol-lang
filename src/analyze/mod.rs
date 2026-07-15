@@ -25,6 +25,7 @@ pub struct Analyzer<'gctx> {
     scopes: Vec<Scope>,
     ctx: &'gctx mut GlobalContext,
     module_id: ModuleId,
+    loop_depth: u8,
 
     next_global_slot: usize,
     next_local_slot: usize,
@@ -38,6 +39,7 @@ impl<'gctx> Analyzer<'gctx> {
             scopes: vec![Scope::new()],
             ctx,
             module_id,
+            loop_depth: 0,
             next_global_slot: 0,
             next_local_slot: 0,
             next_local_slot_stack: Vec::new(),
@@ -67,6 +69,8 @@ impl<'gctx> Analyzer<'gctx> {
             StmtKind::Expr { expr } => self.resolve_expression(expr),
             StmtKind::Kung { .. } => self.resolve_kung(statement),
             StmtKind::Habang { .. } => self.resolve_habang(statement),
+            StmtKind::Biyakin => self.resolve_biyakin(statement),
+            StmtKind::Ituloy => self.resolve_ituloy(statement),
             StmtKind::Block { statements } => {
                 for statement in statements {
                     if let Err(diag) = self.resolve_statement(statement) {
@@ -202,7 +206,43 @@ impl<'gctx> Analyzer<'gctx> {
         };
 
         self.resolve_expression(condition)?;
+        self.loop_depth += 1;
         self.resolve_statement(block)?;
+        self.loop_depth -= 1;
+
+        Ok(())
+    }
+
+    fn resolve_biyakin(&mut self, biyakin: &Stmt) -> DiagResult<()> {
+        if self.loop_depth == 0 {
+            let current_module = self.current_module();
+            let diagnostic = TolDiagnostic::err(
+                current_module.source_arc(),
+                current_module.filename(),
+                "paggamit ng `biyakin` sa labas ng loop",
+            )
+            .label(Label::new(biyakin.span().clone()).message("ito ay nasa labas ng loop"))
+            .help("maaari lamang gamitin ang `biyakin` sa loob ng loop");
+
+            return Err(Box::new(diagnostic));
+        }
+
+        Ok(())
+    }
+
+    fn resolve_ituloy(&mut self, ituloy: &Stmt) -> DiagResult<()> {
+        if self.loop_depth == 0 {
+            let current_module = self.current_module();
+            let diagnostic = TolDiagnostic::err(
+                current_module.source_arc(),
+                current_module.filename(),
+                "paggamit ng `ituloy` sa labas ng loop",
+            )
+            .label(Label::new(ituloy.span().clone()).message("ito ay nasa labas ng loop"))
+            .help("maaari lamang gamitin ang `biyakin` sa loob ng loop");
+
+            return Err(Box::new(diagnostic));
+        }
 
         Ok(())
     }

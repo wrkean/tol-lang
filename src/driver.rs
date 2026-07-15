@@ -54,6 +54,9 @@ fn parse_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     let module = ctx.module_by_id(module_id);
 
     let tokens = Lexer::new(module.source()).lex();
+    for token in tokens.iter() {
+        println!("{:?}", token.kind());
+    }
     Parser::new(tokens, ctx, module_id).parse();
 }
 
