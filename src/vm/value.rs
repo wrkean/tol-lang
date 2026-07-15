@@ -3,12 +3,15 @@ pub enum Value {
     Int(i64),
     Float(f64),
     Bool(bool),
+    Function(Rc<Function>),
     Null,
 }
 
-use std::fmt;
+use std::{fmt, rc::Rc};
 
 use Value::*;
+
+use crate::vm::function::Function;
 impl Value {
     pub fn add(self, right: Self) -> Self {
         match (self, right) {
@@ -102,6 +105,7 @@ impl fmt::Display for Value {
             Bool(true) => write!(f, "totoo"),
             Bool(false) => write!(f, "mali"),
             Null => write!(f, "<NULL>"),
+            Function(func) => write!(f, "paraan {}(...)", func.name),
         }
     }
 }

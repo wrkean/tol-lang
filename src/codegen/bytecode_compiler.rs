@@ -1,4 +1,4 @@
-use std::mem;
+use std::{mem, rc::Rc};
 
 use crate::{
     analyze::symbol::{Storage, SymbolId},
@@ -9,7 +9,7 @@ use crate::{
         stmt::{Stmt, StmtKind},
     },
     tol::token::TokenKind,
-    vm::{chunk::Chunk, opcode::OpCode, value::Value},
+    vm::{chunk::Chunk, function::Function, opcode::OpCode, value::Value},
 };
 
 /// Compiles the target module into chunks of bytecode
@@ -43,8 +43,14 @@ impl<'gctx> BytecodeCompiler<'gctx> {
     fn compile_statement(&mut self, statement: &Stmt) {
         match statement.kind() {
             StmtKind::Ang { .. } => self.compile_ang(statement),
+            StmtKind::Paraan { .. } => self.compile_paraan(statement),
             StmtKind::Print { .. } => self.compile_print(statement),
             StmtKind::Expr { .. } => self.compile_expression_statement(statement),
+            StmtKind::Block { statements } => {
+                for statement in statements {
+                    self.compile_statement(statement);
+                }
+            }
         }
     }
 
@@ -63,6 +69,45 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         let id = ang.symbol_id();
         let line = self.current_module().line_of(ang.span().start);
         self.store_symbol(id, line);
+    }
+
+    fn compile_paraan(&mut self, paraan: &Stmt) {
+        let StmtKind::Paraan {
+            name,
+            params,
+            ret_ty,
+            block,
+        } = paraan.kind()
+        else {
+            unreachable!()
+        };
+
+        let symbol = self.ctx.symbol_by_id(paraan.symbol_id());
+
+        // Temporarily replace current chunk with a new chunk assumed to be chunks produced by the blocks of this function
+        let mut function_chunk = Chunk::new();
+        let old_chunk = mem::replace(&mut self.chunk, function_chunk);
+
+        self.compile_statement(block);
+        let line = self.current_module().line_of(block.span().end);
+        if !self.chunk.ends_with_return() {
+            self.chunk.emit_opcode(OpCode::Null, line);
+            self.chunk.emit_opcode(OpCode::Return, line);
+        }
+
+        // After compiling the block, we put the chunk back to its place and retrieve the chunks
+        // produced by compiling the function block
+        function_chunk = mem::replace(&mut self.chunk, old_chunk);
+
+        let TokenKind::Identifier(function_name) = name.kind() else {
+            unreachable!()
+        };
+        let function = Function::new(function_name.clone(), function_chunk, params.len() as u8);
+
+        let line = self.current_module().line_of(paraan.span().start);
+        self.chunk
+            .add_and_emit_constant(Value::Function(Rc::new(function)), line);
+        self.store_symbol(paraan.symbol_id(), line);
     }
 
     fn compile_print(&mut self, print: &Stmt) {

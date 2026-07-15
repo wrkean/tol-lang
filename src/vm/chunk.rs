@@ -9,7 +9,7 @@ struct LineRun {
     count: usize,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct Chunk {
     code: Vec<u8>,
     constants: Vec<Value>,
@@ -84,6 +84,12 @@ impl Chunk {
 
     pub fn get_byte(&self, index: usize) -> u8 {
         self.code[index]
+    }
+
+    pub fn ends_with_return(&self) -> bool {
+        self.code
+            .last()
+            .is_some_and(|last| *last == OpCode::Return as u8)
     }
 
     // Helper function responsible for writing into the bytecode list `self.code`
@@ -161,7 +167,7 @@ impl Chunk {
         let constant = self.constants.get(constant_index);
 
         match constant {
-            Some(value) => println!("{:<16} {:4} {:?}", name, constant_index, value),
+            Some(value) => println!("{:<16} {:4} Value({})", name, constant_index, value),
             None => println!("{:<16} {:4} <invalid constant>", name, constant_index),
         }
 

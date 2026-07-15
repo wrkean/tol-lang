@@ -1,6 +1,7 @@
 use crate::{
     analyze::symbol::SymbolId,
     parse::ast::expr::Expr,
+    prelude::Spanned,
     tol::{
         token::{Span, Token},
         types::TolType,
@@ -56,9 +57,42 @@ pub enum StmtKind {
     Print {
         expr: Expr,
     },
+    Paraan {
+        name: Token,
+        params: ParamList,
+        ret_ty: TolType,
+        block: Box<Stmt>,
+    },
+    Block {
+        statements: Vec<Stmt>,
+    },
 
     // Expression statement
     Expr {
         expr: Expr,
     },
+}
+
+pub struct ParamList {
+    pub params: Vec<Param>,
+    pub span: Span,
+}
+
+impl ParamList {
+    pub fn spanned_types(&self) -> Spanned<Vec<TolType>> {
+        let param_types: Vec<TolType> = self.params.iter().map(|param| param.ty.clone()).collect();
+
+        Spanned::new(self.span.clone(), param_types)
+    }
+
+    pub fn len(&self) -> usize {
+        self.params.len()
+    }
+}
+
+pub struct Param {
+    pub name: Token,
+    pub ty: TolType,
+    pub span: Span,
+    pub is_mutable: bool,
 }

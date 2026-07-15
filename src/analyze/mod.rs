@@ -28,6 +28,7 @@ pub struct Analyzer<'gctx> {
 
     next_global_slot: usize,
     next_local_slot: usize,
+    next_local_slot_stack: Vec<usize>,
 }
 
 impl<'gctx> Analyzer<'gctx> {
@@ -39,6 +40,7 @@ impl<'gctx> Analyzer<'gctx> {
             module_id,
             next_global_slot: 0,
             next_local_slot: 0,
+            next_local_slot_stack: Vec::new(),
         }
     }
 
@@ -60,8 +62,18 @@ impl<'gctx> Analyzer<'gctx> {
     fn resolve_statement(&mut self, statement: &mut Stmt) -> DiagResult<()> {
         match statement.kind_mut() {
             StmtKind::Ang { .. } => self.resolve_ang(statement),
+            StmtKind::Paraan { .. } => self.resolve_paraan(statement),
             StmtKind::Print { expr } => self.resolve_expression(expr),
             StmtKind::Expr { expr } => self.resolve_expression(expr),
+            StmtKind::Block { statements } => {
+                for statement in statements {
+                    if let Err(diag) = self.resolve_statement(statement) {
+                        self.current_module_mut().add_diagnostic(*diag);
+                    }
+                }
+
+                Ok(())
+            }
         }
     }
 
@@ -97,6 +109,66 @@ impl<'gctx> Analyzer<'gctx> {
 
         // This ast node is now pointing it's symbol id to its declaration in the symbol table
         ang.set_symbol_id(id);
+
+        Ok(())
+    }
+
+    fn resolve_paraan(&mut self, paraan: &mut Stmt) -> DiagResult<()> {
+        let StmtKind::Paraan {
+            name,
+            params,
+            ret_ty,
+            block,
+        } = paraan.kind_mut()
+        else {
+            unreachable!()
+        };
+
+        let storage = self.assign_storage();
+        let TokenKind::Identifier(symbol_name) = name.kind() else {
+            unreachable!()
+        };
+        let symbol = Symbol::new(
+            symbol_name.clone(),
+            name.span().clone(),
+            storage,
+            SymbolKind::Function {
+                param_types: params.spanned_types(),
+                ret_ty: ret_ty.clone(),
+            },
+        );
+        let id = self.declare_symbol(symbol)?;
+
+        self.enter_function();
+        self.enter_scope();
+
+        for param in params.params.iter() {
+            let TokenKind::Identifier(param_name) = param.name.kind() else {
+                unreachable!()
+            };
+            let symbol = Symbol::new(
+                param_name.clone(),
+                param.span.clone(),
+                self.assign_storage(),
+                SymbolKind::Name {
+                    is_mutable: param.is_mutable,
+                    ty: param.ty.clone(),
+                },
+            );
+
+            if let Err(diag) = self.declare_symbol(symbol) {
+                self.current_module_mut().add_diagnostic(*diag);
+            }
+        }
+
+        self.enter_scope();
+        self.resolve_statement(block)?;
+
+        self.exit_function();
+        self.exit_scope();
+        self.exit_scope();
+
+        paraan.set_symbol_id(id);
 
         Ok(())
     }
@@ -172,6 +244,23 @@ impl<'gctx> Analyzer<'gctx> {
                     Ok(())
                 }
             }
+            SymbolKind::Function {
+                param_types,
+                ret_ty,
+            } => {
+                let diagnostic = TolDiagnostic::err(
+                    current_module.source_arc(),
+                    current_module.filename(),
+                    "pag-assign sa isang paraan",
+                )
+                .label(
+                    Label::new(left_symbol.span().clone())
+                        .message("i-dineklara ito bilaang paraan"),
+                )
+                .label(Label::new(left.span().clone()).message("sinubukan mong i-assign dito"));
+
+                Err(Box::new(diagnostic))
+            }
         }
     }
 
@@ -219,6 +308,29 @@ impl<'gctx> Analyzer<'gctx> {
 
     fn current_module_mut(&mut self) -> &mut Module {
         self.ctx.module_by_id_mut(self.module_id)
+    }
+
+    fn enter_function(&mut self) {
+        self.next_local_slot_stack.push(self.next_local_slot);
+        self.next_local_slot = 0;
+    }
+
+    fn exit_function(&mut self) -> usize {
+        let local_count = self.next_local_slot;
+        self.next_local_slot = self
+            .next_local_slot_stack
+            .pop()
+            .expect("function scope stack underflow");
+
+        local_count
+    }
+
+    fn enter_scope(&mut self) {
+        self.scopes.push(Scope::new());
+    }
+
+    fn exit_scope(&mut self) {
+        self.scopes.pop();
     }
 
     fn is_in_global_scope(&self) -> bool {

@@ -27,6 +27,7 @@ pub enum TokenKind {
     Ang,
     Print,
     Iiba,
+    Paraan,
 
     SemiColon,
     Colon,
@@ -53,6 +54,7 @@ pub enum TokenKind {
     LessEq,
     Lesser,
     Comma,
+    ThinArrow,
 
     Indent,
     Dedent,
@@ -71,6 +73,6 @@ impl TokenKind {
 
     pub fn is_synchronization_point(&self) -> bool {
         use TokenKind::*;
-        matches!(self, Ang | Print)
+        matches!(self, Ang | Print | Paraan)
     }
 }

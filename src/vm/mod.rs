@@ -1,6 +1,7 @@
 use crate::vm::{chunk::Chunk, opcode::OpCode, value::Value};
 
 pub mod chunk;
+pub mod function;
 pub mod opcode;
 pub mod value;
 

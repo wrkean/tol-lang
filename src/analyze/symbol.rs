@@ -1,4 +1,7 @@
-use crate::tol::{token::Span, types::TolType};
+use crate::{
+    prelude::Spanned,
+    tol::{token::Span, types::TolType},
+};
 
 pub type SymbolId = usize;
 
@@ -41,7 +44,14 @@ impl Symbol {
 }
 
 pub enum SymbolKind {
-    Name { is_mutable: bool, ty: TolType },
+    Name {
+        is_mutable: bool,
+        ty: TolType,
+    },
+    Function {
+        param_types: Spanned<Vec<TolType>>,
+        ret_ty: TolType,
+    },
 }
 
 pub type StorageId = usize;

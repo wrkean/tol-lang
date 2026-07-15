@@ -159,7 +159,13 @@ impl<'src> Lexer<'src> {
                 }
             }
             '+' => self.add_token(TokenKind::Plus, self.current_span()),
-            '-' => self.add_token(TokenKind::Minus, self.current_span()),
+            '-' => {
+                if self.match_ch('>') {
+                    self.add_token(TokenKind::ThinArrow, self.current_span());
+                } else {
+                    self.add_token(TokenKind::Minus, self.current_span())
+                }
+            }
             '*' => self.add_token(TokenKind::Star, self.current_span()),
             '/' => self.add_token(TokenKind::Slash, self.current_span()),
             ',' => self.add_token(TokenKind::Comma, self.current_span()),

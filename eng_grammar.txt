@@ -1,11 +1,20 @@
 program = { statement } ;
 
 statement = ang_statement
-        | print_statement ;
+        | print_statement
+        | paraan_statement ;
 
 ang_statement = "ang" ["iiba"] identifier [":" TYPE] "=" expression ";" ;
 
 print_statement = "print" expression ";" ;
+
+paraan_statement = "paraan" identifier param_list ["->" TYPE] ":" block ;
+
+param_list "(" { param } [","] ")" ;
+
+param = identifier [":" TYPE] ;
+
+block = INDENT { statement } DEDENT ;
 
 expression = binary_expression
             | number

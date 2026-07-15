@@ -5,6 +5,7 @@ use phf::phf_map;
 pub enum TolType {
     Lutang,
     Numero,
+    Wala,
 
     DiAlam,
 }

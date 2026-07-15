@@ -19,4 +19,5 @@ pub enum OpCode {
     Lesser,
     LessEq,
     Null,
+    Return,
 }

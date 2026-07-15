@@ -5,7 +5,7 @@ use crate::{
     module::{Module, ModuleId},
     parse::ast::{
         expr::{Expr, ExprKind},
-        stmt::{Stmt, StmtKind},
+        stmt::{Param, ParamList, Stmt, StmtKind},
     },
     prelude::DiagResult,
     tol::{
@@ -62,6 +62,7 @@ impl<'c> Parser<'c> {
         match self.peek().kind() {
             TokenKind::Ang => self.parse_ang(),
             TokenKind::Print => self.parse_print(),
+            TokenKind::Paraan => self.parse_paraan(),
 
             _ => {
                 let expr = self.parse_expression(0)?;
@@ -87,7 +88,7 @@ impl<'c> Parser<'c> {
             is_mutable = true;
         }
         let name = self
-            .consume_ident("umaasa ako ng variable dito para sa pag-deklara")?
+            .consume_ident("umaasa ako ng pangalan dito para sa pag-deklara")?
             .clone();
         let ty = match self.peek().kind() {
             TokenKind::Colon => {
@@ -131,6 +132,110 @@ impl<'c> Parser<'c> {
         Ok(Stmt::new(start..end, StmtKind::Print { expr }))
     }
 
+    fn parse_paraan(&mut self) -> DiagResult<Stmt> {
+        let start = self.advance().span().start;
+        let name = self
+            .consume_ident(
+                "umaasa ako ng pangalan dito pagkatapos ng `paraan` para sa pag-deklara",
+            )?
+            .clone();
+        let params = self.parse_params()?;
+        let ret_ty = if self.peek().kind() == &TokenKind::ThinArrow {
+            self.advance();
+            dbg!(self.peek().kind());
+            self.parse_type()?
+        } else {
+            TolType::Wala
+        };
+        self.consume(TokenKind::Colon, "umaasa ako ng `:` dito")?;
+        let block = self.parse_block()?;
+        let end = block.span().end;
+
+        Ok(Stmt::new(
+            start..end,
+            StmtKind::Paraan {
+                name,
+                params,
+                ret_ty,
+                block: Box::new(block),
+            },
+        ))
+    }
+
+    fn parse_block(&mut self) -> DiagResult<Stmt> {
+        let start = self
+            .consume(TokenKind::Indent, "umaasa ako ng \"indent\"")?
+            .span()
+            .start;
+
+        let mut statements = Vec::new();
+        while !self.at_end() && self.peek().kind() != &TokenKind::Dedent {
+            match self.parse_statement() {
+                Ok(statement) => statements.push(statement),
+                Err(diag) => self.current_module_mut().add_diagnostic(*diag),
+            }
+        }
+
+        let end = self
+            .consume(
+                TokenKind::Dedent,
+                "hindi na-isarado ang sakop na ito gamit ang \"dedent\"",
+            )?
+            .span()
+            .end;
+
+        Ok(Stmt::new(start..end, StmtKind::Block { statements }))
+    }
+
+    fn parse_params(&mut self) -> DiagResult<ParamList> {
+        let start = self
+            .consume(TokenKind::LParen, "umaasa ako ng `(` dito")?
+            .span()
+            .start;
+
+        let mut params = Vec::new();
+        while !self.at_end() && self.peek().kind() != &TokenKind::RParen {
+            let start = self.peek().span().start;
+            let mut is_mutable = false;
+            if self.peek().kind() == &TokenKind::Iiba {
+                self.advance();
+                is_mutable = true;
+            }
+            let name = self.consume_ident("umaasa ako ng pangalan dito")?.clone();
+            let ty = if self.peek().kind() == &TokenKind::Colon {
+                self.advance();
+                self.parse_type()?
+            } else {
+                TolType::DiAlam
+            };
+            let end = self.peek().span().end;
+
+            if self.peek().kind() == &TokenKind::Comma {
+                self.advance();
+            }
+
+            params.push(Param {
+                name,
+                ty,
+                span: start..end,
+                is_mutable,
+            });
+        }
+
+        let end = self
+            .consume(
+                TokenKind::RParen,
+                "hindi na-isarado ang mga parametro gamit ang `)`",
+            )?
+            .span()
+            .end;
+
+        Ok(ParamList {
+            params,
+            span: start..end,
+        })
+    }
+
     fn parse_type(&mut self) -> DiagResult<TolType> {
         let TokenKind::Identifier(ty_str) = self.peek().kind() else {
             let diagnostic = predefined_diagnostics::unexpected_token(
@@ -143,7 +248,10 @@ impl<'c> Parser<'c> {
         };
 
         match TYPES.get(ty_str) {
-            Some(t) => Ok(t.clone()),
+            Some(t) => {
+                self.advance();
+                Ok(t.clone())
+            }
             None => {
                 let diagnostic = predefined_diagnostics::unrecognized_type(
                     self.current_module(),
