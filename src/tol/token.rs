@@ -26,6 +26,7 @@ impl Token {
 pub enum TokenKind {
     Ang,
     Print,
+    Iiba,
 
     SemiColon,
     Colon,

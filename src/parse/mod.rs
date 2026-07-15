@@ -84,6 +84,11 @@ impl<'c> Parser<'c> {
         let name = self
             .consume_ident("umaasa ako ng variable dito para sa pag-deklara")?
             .clone();
+        let mut is_mutable = false;
+        if self.peek().kind() == &TokenKind::Iiba {
+            self.advance();
+            is_mutable = true;
+        }
         let ty = match self.peek().kind() {
             TokenKind::Colon => {
                 self.advance();
@@ -105,7 +110,7 @@ impl<'c> Parser<'c> {
             start..end,
             StmtKind::Ang {
                 name,
-                is_mutable: true,
+                is_mutable,
                 ty,
                 rhs,
             },
