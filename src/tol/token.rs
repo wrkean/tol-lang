@@ -28,6 +28,9 @@ pub enum TokenKind {
     Print,
     Iiba,
     Paraan,
+    Kung,
+    Kundi,
+    Kungwala,
 
     SemiColon,
     Colon,

@@ -66,6 +66,10 @@ pub enum StmtKind {
     Block {
         statements: Vec<Stmt>,
     },
+    Kung {
+        then_branches: Vec<Branch>,
+        else_branch: Option<Box<Branch>>,
+    },
 
     // Expression statement
     Expr {
@@ -95,4 +99,15 @@ pub struct Param {
     pub ty: TolType,
     pub span: Span,
     pub is_mutable: bool,
+}
+
+pub struct Branch {
+    pub condition: Option<Expr>,
+    pub block: Stmt,
+}
+
+impl Branch {
+    pub fn new(condition: Option<Expr>, block: Stmt) -> Self {
+        Self { condition, block }
+    }
 }

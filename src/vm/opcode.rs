@@ -6,6 +6,8 @@ pub enum OpCode {
     LoadGlobal,
     LoadLocal,
     Call,
+    JumpIfFalse,
+    Jump,
 
     Pop,
     Halt,

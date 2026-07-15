@@ -72,6 +72,27 @@ impl Chunk {
         self.emit_opcode(opcode, line);
     }
 
+    pub fn emit_jump(&mut self, jump_op: OpCode, line: usize) -> usize {
+        self.emit_opcode(jump_op, line);
+
+        // Fill with placeholders (0xDEAD)
+        self.emit_byte(0xDE, line);
+        self.emit_byte(0xAD, line);
+
+        self.code.len() - 2
+    }
+
+    pub fn patch_jump(&mut self, offset: usize) {
+        let jump = self.code.len() - offset - 2;
+
+        if jump > u16::MAX as usize {
+            panic!("Too much code to jump over")
+        }
+
+        self.code[offset] = ((jump >> 8) & 0xFF) as u8;
+        self.code[offset + 1] = (jump & 0xFF) as u8;
+    }
+
     /// Disassemble this chunk, prints each bytecode with its corresponding information
     pub fn disassemble(&self, name: &str) {
         println!("=== {name} ===");
@@ -150,6 +171,10 @@ impl Chunk {
                 self.disassemble_byte_instruction("LOAD_LOCAL", offset)
             }
             op if op == OpCode::Call as u8 => self.disassemble_byte_instruction("CALL", offset),
+            op if op == OpCode::JumpIfFalse as u8 => {
+                self.disassemble_2byte_instruction("JUMP_IF_FALSE", offset)
+            }
+            op if op == OpCode::Jump as u8 => self.disassemble_2byte_instruction("JUMP", offset),
             _ => {
                 println!("UNKNOWN OPCODE: {:02X}", offset);
                 offset + 1
@@ -161,6 +186,14 @@ impl Chunk {
         let operand = self.code[offset + 1];
         println!("{:<16} {:4}", name, operand);
         offset + 2
+    }
+
+    fn disassemble_2byte_instruction(&self, name: &str, offset: usize) -> usize {
+        let bytes = &self.code[offset + 1..offset + 3];
+        let operand = u16::from_be_bytes([bytes[0], bytes[1]]);
+        println!("{:<16} {:4}", name, operand);
+
+        offset + 3
     }
 
     fn disassemble_constant_instruction(&self, name: &str, offset: usize) -> usize {
@@ -192,5 +225,9 @@ impl Chunk {
         }
 
         panic!("Invalid instruction offset")
+    }
+
+    pub fn code(&self) -> &[u8] {
+        &self.code
     }
 }

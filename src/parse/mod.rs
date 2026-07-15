@@ -5,7 +5,7 @@ use crate::{
     module::{Module, ModuleId},
     parse::ast::{
         expr::{Expr, ExprKind},
-        stmt::{Param, ParamList, Stmt, StmtKind},
+        stmt::{Branch, Param, ParamList, Stmt, StmtKind},
     },
     prelude::DiagResult,
     tol::{
@@ -63,6 +63,7 @@ impl<'c> Parser<'c> {
             TokenKind::Ang => self.parse_ang(),
             TokenKind::Print => self.parse_print(),
             TokenKind::Paraan => self.parse_paraan(),
+            TokenKind::Kung => self.parse_kung(),
 
             _ => {
                 let expr = self.parse_expression(0)?;
@@ -158,6 +159,41 @@ impl<'c> Parser<'c> {
                 params,
                 ret_ty,
                 block: Box::new(block),
+            },
+        ))
+    }
+
+    fn parse_kung(&mut self) -> DiagResult<Stmt> {
+        let start = self.advance().span().start;
+        let condition = self.parse_expression(0)?;
+        self.consume(TokenKind::Colon, "umaasa ng `:` pagkatapos ng kondisyon")?;
+        let block = self.parse_block()?;
+        let mut end = block.span().end;
+        let mut then_branches = vec![Branch::new(Some(condition), block)];
+
+        while !self.at_end() && self.peek().kind() == &TokenKind::Kundi {
+            self.advance();
+            let condition = self.parse_expression(0)?;
+            self.consume(TokenKind::Colon, "umaasa ng `:` pagkatapos ng kondisyon")?;
+            let block = self.parse_block()?;
+            end = block.span().end;
+            then_branches.push(Branch::new(Some(condition), block));
+        }
+
+        let mut else_branch = None;
+        if self.peek().kind() == &TokenKind::Kungwala {
+            self.advance();
+            self.consume(TokenKind::Colon, "umaasa ng `:` pagkatapos ng `kungwala`")?;
+            let block = self.parse_block()?;
+            end = block.span().end;
+            else_branch = Some(Box::new(Branch::new(None, block)));
+        }
+
+        Ok(Stmt::new(
+            start..end,
+            StmtKind::Kung {
+                then_branches,
+                else_branch,
             },
         ))
     }

@@ -65,6 +65,7 @@ impl<'gctx> Analyzer<'gctx> {
             StmtKind::Paraan { .. } => self.resolve_paraan(statement),
             StmtKind::Print { expr } => self.resolve_expression(expr),
             StmtKind::Expr { expr } => self.resolve_expression(expr),
+            StmtKind::Kung { .. } => self.resolve_kung(statement),
             StmtKind::Block { statements } => {
                 for statement in statements {
                     if let Err(diag) = self.resolve_statement(statement) {
@@ -169,6 +170,27 @@ impl<'gctx> Analyzer<'gctx> {
         self.exit_scope();
 
         paraan.set_symbol_id(id);
+
+        Ok(())
+    }
+
+    fn resolve_kung(&mut self, kung: &mut Stmt) -> DiagResult<()> {
+        let StmtKind::Kung {
+            then_branches,
+            else_branch,
+        } = kung.kind_mut()
+        else {
+            unreachable!()
+        };
+
+        for then in then_branches {
+            self.resolve_expression(then.condition.as_mut().unwrap())?;
+            self.resolve_statement(&mut then.block)?;
+        }
+
+        if let Some(else_) = else_branch {
+            self.resolve_statement(&mut else_.block)?;
+        }
 
         Ok(())
     }

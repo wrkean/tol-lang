@@ -1,20 +1,23 @@
-program = { statement } ;
+program = statement* ;
 
 statement = ang_statement
         | print_statement
-        | paraan_statement ;
+        | paraan_statement
+        | kung_statement ;
 
-ang_statement = "ang" ["iiba"] identifier [":" TYPE] "=" expression ";" ;
+ang_statement = "ang" "iiba"? identifier ( ":" TYPE )? "=" expression ";" ;
 
 print_statement = "print" expression ";" ;
 
-paraan_statement = "paraan" identifier param_list ["->" TYPE] ":" block ;
+paraan_statement = "paraan" identifier param_list ( "->" TYPE )? ":" block ;
 
-param_list "(" { param } [","] ")" ;
+kung_statement = "kung" expression ":" block ( "kundi" expression ":" block )* ( "kungwala" block )?
 
-param = identifier [":" TYPE] ;
+param_list "(" param* ","? ")" ;
 
-block = INDENT { statement } DEDENT ;
+param = identifier ( ":" TYPE )? ;
+
+block = INDENT statement* DEDENT ;
 
 expression = binary_expression
             | number

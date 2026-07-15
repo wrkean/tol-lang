@@ -45,6 +45,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             StmtKind::Ang { .. } => self.compile_ang(statement),
             StmtKind::Paraan { .. } => self.compile_paraan(statement),
             StmtKind::Print { .. } => self.compile_print(statement),
+            StmtKind::Kung { .. } => self.compile_kung(statement),
             StmtKind::Expr { .. } => self.compile_expression_statement(statement),
             StmtKind::Block { statements } => {
                 for statement in statements {
@@ -118,6 +119,40 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         let line = self.current_module().line_of(print.span().start);
         self.compile_expression(expr);
         self.chunk.emit_opcode(OpCode::Print, line);
+    }
+
+    fn compile_kung(&mut self, kung: &Stmt) {
+        let StmtKind::Kung {
+            then_branches,
+            else_branch,
+        } = kung.kind()
+        else {
+            unreachable!()
+        };
+
+        let mut end_jumps = Vec::new();
+        for then in then_branches {
+            let condition = then.condition.as_ref().unwrap();
+            let block = &then.block;
+            let cond_line = self.current_module().line_of(condition.span().start);
+            self.compile_expression(condition);
+            let jump_if_false = self.chunk.emit_jump(OpCode::JumpIfFalse, cond_line);
+            self.chunk.emit_opcode(OpCode::Pop, cond_line);
+
+            let block_line = self.current_module().line_of(block.span().start);
+            self.compile_statement(block);
+            end_jumps.push(self.chunk.emit_jump(OpCode::Jump, block_line));
+            self.chunk.patch_jump(jump_if_false);
+            self.chunk.emit_opcode(OpCode::Pop, cond_line);
+        }
+
+        if let Some(branch) = else_branch {
+            self.compile_statement(&branch.block);
+        }
+
+        for end in end_jumps {
+            self.chunk.patch_jump(end);
+        }
     }
 
     fn store_symbol(&mut self, symbol_id: SymbolId, line: usize) {

@@ -1,7 +1,8 @@
-paraan gumagana_ba_to(x) -> numero:
+ang x = 5
+
+kung x == 1:
+    print x
+kundi x != 5:
     print x + 5
-
-paraan func(fn):
-    fn(5)
-
-func(gumagana_ba_to)
+kundi x == 5:
+    print x - 5

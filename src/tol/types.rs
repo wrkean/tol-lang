@@ -5,6 +5,7 @@ use phf::phf_map;
 pub enum TolType {
     Lutang,
     Numero,
+    Bool,
     Wala,
 
     DiAlam,
@@ -13,6 +14,7 @@ pub enum TolType {
 pub static TYPES: phf::Map<&'static str, TolType> = phf_map! {
     "lutang" => TolType::Lutang,
     "numero" => TolType::Numero,
+    "bool" => TolType::Bool,
 };
 
 pub fn type_list() -> Vec<String> {

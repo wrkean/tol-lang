@@ -93,9 +93,30 @@ impl VM {
                     let value = self.pop();
                     self.return_from_frame(value);
                 }
+                x if x == OpCode::JumpIfFalse as u8 => {
+                    let offset = self.read_u16() as usize;
+
+                    match self.peek(0) {
+                        Value::Bool(false) => {
+                            self.current_frame_mut().ip += offset;
+                        }
+                        Value::Bool(true) => {}
+                        _ => {
+                            panic!("ang condition sa `kung` at `kundi` ay hindi tipong `bool`")
+                        }
+                    }
+                }
+                x if x == OpCode::Jump as u8 => {
+                    let offset = self.read_u16() as usize;
+                    self.current_frame_mut().ip += offset;
+                }
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }
         }
+    }
+
+    fn peek(&self, distance: usize) -> &Value {
+        &self.stack[self.stack.len() - 1 - distance]
     }
 
     fn return_from_frame(&mut self, return_val: Value) {
@@ -173,6 +194,14 @@ impl VM {
         frame.ip += 1;
 
         byte
+    }
+
+    fn read_u16(&mut self) -> u16 {
+        let frame = self.current_frame_mut();
+        let bytes = &frame.chunk.code()[frame.ip..frame.ip + 2];
+        frame.ip += 2;
+
+        u16::from_be_bytes([bytes[0], bytes[1]])
     }
 
     fn current_frame_mut(&mut self) -> &mut Frame {
