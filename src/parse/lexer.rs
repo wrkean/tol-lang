@@ -69,88 +69,6 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
         mem::take(&mut self.tokens)
     }
 
-    fn handle_indents(&mut self) {
-        let mut current_indent = 0;
-        while let Some(ch) = self.peek() {
-            if ch == ' ' {
-                current_indent += 1;
-            } else if ch == '\t' {
-                current_indent += 4;
-            } else {
-                break;
-            }
-            self.advance();
-        }
-        if matches!(self.peek(), Some('\n') | None) {
-            self.at_line_start = false;
-            if self.peek() == Some('\n') {
-                self.advance();
-            }
-            self.at_line_start = true;
-            return;
-        }
-        self.at_line_start = false;
-        if current_indent > *self.indent_stack.last().unwrap() {
-            let last_was_colon = self
-                .tokens
-                .last()
-                .is_some_and(|t| t.kind() == &TokenKind::Colon);
-
-            if !last_was_colon {
-                let current_module = self.current_module();
-                let diagnostic = TolDiagnostic::err(
-                    current_module.source_arc(),
-                    current_module.filename(),
-                    "hindi inaasahang pag-\"indent\"",
-                )
-                .label(
-                    Label::new(self.current_span()).message("hindi ka dapat mag-\"indent\" dito"),
-                )
-                .help("sa tol, maaari lamang mag-\"indent\" pagkatapos ng isang `:`");
-                self.current_module_mut().add_diagnostic(diagnostic);
-            } else {
-                self.indent_stack.push(current_indent);
-                self.add_token(TokenKind::Indent, self.current_span());
-            }
-        } else if current_indent < *self.indent_stack.last().unwrap() {
-            while current_indent < *self.indent_stack.last().unwrap() {
-                self.indent_stack.pop();
-                self.add_token(TokenKind::Dedent, self.current_span());
-            }
-            if current_indent != *self.indent_stack.last().unwrap() {
-                let current_module = self.current_module();
-                let levels = self
-                    .indent_stack
-                    .iter()
-                    .map(|n| n.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                let diagnostic = TolDiagnostic::err(
-                    current_module.source_arc(),
-                    current_module.filename(),
-                    "hindi tumutugma ang antas ng indentasyon",
-                )
-                .label(Label::new(self.current_span()).message(format!(
-                    "{current_indent} na espasyo, pero ang mga bukas na antas ay: {levels}"
-                )));
-                self.current_module_mut().add_diagnostic(diagnostic);
-            }
-        }
-    }
-
-    fn emit_remaining_dedents(&mut self) {
-        while self.indent_stack.len() > 1 {
-            self.indent_stack.pop();
-            self.add_token(TokenKind::Dedent, self.current_span());
-        }
-    }
-
-    fn add_token(&mut self, kind: TokenKind, span: Span) {
-        let token = Token::new(span, kind);
-
-        self.tokens.push(token);
-    }
-
     fn lex_token(&mut self, current_char: char) {
         self.advance();
 
@@ -243,6 +161,88 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
                 self.current_module_mut().add_diagnostic(diagnostic);
             }
         }
+    }
+
+    fn handle_indents(&mut self) {
+        let mut current_indent = 0;
+        while let Some(ch) = self.peek() {
+            if ch == ' ' {
+                current_indent += 1;
+            } else if ch == '\t' {
+                current_indent += 4;
+            } else {
+                break;
+            }
+            self.advance();
+        }
+        if matches!(self.peek(), Some('\n') | None) {
+            self.at_line_start = false;
+            if self.peek() == Some('\n') {
+                self.advance();
+            }
+            self.at_line_start = true;
+            return;
+        }
+        self.at_line_start = false;
+        if current_indent > *self.indent_stack.last().unwrap() {
+            let last_was_colon = self
+                .tokens
+                .last()
+                .is_some_and(|t| t.kind() == &TokenKind::Colon);
+
+            if !last_was_colon {
+                let current_module = self.current_module();
+                let diagnostic = TolDiagnostic::err(
+                    current_module.source_arc(),
+                    current_module.filename(),
+                    "hindi inaasahang pag-\"indent\"",
+                )
+                .label(
+                    Label::new(self.current_span()).message("hindi ka dapat mag-\"indent\" dito"),
+                )
+                .help("sa tol, maaari lamang mag-\"indent\" pagkatapos ng isang `:`");
+                self.current_module_mut().add_diagnostic(diagnostic);
+            } else {
+                self.indent_stack.push(current_indent);
+                self.add_token(TokenKind::Indent, self.current_span());
+            }
+        } else if current_indent < *self.indent_stack.last().unwrap() {
+            while current_indent < *self.indent_stack.last().unwrap() {
+                self.indent_stack.pop();
+                self.add_token(TokenKind::Dedent, self.current_span());
+            }
+            if current_indent != *self.indent_stack.last().unwrap() {
+                let current_module = self.current_module();
+                let levels = self
+                    .indent_stack
+                    .iter()
+                    .map(|n| n.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let diagnostic = TolDiagnostic::err(
+                    current_module.source_arc(),
+                    current_module.filename(),
+                    "hindi tumutugma ang antas ng indentasyon",
+                )
+                .label(Label::new(self.current_span()).message(format!(
+                    "{current_indent} na espasyo, pero ang mga bukas na antas ay: {levels}"
+                )));
+                self.current_module_mut().add_diagnostic(diagnostic);
+            }
+        }
+    }
+
+    fn emit_remaining_dedents(&mut self) {
+        while self.indent_stack.len() > 1 {
+            self.indent_stack.pop();
+            self.add_token(TokenKind::Dedent, self.current_span());
+        }
+    }
+
+    fn add_token(&mut self, kind: TokenKind, span: Span) {
+        let token = Token::new(span, kind);
+
+        self.tokens.push(token);
     }
 
     fn lex_identifier(&mut self) {
