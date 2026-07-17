@@ -401,10 +401,9 @@ impl<'c> Parser<'c> {
                 let span = self.peek().span().clone();
                 let diagnostic = predefined_diagnostics::unexpected_token(
                     current_module,
-                    "hindi ito maaaring mag-simula ng isang expresyon",
+                    "maling pagsimula ng expresyon",
                     span,
                 );
-                self.advance();
 
                 Err(Box::new(diagnostic))
             }
