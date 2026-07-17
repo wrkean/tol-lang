@@ -1,6 +1,9 @@
 use std::rc::Rc;
 
-use crate::vm::{chunk::Chunk, opcode::OpCode, value::Value};
+use crate::{
+    global_ctx::StringInterner,
+    vm::{chunk::Chunk, opcode::OpCode, value::Value},
+};
 
 pub mod chunk;
 pub mod function;
@@ -17,15 +20,15 @@ pub struct VM {
     stack: Vec<Value>,
     frames: Vec<Frame>,
     globals: Vec<Value>,
-    interned_strings: Vec<Rc<str>>,
+    string_interner: StringInterner,
 }
 
 impl VM {
-    pub fn new(chunk: Chunk, interned_strings: Vec<Rc<str>>) -> Self {
+    pub fn new(chunk: Chunk, string_interner: StringInterner) -> Self {
         Self {
             stack: Vec::new(),
             globals: Vec::new(),
-            interned_strings,
+            string_interner,
             frames: vec![Frame {
                 chunk: Rc::new(chunk),
                 ip: 0,
@@ -48,6 +51,7 @@ impl VM {
                     self.pop();
                 }
                 op if op == OpCode::Add as u8 => self.binary_op(Value::add),
+                op if op == OpCode::Concat as u8 => self.concat(),
                 op if op == OpCode::Sub as u8 => self.binary_op(Value::sub),
                 op if op == OpCode::Mult as u8 => self.binary_op(Value::mult),
                 op if op == OpCode::Div as u8 => self.binary_op(Value::div),
@@ -118,6 +122,22 @@ impl VM {
                 }
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }
+        }
+    }
+
+    fn concat(&mut self) {
+        let rhs = self.pop();
+        let lhs = self.pop();
+
+        match (lhs, rhs) {
+            (Value::Str(id1), Value::Str(id2)) => {
+                let str1 = self.string_interner.get(id1);
+                let str2 = self.string_interner.get(id2);
+
+                let id = self.string_interner.intern(&format!("{}{}", str1, str2));
+                self.push(Value::Str(id));
+            }
+            _ => panic!("Mga strings lamang ang pwede i concatinate"),
         }
     }
 
@@ -228,7 +248,7 @@ impl VM {
     fn print_value(&self, value: &Value) {
         match value {
             Value::Str(id) => {
-                println!("{}", self.interned_strings[*id]);
+                println!("{}", self.string_interner.get(*id));
             }
 
             val => println!("{val}"),

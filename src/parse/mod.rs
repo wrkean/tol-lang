@@ -420,6 +420,7 @@ impl<'c> Parser<'c> {
 
         match op_kind {
             TokenKind::Plus
+            | TokenKind::PlusPlus
             | TokenKind::Minus
             | TokenKind::Star
             | TokenKind::Slash

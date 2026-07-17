@@ -7,7 +7,7 @@ pub fn precedence(kind: &TokenKind) -> u8 {
         Equal => 1,
         TokenKind::EqualEq | TokenKind::NotEq => 2,
         TokenKind::Greater | TokenKind::GreatEq | TokenKind::Lesser | TokenKind::LessEq => 3,
-        Plus | Minus => 4,
+        Plus | PlusPlus | Minus => 4,
         Star | Slash => 5,
         TokenKind::LParen => 6,
         _ => 0,

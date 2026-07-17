@@ -59,6 +59,7 @@ impl Chunk {
     pub fn emit_operator(&mut self, op_kind: &TokenKind, line: usize) {
         let opcode = match op_kind {
             TokenKind::Plus => OpCode::Add,
+            TokenKind::PlusPlus => OpCode::Concat,
             TokenKind::Minus => OpCode::Sub,
             TokenKind::Star => OpCode::Mult,
             TokenKind::Slash => OpCode::Div,
@@ -157,6 +158,7 @@ impl Chunk {
         let instruction = self.code[offset];
         match instruction {
             op if op == OpCode::Add as u8 => self.simple_instruction("ADD", offset),
+            op if op == OpCode::Concat as u8 => self.simple_instruction("CONCAT", offset),
             op if op == OpCode::Sub as u8 => self.simple_instruction("SUB", offset),
             op if op == OpCode::Mult as u8 => self.simple_instruction("MULT", offset),
             op if op == OpCode::Div as u8 => self.simple_instruction("DIV", offset),

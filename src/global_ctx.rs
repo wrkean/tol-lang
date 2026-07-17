@@ -19,7 +19,8 @@ use crate::{
     tol::diagnostic::{Severity, TolDiagnostic, miette_diagnostic::MietteDiagnostic},
 };
 
-struct StringInterner {
+#[derive(Default)]
+pub struct StringInterner {
     strings: Vec<Rc<str>>,
     lookup: HashMap<Rc<str>, usize>,
 }
@@ -132,7 +133,7 @@ impl GlobalContext {
         self.string_interner.intern(s)
     }
 
-    pub fn take_interned_strings(&mut self) -> Vec<Rc<str>> {
-        mem::take(&mut self.string_interner.strings)
+    pub fn take_string_interner(&mut self) -> StringInterner {
+        mem::take(&mut self.string_interner)
     }
 }

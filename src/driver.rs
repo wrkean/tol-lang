@@ -43,8 +43,8 @@ pub fn compile_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     let chunk = compiler.compile();
     chunk.disassemble("main");
 
-    let interned_strings = ctx.take_interned_strings();
-    let mut vm = VM::new(chunk, interned_strings);
+    let string_interner = ctx.take_string_interner();
+    let mut vm = VM::new(chunk, string_interner);
     vm.run();
 
     let module = ctx.module_by_id_mut(module_id);

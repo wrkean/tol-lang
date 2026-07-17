@@ -40,6 +40,7 @@ pub enum TokenKind {
     Colon,
     Equal,
     Plus,
+    PlusPlus,
     Minus,
     Star,
     Slash,

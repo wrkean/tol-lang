@@ -121,7 +121,13 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
                     self.add_token(TokenKind::Lesser, self.current_span());
                 }
             }
-            '+' => self.add_token(TokenKind::Plus, self.current_span()),
+            '+' => {
+                if self.match_ch('+') {
+                    self.add_token(TokenKind::PlusPlus, self.current_span());
+                } else {
+                    self.add_token(TokenKind::Plus, self.current_span())
+                }
+            }
             '-' => {
                 if self.match_ch('>') {
                     self.add_token(TokenKind::ThinArrow, self.current_span());

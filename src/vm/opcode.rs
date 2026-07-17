@@ -13,6 +13,7 @@ pub enum OpCode {
     Pop,
     Halt,
     Add,
+    Concat,
     Sub,
     Mult,
     Div,
