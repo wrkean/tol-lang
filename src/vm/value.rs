@@ -3,6 +3,7 @@ pub enum Value {
     Int(i64),
     Float(f64),
     Bool(bool),
+    Str(Rc<str>),
     Function(Rc<Function>),
     Null,
 }
@@ -51,6 +52,7 @@ impl Value {
             (Int(a), Int(b)) => Bool(a == b),
             (Float(a), Float(b)) => Bool(a == b),
             (Bool(a), Bool(b)) => Bool(a == b),
+            (Str(a), Str(b)) => Bool(a == b),
             (l, r) => panic!("cannot mult {l} and {r} together"),
         }
     }
@@ -60,6 +62,7 @@ impl Value {
             (Int(a), Int(b)) => Bool(a != b),
             (Float(a), Float(b)) => Bool(a != b),
             (Bool(a), Bool(b)) => Bool(a != b),
+            (Str(a), Str(b)) => Bool(a != b),
             (l, r) => panic!("cannot mult {l} and {r} together"),
         }
     }
@@ -102,6 +105,7 @@ impl fmt::Display for Value {
         match self {
             Int(x) => write!(f, "{x}"),
             Float(x) => write!(f, "{x}"),
+            Str(s) => write!(f, "{s}"),
             Bool(true) => write!(f, "totoo"),
             Bool(false) => write!(f, "mali"),
             Null => write!(f, "<NULL>"),

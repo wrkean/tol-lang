@@ -47,6 +47,7 @@ pub enum TokenKind {
     IntLiteral(i64),
     FloatLiteral(f64),
     Identifier(String),
+    StringLiteral(String),
 
     LParen,
     LSquare,
@@ -79,6 +80,7 @@ impl TokenKind {
                 | Identifier(_)
                 | IntLiteral(_)
                 | FloatLiteral(_)
+                | StringLiteral(_)
                 | Biyakin
                 | Ituloy
                 | Ibalik

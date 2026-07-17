@@ -127,4 +127,13 @@ pub mod predefined_diagnostics {
         .label(Label::new(label_span).message("hindi mo pa ito na-ideklara"))
         .help("kailangan munang ma-ideklara ang variable bago mo ito magamit")
     }
+
+    pub fn unclosed_string_literal(current_module: &Module, label_span: Span) -> TolDiagnostic {
+        TolDiagnostic::err(
+            current_module.source_arc(),
+            current_module.filename(),
+            "hindi na-isaradong string",
+        )
+        .label(Label::new(label_span).message("hindi ito na-isarado"))
+    }
 }

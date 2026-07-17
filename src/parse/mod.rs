@@ -385,6 +385,11 @@ impl<'c> Parser<'c> {
 
                 Ok(expr)
             }
+            TokenKind::StringLiteral(s) => {
+                let s = s.clone();
+                let span = self.advance().span().clone();
+                Ok(Expr::new(span, ExprKind::Str(s)))
+            }
             _ => {
                 let current_module = self.current_module();
                 let span = self.peek().span().clone();

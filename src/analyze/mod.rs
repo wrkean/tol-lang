@@ -277,6 +277,7 @@ impl<'gctx> Analyzer<'gctx> {
         match expression.kind_mut() {
             ExprKind::Integer(_) => Ok(()),
             ExprKind::Float(_) => Ok(()),
+            ExprKind::Str(_) => Ok(()),
             ExprKind::Identifier(ident) => match self.lookup_symbol(ident) {
                 Some(id) => {
                     expression.set_symbol_id(id);

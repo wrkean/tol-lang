@@ -4,7 +4,7 @@ use crate::{
     global_ctx::GlobalContext,
     module::{Module, ModuleId},
     tol::{
-        diagnostic::{Label, TolDiagnostic},
+        diagnostic::{Label, TolDiagnostic, predefined_diagnostics},
         keywords::KEYWORDS,
         token::{Span, Token, TokenKind},
     },
@@ -143,6 +143,7 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
                 }
                 self.at_line_start = true;
             }
+            '"' => self.lex_string(),
             ' ' | '\t' | '\r' => { /* skip irrelevant whitespace */ }
             ch if ch.is_ascii_alphabetic() || ch == '_' => self.lex_identifier(),
             ch if ch.is_ascii_digit() => self.lex_number(),
@@ -278,6 +279,76 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
             };
 
         self.add_token(kind, self.current_span());
+    }
+
+    fn lex_string(&mut self) {
+        let mut string_builder = String::new();
+        while let Some(ch) = self.advance()
+            && ch != '\n'
+        {
+            match ch {
+                '\\' => match self.advance() {
+                    Some(c) => match c {
+                        'n' => string_builder.push('\n'),
+                        '\\' => string_builder.push('\\'),
+                        't' => string_builder.push('\t'),
+                        _ => {
+                            let current_module = self.current_module();
+                            let diagnostic = TolDiagnostic::err(
+                                current_module.source_arc(),
+                                current_module.filename(),
+                                "hindi valid na \"escape\" karakter",
+                            )
+                            .label(
+                                Label::new(self.current - 1..self.current)
+                                    .message("hindi ito valid na \"escape\" karakter"),
+                            )
+                            .help("ang \"escape\" karakter ay karakter na nagsisimula sa `\\`");
+                            self.add_token(
+                                TokenKind::StringLiteral(string_builder),
+                                self.current_span(),
+                            );
+                            self.current_module_mut().add_diagnostic(diagnostic);
+                            return;
+                        }
+                    },
+                    None => {
+                        let current_module = self.current_module();
+                        let diagnostic = predefined_diagnostics::unclosed_string_literal(
+                            self.current_module(),
+                            self.current_span(),
+                        );
+
+                        self.add_token(
+                            TokenKind::StringLiteral(string_builder),
+                            self.current_span(),
+                        );
+                        self.current_module_mut().add_diagnostic(diagnostic);
+                        return;
+                    }
+                },
+                '\n' => {
+                    let diagnostic = predefined_diagnostics::unclosed_string_literal(
+                        self.current_module(),
+                        self.current_span(),
+                    );
+                    self.add_token(
+                        TokenKind::StringLiteral(string_builder),
+                        self.current_span(),
+                    );
+                    self.current_module_mut().add_diagnostic(diagnostic);
+                    return;
+                }
+                '"' => {
+                    self.add_token(
+                        TokenKind::StringLiteral(string_builder),
+                        self.current_span(),
+                    );
+                    return;
+                }
+                _ => string_builder.push(ch),
+            }
+        }
     }
 
     fn emit_inferred_semicolon(&mut self) {
