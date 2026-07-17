@@ -38,7 +38,7 @@ expression = binary_expression
 
 binary_expression = expression binary_op expression ;
 
-binary_op = "+" | "-" | "*" | "/" | "=" ;
+binary_op = "+" | "-" | "*" | "/" | "=" | == | != | > | >= | < | <=;
 
 number = int_literal | float_literal
 
