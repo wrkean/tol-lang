@@ -38,10 +38,11 @@ jobs:
           cp target/wasm32-unknown-unknown/release/tol_playground.wasm playground/pkg/
 
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        # Pages must be enabled for this repository in Settings -> Pages.
+        uses: actions/configure-pages@v6
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: playground
 
