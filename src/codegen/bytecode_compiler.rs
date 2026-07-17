@@ -56,6 +56,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             StmtKind::Habang { .. } => self.compile_habang(statement),
             StmtKind::Biyakin => self.compile_biyakin(statement),
             StmtKind::Ituloy => self.compile_ituloy(statement),
+            StmtKind::Ibalik { .. } => self.compile_ibalik(statement),
             StmtKind::Expr { .. } => self.compile_expression_statement(statement),
             StmtKind::Block { statements } => {
                 for statement in statements {
@@ -205,6 +206,20 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         let line = self.current_module().line_of(ituloy.span().start);
         let loop_ctx = self.loop_stack.last().unwrap();
         self.chunk.emit_loop(loop_ctx.loop_start, line);
+    }
+
+    fn compile_ibalik(&mut self, ibalik: &Stmt) {
+        let StmtKind::Ibalik { expr } = ibalik.kind() else {
+            unreachable!()
+        };
+
+        let line = self.current_module().line_of(ibalik.span().start);
+        match expr {
+            Some(ex) => self.compile_expression(ex),
+            None => self.chunk.add_and_emit_constant(Value::Null, line),
+        }
+
+        self.chunk.emit_opcode(OpCode::Return, line);
     }
 
     fn store_symbol(&mut self, symbol_id: SymbolId, line: usize) {

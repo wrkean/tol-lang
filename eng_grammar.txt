@@ -4,7 +4,10 @@ statement = ang_statement
         | print_statement
         | paraan_statement
         | kung_statement
-        | habang_statement ;
+        | habang_statement
+        | ibalik_statement
+        | biyakin_statement
+        | ituloy_statement ;
 
 ang_statement = "ang" "iiba"? identifier ( ":" TYPE )? "=" expression ";" ;
 
@@ -15,6 +18,12 @@ paraan_statement = "paraan" identifier param_list ( "->" TYPE )? ":" block ;
 kung_statement = "kung" expression ":" block ( "kundi" expression ":" block )* ( "kungwala" block )? ;
 
 habang_statement = "habang" expression ":" block ;
+
+ibalik_statement = ibalik expression? ";" ;
+
+biyakin_statement = "biyakin" ";" ;
+
+ituloy_statement = "ituloy" ";" ;
 
 param_list "(" param* ","? ")" ;
 

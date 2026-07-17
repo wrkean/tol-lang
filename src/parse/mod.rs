@@ -65,6 +65,7 @@ impl<'c> Parser<'c> {
             TokenKind::Paraan => self.parse_paraan(),
             TokenKind::Kung => self.parse_kung(),
             TokenKind::Habang => self.parse_habang(),
+            TokenKind::Ibalik => self.parse_ibalik(),
             TokenKind::Biyakin => {
                 let span = self.advance().span().clone();
                 self.consume(
@@ -226,6 +227,21 @@ impl<'c> Parser<'c> {
                 block: Box::new(block),
             },
         ))
+    }
+
+    fn parse_ibalik(&mut self) -> DiagResult<Stmt> {
+        let start = self.advance().span().start;
+        let expr = if self.peek().kind() != &TokenKind::SemiColon {
+            Some(self.parse_expression(0)?)
+        } else {
+            None
+        };
+        let end = self
+            .consume(TokenKind::SemiColon, "umaasa ng `;` dito")?
+            .span()
+            .end;
+
+        Ok(Stmt::new(start..end, StmtKind::Ibalik { expr }))
     }
 
     fn parse_block(&mut self) -> DiagResult<Stmt> {

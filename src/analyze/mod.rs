@@ -71,6 +71,7 @@ impl<'gctx> Analyzer<'gctx> {
             StmtKind::Habang { .. } => self.resolve_habang(statement),
             StmtKind::Biyakin => self.resolve_biyakin(statement),
             StmtKind::Ituloy => self.resolve_ituloy(statement),
+            StmtKind::Ibalik { .. } => self.resolve_ibalik(statement),
             StmtKind::Block { statements } => {
                 for statement in statements {
                     if let Err(diag) = self.resolve_statement(statement) {
@@ -240,6 +241,31 @@ impl<'gctx> Analyzer<'gctx> {
             )
             .label(Label::new(ituloy.span().clone()).message("ito ay nasa labas ng loop"))
             .help("maaari lamang gamitin ang `biyakin` sa loob ng loop");
+
+            return Err(Box::new(diagnostic));
+        }
+
+        Ok(())
+    }
+
+    fn resolve_ibalik(&mut self, ibalik: &mut Stmt) -> DiagResult<()> {
+        let StmtKind::Ibalik { expr } = ibalik.kind_mut() else {
+            unreachable!()
+        };
+
+        if let Some(ex) = expr {
+            self.resolve_expression(ex)?;
+        }
+
+        if self.next_local_slot_stack.is_empty() {
+            let current_module = self.current_module();
+            let diagnostic = TolDiagnostic::err(
+                current_module.source_arc(),
+                current_module.filename(),
+                "paggamit ng `ibalik` sa labas ng paraan",
+            )
+            .label(Label::new(ibalik.span().clone()).message("ito ay nasa labas ng paraan"))
+            .help("maaari lamang gamitin ang `ibalik` sa loob ng isang paraan");
 
             return Err(Box::new(diagnostic));
         }

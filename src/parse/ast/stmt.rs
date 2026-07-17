@@ -74,6 +74,9 @@ pub enum StmtKind {
         condition: Expr,
         block: Box<Stmt>,
     },
+    Ibalik {
+        expr: Option<Expr>,
+    },
 
     // Expression statement
     Expr {
