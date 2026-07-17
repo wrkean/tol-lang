@@ -19,6 +19,37 @@ use crate::{
     tol::diagnostic::{Severity, TolDiagnostic, miette_diagnostic::MietteDiagnostic},
 };
 
+struct StringInterner {
+    strings: Vec<Rc<str>>,
+    lookup: HashMap<Rc<str>, usize>,
+}
+
+impl StringInterner {
+    fn new() -> Self {
+        Self {
+            strings: Vec::new(),
+            lookup: HashMap::new(),
+        }
+    }
+
+    pub fn intern(&mut self, s: &str) -> usize {
+        if let Some(&id) = self.lookup.get(s) {
+            return id;
+        }
+
+        let rc: Rc<str> = Rc::from(s);
+        let id = self.strings.len();
+        self.strings.push(rc.clone());
+        self.lookup.insert(rc, id);
+
+        id
+    }
+
+    pub fn get(&self, id: usize) -> &Rc<str> {
+        &self.strings[id]
+    }
+}
+
 /// Stores all the information of the whole compilation pipeline
 pub struct GlobalContext {
     // Entry point derived from CLI arguments
@@ -33,6 +64,9 @@ pub struct GlobalContext {
 
     // Symbol table, accessed via symbol id
     symbols: Vec<Symbol>,
+
+    // Used to intern strings at compile time
+    string_interner: StringInterner,
 }
 
 impl GlobalContext {
@@ -43,6 +77,7 @@ impl GlobalContext {
             modules: Vec::new(),
             module_registry: HashMap::new(),
             symbols: Vec::new(),
+            string_interner: StringInterner::new(),
         }
     }
 
@@ -91,5 +126,13 @@ impl GlobalContext {
 
     pub fn modules(&self) -> &[Module] {
         &self.modules
+    }
+
+    pub fn intern(&mut self, s: &str) -> usize {
+        self.string_interner.intern(s)
+    }
+
+    pub fn take_interned_strings(&mut self) -> Vec<Rc<str>> {
+        mem::take(&mut self.string_interner.strings)
     }
 }

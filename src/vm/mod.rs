@@ -17,13 +17,15 @@ pub struct VM {
     stack: Vec<Value>,
     frames: Vec<Frame>,
     globals: Vec<Value>,
+    interned_strings: Vec<Rc<str>>,
 }
 
 impl VM {
-    pub fn new(chunk: Chunk) -> Self {
+    pub fn new(chunk: Chunk, interned_strings: Vec<Rc<str>>) -> Self {
         Self {
             stack: Vec::new(),
             globals: Vec::new(),
+            interned_strings,
             frames: vec![Frame {
                 chunk: Rc::new(chunk),
                 ip: 0,
@@ -77,7 +79,7 @@ impl VM {
                 }
                 op if op == OpCode::Print as u8 => {
                     let value = self.pop();
-                    println!("{value}");
+                    self.print_value(&value);
                 }
                 op if op == OpCode::Halt as u8 => {
                     break;
@@ -218,5 +220,18 @@ impl VM {
 
     fn current_chunk(&self) -> &Chunk {
         &self.current_frame().chunk
+    }
+
+    // These are what gets shown when the value is to be printed.
+    // Unimplemented variants are handled in `Value::fmt` function in the value module
+    // as they do not need some values provided by the vm
+    fn print_value(&self, value: &Value) {
+        match value {
+            Value::Str(id) => {
+                println!("{}", self.interned_strings[*id]);
+            }
+
+            val => println!("{val}"),
+        }
     }
 }

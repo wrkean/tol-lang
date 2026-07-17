@@ -277,7 +277,12 @@ impl<'gctx> Analyzer<'gctx> {
         match expression.kind_mut() {
             ExprKind::Integer(_) => Ok(()),
             ExprKind::Float(_) => Ok(()),
-            ExprKind::Str(_) => Ok(()),
+            ExprKind::Str { text, interned_id } => {
+                let id = self.ctx.intern(text);
+                *interned_id = Some(id);
+
+                Ok(())
+            }
             ExprKind::Identifier(ident) => match self.lookup_symbol(ident) {
                 Some(id) => {
                     expression.set_symbol_id(id);

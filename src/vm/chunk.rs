@@ -15,6 +15,7 @@ pub struct Chunk {
     constants: Vec<Value>,
     lines: Vec<LineRun>,
 }
+
 impl Chunk {
     pub fn new() -> Self {
         Self {

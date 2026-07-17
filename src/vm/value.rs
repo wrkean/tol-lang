@@ -3,7 +3,7 @@ pub enum Value {
     Int(i64),
     Float(f64),
     Bool(bool),
-    Str(Rc<str>),
+    Str(usize),
     Function(Rc<Function>),
     Null,
 }
@@ -102,14 +102,17 @@ impl Value {
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // These are what gets shown when the value is to be printed.
+        // Unimplemented variants are handled in `VM::print_value` function in the VM
+        // as they need some values provided only by the vm
         match self {
             Int(x) => write!(f, "{x}"),
             Float(x) => write!(f, "{x}"),
-            Str(s) => write!(f, "{s}"),
             Bool(true) => write!(f, "totoo"),
             Bool(false) => write!(f, "mali"),
             Null => write!(f, "<NULL>"),
-            Function(func) => write!(f, "paraan {}(...)", func.name),
+            Function(func) => write!(f, "<paraan '{}'>", func.name),
+            Str(s) => write!(f, "<interned_string id:{s}>"),
         }
     }
 }

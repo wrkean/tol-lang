@@ -254,9 +254,10 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         match expression.kind() {
             ExprKind::Integer(x) => self.chunk.add_and_emit_constant(Value::Int(*x), line),
             ExprKind::Float(x) => self.chunk.add_and_emit_constant(Value::Float(*x), line),
-            ExprKind::Str(s) => self
-                .chunk
-                .add_and_emit_constant(Value::Str(Rc::from(s.as_str())), line),
+            ExprKind::Str { interned_id, .. } => {
+                self.chunk
+                    .add_and_emit_constant(Value::Str(interned_id.unwrap()), line);
+            }
             ExprKind::Identifier(ident) => {
                 let id = expression.symbol_id();
                 let symbol = self.ctx.symbol_by_id(id);

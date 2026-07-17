@@ -34,6 +34,7 @@ block = INDENT statement* DEDENT ;
 expression = binary_expression
             | number
             | identifier
+            | string
 
 binary_expression = expression binary_op expression ;
 
@@ -42,3 +43,5 @@ binary_op = "+" | "-" | "*" | "/" | "=" ;
 number = int_literal | float_literal
 
 identifier = [A-Za-z_][A-Za-z_0-9]*
+
+string = "([^"\n\\]|\\[nt"\\])*"

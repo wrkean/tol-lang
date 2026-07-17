@@ -53,7 +53,10 @@ pub enum ExprKind {
     Integer(i64),
     Float(f64),
     Identifier(String),
-    Str(String),
+    Str {
+        text: String,
+        interned_id: Option<usize>,
+    },
     Binary {
         left: Box<Expr>,
         right: Box<Expr>,
@@ -71,7 +74,7 @@ impl fmt::Display for Expr {
             ExprKind::Integer(x) => write!(f, "{x}"),
             ExprKind::Float(x) => write!(f, "{x}"),
             ExprKind::Identifier(s) => write!(f, "{s}"),
-            ExprKind::Str(s) => write!(f, "{s}"),
+            ExprKind::Str { text, interned_id } => write!(f, "{text}"),
             ExprKind::Binary { left, right, op } => {
                 write!(f, "({:?} {} {})", op.kind(), left, right)
             }
