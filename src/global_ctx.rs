@@ -8,7 +8,6 @@ use std::{
 };
 
 use crate::{
-    Args,
     analyze::symbol::{Symbol, SymbolId},
     module::{Module, ModuleId},
     parse::{
@@ -72,9 +71,9 @@ pub struct GlobalContext {
 
 impl GlobalContext {
     /// Creates a new global context with the arguments
-    pub fn new(cli_args: Args) -> Self {
+    pub fn new(entry_point: impl Into<PathBuf>) -> Self {
         Self {
-            entry_point: cli_args.input,
+            entry_point: entry_point.into(),
             modules: Vec::new(),
             module_registry: HashMap::new(),
             symbols: Vec::new(),

@@ -27,6 +27,7 @@ pub struct VM<'gctx> {
     stack: Vec<Value>,
     frames: Vec<Frame>,
     globals: Vec<Value>,
+    output: Vec<String>,
     ctx: &'gctx mut GlobalContext,
 }
 
@@ -35,6 +36,7 @@ impl<'gctx> VM<'gctx> {
         Self {
             stack: Vec::new(),
             globals: Vec::new(),
+            output: Vec::new(),
             ctx,
             frames: vec![Frame {
                 chunk: Rc::new(chunk),
@@ -135,11 +137,15 @@ impl<'gctx> VM<'gctx> {
                     let offset = self.read_u16() as usize;
                     self.current_frame_mut().ip -= offset;
                 }
-                _ => println!("bug: unknown opcode {:#X}", opcode),
+                _ => panic!("bug: unknown opcode {:#X}", opcode),
             }
         }
 
         Ok(())
+    }
+
+    pub fn take_output(&mut self) -> Vec<String> {
+        std::mem::take(&mut self.output)
     }
 
     fn concat(&mut self) -> Result<(), Box<RuntimeError>> {
@@ -310,14 +316,13 @@ impl<'gctx> VM<'gctx> {
     // These are what gets shown when the value is to be printed.
     // Unimplemented variants are handled in `Value::fmt` function in the value module
     // as they do not need some values provided by the vm
-    fn print_value(&self, value: &Value) {
-        match value {
-            Value::Str(id) => {
-                println!("{}", self.ctx.string_interner().get(*id));
-            }
+    fn print_value(&mut self, value: &Value) {
+        let line = match value {
+            Value::Str(id) => self.ctx.string_interner().get(*id).to_string(),
+            val => format!("{val}"),
+        };
 
-            val => println!("{val}"),
-        }
+        self.output.push(line);
     }
 
     fn current_module(&self) -> &Module {

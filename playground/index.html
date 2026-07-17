@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tol Playground</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <div>
+          <p class="eyebrow">Tol language</p>
+          <h1>Playground</h1>
+        </div>
+        <button id="run">Run</button>
+      </header>
+
+      <section class="panel">
+        <label for="source">Source</label>
+        <textarea id="source" spellcheck="false">print 1 + 2</textarea>
+      </section>
+
+      <section class="panel">
+        <label for="output">Output</label>
+        <pre id="output"></pre>
+      </section>
+
+      <section class="panel">
+        <label for="diagnostics">Diagnostics</label>
+        <pre id="diagnostics"></pre>
+      </section>
+    </main>
+
+    <script type="module" src="./loader.js"></script>
+  </body>
+</html>

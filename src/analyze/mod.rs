@@ -301,8 +301,6 @@ impl<'gctx> Analyzer<'gctx> {
             ExprKind::Binary { left, right, op } => {
                 if let Err(diag) = self.resolve_expression(left) {
                     self.current_module_mut().add_diagnostic(*diag);
-                    dbg!(&self.scopes);
-                    println!("it errored: {left}")
                 }
 
                 if op.kind() == &TokenKind::Equal {

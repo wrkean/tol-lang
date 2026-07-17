@@ -108,13 +108,23 @@ impl Module {
     /// NOTE: This consumes this module's diagnostics. As such, this is only to be called one
     /// per module as the diagnostics are already consumed at the point when this is accessed again
     pub fn report_diagnostics(&mut self) {
-        let diagnostics = mem::take(&mut self.diagnostics);
-        for diagnostic in diagnostics {
-            eprintln!(
-                "{:?}",
-                miette::Report::new(MietteDiagnostic::from(diagnostic))
-            );
+        for diagnostic in self.drain_diagnostics_as_strings() {
+            eprintln!("{diagnostic}");
         }
+    }
+
+    pub fn drain_diagnostics_as_strings(&mut self) -> Vec<String> {
+        let diagnostics = mem::take(&mut self.diagnostics);
+
+        diagnostics
+            .into_iter()
+            .map(|diagnostic| {
+                format!(
+                    "{:?}",
+                    miette::Report::new(MietteDiagnostic::from(diagnostic))
+                )
+            })
+            .collect()
     }
 
     pub fn path(&self) -> &PathBuf {

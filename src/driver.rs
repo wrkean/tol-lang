@@ -1,5 +1,5 @@
 //! Module composed of functions that is responsible for orchestrating the entire compilation
-//! process
+//! process.
 
 use std::{
     fs,
@@ -7,7 +7,6 @@ use std::{
 };
 
 use crate::{
-    Args,
     analyze::Analyzer,
     codegen::bytecode_compiler::BytecodeCompiler,
     global_ctx::GlobalContext,
@@ -17,44 +16,85 @@ use crate::{
     vm::VM,
 };
 
-/// Compiles the entry point derived from the initialized CLI arguments.
-pub fn compile_entry_point(ctx: &mut GlobalContext) {
-    let main_module = module_from_path(ctx.entry_point().clone());
-    let id = ctx.register_module(main_module);
-
-    compile_module(id, ctx);
+#[derive(Default, Debug, Clone)]
+pub struct RunResult {
+    pub output: String,
+    pub diagnostics: Vec<String>,
+    pub success: bool,
 }
 
-/// Compiles the given module by module id
-pub fn compile_module(module_id: ModuleId, ctx: &mut GlobalContext) {
+/// Runs a Tol source file and returns its printed output and diagnostics.
+pub fn run_file(path: impl Into<PathBuf> + AsRef<Path>) -> RunResult {
+    let path = path.into();
+    let source = match fs::read_to_string(&path) {
+        Ok(source) => source,
+        Err(err) => {
+            return RunResult {
+                diagnostics: vec![format!("failed to read `{}`: {}", path.display(), err)],
+                ..RunResult::default()
+            };
+        }
+    };
+
+    run_source(source, path.display().to_string())
+}
+
+/// Runs Tol source code and returns its printed output and diagnostics.
+pub fn run_source(source: impl Into<String>, filename: impl Into<String>) -> RunResult {
+    let filename = filename.into();
+    let path = PathBuf::from(&filename);
+    let module = module_from_source(path, source.into());
+    let mut ctx = GlobalContext::new(filename);
+    let id = ctx.register_module(module);
+
+    run_module(id, &mut ctx)
+}
+
+/// Compiles the given module by module id.
+fn run_module(module_id: ModuleId, ctx: &mut GlobalContext) -> RunResult {
     let module = ctx.module_by_id_mut(module_id);
     module.set_compile_state(ModuleCompileState::Compiling);
     parse_module(module_id, ctx);
     analyze_module(module_id, ctx);
 
-    let module = ctx.module_by_id_mut(module_id);
-
-    // Stop compilation
-    if module.has_an_error() {
-        module.report_diagnostics();
-        return;
-    }
+    let diagnostics = {
+        let module = ctx.module_by_id_mut(module_id);
+        if module.has_an_error() {
+            let diagnostics = module.drain_diagnostics_as_strings();
+            return RunResult {
+                diagnostics,
+                ..RunResult::default()
+            };
+        }
+        Vec::new()
+    };
 
     let mut compiler = BytecodeCompiler::new(ctx, module_id);
     let chunk = compiler.compile();
-    chunk.disassemble("main");
 
-    let string_interner = ctx.take_string_interner();
     let mut vm = VM::new(chunk, ctx, module_id);
-    if let Err(e) = vm.run() {
-        eprintln!("{:?}", miette::Report::new(MietteDiagnostic::from(*e)));
-        let module = ctx.module_by_id_mut(module_id);
-        module.report_diagnostics();
-        return;
+    let run_result = vm.run();
+    let output = vm.take_output().join("\n");
+
+    let mut result = RunResult {
+        output,
+        diagnostics,
+        success: run_result.is_ok(),
+    };
+
+    if let Err(e) = run_result {
+        result.diagnostics.push(format!(
+            "{:?}",
+            miette::Report::new(MietteDiagnostic::from(*e))
+        ));
     }
 
     let module = ctx.module_by_id_mut(module_id);
-    module.report_diagnostics();
+    result
+        .diagnostics
+        .extend(module.drain_diagnostics_as_strings());
+
+    result
 }
 
 fn parse_module(module_id: ModuleId, ctx: &mut GlobalContext) {
@@ -62,9 +102,6 @@ fn parse_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     let source = module.source_arc();
 
     let tokens = Lexer::new(&source, ctx, module_id).lex();
-    for token in tokens.iter() {
-        println!("{:?}", token.kind());
-    }
     Parser::new(tokens, ctx, module_id).parse();
 }
 
@@ -73,10 +110,8 @@ fn analyze_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     analyzer.analyze();
 }
 
-fn module_from_path(path: impl Into<PathBuf> + AsRef<Path>) -> Module {
+fn module_from_source(path: impl Into<PathBuf> + AsRef<Path>, source: String) -> Module {
     let path = path.into();
     let name = path.file_stem().unwrap().to_str().unwrap().to_string();
-    let source = fs::read_to_string(&path).unwrap();
-
     Module::new(path, name, source)
 }
