@@ -13,6 +13,7 @@ use crate::{
     global_ctx::GlobalContext,
     module::{Module, ModuleCompileState, ModuleId},
     parse::{Parser, lexer::Lexer},
+    tol::diagnostic::miette_diagnostic::MietteDiagnostic,
     vm::VM,
 };
 
@@ -44,8 +45,13 @@ pub fn compile_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     chunk.disassemble("main");
 
     let string_interner = ctx.take_string_interner();
-    let mut vm = VM::new(chunk, string_interner);
-    vm.run();
+    let mut vm = VM::new(chunk, ctx, module_id);
+    if let Err(e) = vm.run() {
+        eprintln!("{:?}", miette::Report::new(MietteDiagnostic::from(*e)));
+        let module = ctx.module_by_id_mut(module_id);
+        module.report_diagnostics();
+        return;
+    }
 
     let module = ctx.module_by_id_mut(module_id);
     module.report_diagnostics();

@@ -3,8 +3,9 @@ use std::sync::Arc;
 use crate::tol::token::Span;
 
 pub mod miette_diagnostic;
+pub mod runtime;
 
-/// Diagnostic struct used to construct diagnostics at error site
+/// Diagnostic struct used to construct diagnostics at compile time
 #[derive(Debug)]
 pub struct TolDiagnostic {
     source: Arc<str>,

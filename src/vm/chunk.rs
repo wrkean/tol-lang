@@ -229,7 +229,7 @@ impl Chunk {
         offset + 1
     }
 
-    fn line(&self, instruction: usize) -> usize {
+    pub fn line(&self, instruction: usize) -> usize {
         let mut current = 0;
 
         for run in self.lines.iter() {

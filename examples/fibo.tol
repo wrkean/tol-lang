@@ -3,3 +3,5 @@ paraan fibo(n):
         ibalik 1
 
     ibalik fibo(n - 1) + fibo(n - 2)
+
+print "he" + 1

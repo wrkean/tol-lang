@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use miette::{LabeledSpan, NamedSource};
 
-use crate::tol::diagnostic::TolDiagnostic;
+use crate::tol::diagnostic::{TolDiagnostic, runtime::RuntimeError};
 
 #[derive(Debug, miette::Diagnostic, thiserror::Error)]
 #[error("{message}")]
@@ -45,6 +45,22 @@ impl From<TolDiagnostic> for MietteDiagnostic {
             src: NamedSource::new(tol_diag.filename.clone(), tol_diag.source),
             labels,
             help: tol_diag.help,
+        }
+    }
+}
+
+impl From<RuntimeError> for MietteDiagnostic {
+    fn from(run_error: RuntimeError) -> Self {
+        let label = run_error.label;
+        Self {
+            message: format!("error habang nakatakbo: {}", run_error.message),
+            src: NamedSource::new(run_error.filename, run_error.source),
+            labels: vec![LabeledSpan::new(
+                label.message,
+                label.span.start,
+                label.span.end - label.span.start,
+            )],
+            help: run_error.help,
         }
     }
 }

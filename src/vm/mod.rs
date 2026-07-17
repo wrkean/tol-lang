@@ -1,8 +1,14 @@
 use std::rc::Rc;
 
 use crate::{
-    global_ctx::StringInterner,
-    vm::{chunk::Chunk, opcode::OpCode, value::Value},
+    global_ctx::{GlobalContext, StringInterner},
+    module::{Module, ModuleId},
+    tol::diagnostic::{Label, runtime::RuntimeError},
+    vm::{
+        chunk::Chunk,
+        opcode::OpCode,
+        value::{Value, ValueError},
+    },
 };
 
 pub mod chunk;
@@ -14,30 +20,32 @@ struct Frame {
     chunk: Rc<Chunk>,
     ip: usize,
     locals: Vec<Value>,
+    module_id: ModuleId,
 }
 
-pub struct VM {
+pub struct VM<'gctx> {
     stack: Vec<Value>,
     frames: Vec<Frame>,
     globals: Vec<Value>,
-    string_interner: StringInterner,
+    ctx: &'gctx mut GlobalContext,
 }
 
-impl VM {
-    pub fn new(chunk: Chunk, string_interner: StringInterner) -> Self {
+impl<'gctx> VM<'gctx> {
+    pub fn new(chunk: Chunk, ctx: &'gctx mut GlobalContext, module_id: ModuleId) -> Self {
         Self {
             stack: Vec::new(),
             globals: Vec::new(),
-            string_interner,
+            ctx,
             frames: vec![Frame {
                 chunk: Rc::new(chunk),
                 ip: 0,
                 locals: Vec::new(),
+                module_id,
             }],
         }
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> Result<(), Box<RuntimeError>> {
         while self.frames.last().is_some() {
             let opcode = self.read_byte();
 
@@ -50,17 +58,17 @@ impl VM {
                 op if op == OpCode::Pop as u8 => {
                     self.pop();
                 }
-                op if op == OpCode::Add as u8 => self.binary_op(Value::add),
-                op if op == OpCode::Concat as u8 => self.concat(),
-                op if op == OpCode::Sub as u8 => self.binary_op(Value::sub),
-                op if op == OpCode::Mult as u8 => self.binary_op(Value::mult),
-                op if op == OpCode::Div as u8 => self.binary_op(Value::div),
-                op if op == OpCode::EqualEq as u8 => self.binary_op(Value::eqeq),
-                op if op == OpCode::NotEq as u8 => self.binary_op(Value::neq),
-                op if op == OpCode::Greater as u8 => self.binary_op(Value::gt),
-                op if op == OpCode::GreatEq as u8 => self.binary_op(Value::ge),
-                op if op == OpCode::Lesser as u8 => self.binary_op(Value::lt),
-                op if op == OpCode::LessEq as u8 => self.binary_op(Value::le),
+                op if op == OpCode::Add as u8 => self.binary_op(Value::add)?,
+                op if op == OpCode::Concat as u8 => self.concat()?,
+                op if op == OpCode::Sub as u8 => self.binary_op(Value::sub)?,
+                op if op == OpCode::Mult as u8 => self.binary_op(Value::mult)?,
+                op if op == OpCode::Div as u8 => self.binary_op(Value::div)?,
+                op if op == OpCode::EqualEq as u8 => self.binary_op(Value::eqeq)?,
+                op if op == OpCode::NotEq as u8 => self.binary_op(Value::neq)?,
+                op if op == OpCode::Greater as u8 => self.binary_op(Value::gt)?,
+                op if op == OpCode::GreatEq as u8 => self.binary_op(Value::ge)?,
+                op if op == OpCode::Lesser as u8 => self.binary_op(Value::lt)?,
+                op if op == OpCode::LessEq as u8 => self.binary_op(Value::le)?,
                 op if op == OpCode::StoreGlobal as u8 => {
                     let index = self.read_byte() as usize;
                     let value = self.pop();
@@ -93,13 +101,13 @@ impl VM {
                 }
                 op if op == OpCode::Call as u8 => {
                     let arity = self.read_byte();
-                    self.call_function(arity);
+                    self.call_function(arity, self.current_frame().module_id)?;
                 }
                 op if op == OpCode::Return as u8 => {
                     let value = self.pop();
                     self.return_from_frame(value);
                 }
-                x if x == OpCode::JumpIfFalse as u8 => {
+                op if op == OpCode::JumpIfFalse as u8 => {
                     let offset = self.read_u16() as usize;
 
                     match self.peek(0) {
@@ -108,7 +116,14 @@ impl VM {
                         }
                         Value::Bool(true) => {}
                         _ => {
-                            panic!("ang condition sa `kung` at `kundi` ay hindi tipong `bool`")
+                            let current_module = self.current_module();
+                            let line = self.current_chunk().line(self.current_ip());
+                            return Err(Box::new(RuntimeError::new(
+                                current_module.source_arc(),
+                                current_module.filename(),
+                                "ang kondisyon dito ay tumatanggap lamang ng expresyong nagreresulta sa tipong `bool`",
+                                Label::new(current_module.line_span(line)),
+                            )));
                         }
                     }
                 }
@@ -123,21 +138,36 @@ impl VM {
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }
         }
+
+        Ok(())
     }
 
-    fn concat(&mut self) {
+    fn concat(&mut self) -> Result<(), Box<RuntimeError>> {
         let rhs = self.pop();
         let lhs = self.pop();
 
         match (lhs, rhs) {
             (Value::Str(id1), Value::Str(id2)) => {
-                let str1 = self.string_interner.get(id1);
-                let str2 = self.string_interner.get(id2);
+                let interner = self.ctx.string_interner_mut();
+                let str1 = interner.get(id1);
+                let str2 = interner.get(id2);
+                let format = format!("{}{}", str1, str2);
 
-                let id = self.string_interner.intern(&format!("{}{}", str1, str2));
+                let id = interner.intern(&format);
                 self.push(Value::Str(id));
+
+                Ok(())
             }
-            _ => panic!("Mga strings lamang ang pwede i concatinate"),
+            _ => {
+                let current_module = self.current_module();
+                let line = self.current_chunk().line(self.current_ip());
+                Err(Box::new(RuntimeError::new(
+                    current_module.source_arc(),
+                    current_module.filename(),
+                    "mga strings lamang ang pwede i-\"concatenate\"",
+                    Label::new(current_module.line_span(line)),
+                )))
+            }
         }
     }
 
@@ -150,22 +180,36 @@ impl VM {
         self.push(return_val);
     }
 
-    fn call_function(&mut self, arity: u8) {
+    fn call_function(&mut self, arity: u8, module_id: ModuleId) -> Result<(), Box<RuntimeError>> {
         let callee_index = self.stack.len() - 1 - arity as usize;
 
         let is_function = matches!(self.stack[callee_index], Value::Function(_));
         if !is_function {
-            panic!("popped value isnt a function")
+            let current_module = self.current_module();
+            let line = self.current_chunk().line(self.current_ip());
+            return Err(Box::new(RuntimeError::new(
+                current_module.source_arc(),
+                current_module.filename(),
+                "hindi paraan ang tinawag dito",
+                Label::new(current_module.line_span(line)),
+            )));
         }
         let func_arity = match &self.stack[callee_index] {
             Value::Function(f) => f.arity,
             _ => unreachable!(),
         };
         if func_arity != arity {
-            panic!(
-                "hindi tugmang bilang ng parametro at argumento: `{}` na bilang ng parametro at `{}` na bilang ng argumento",
-                func_arity, arity
-            )
+            let current_module = self.current_module();
+            let line = self.current_chunk().line(self.current_ip());
+            return Err(Box::new(RuntimeError::new(
+                current_module.source_arc(),
+                current_module.filename(),
+                format!(
+                    "hindi tugmang bilang ng parametro at argumento: `{}` na bilang ng parametro at `{}` na bilang ng argumento",
+                    func_arity, arity
+                ),
+                Label::new(current_module.line_span(line)),
+            )));
         }
 
         let mut locals = vec![Value::Null; arity as usize];
@@ -181,7 +225,10 @@ impl VM {
             chunk: Rc::clone(&func.chunk),
             ip: 0,
             locals,
-        })
+            module_id,
+        });
+
+        Ok(())
     }
 
     fn store_global(&mut self, index: usize, value: Value) {
@@ -199,11 +246,29 @@ impl VM {
         frame.locals[index] = value;
     }
 
-    fn binary_op(&mut self, f: impl Fn(Value, Value) -> Value) {
+    fn binary_op(
+        &mut self,
+        f: impl Fn(Value, Value) -> Result<Value, ValueError>,
+    ) -> Result<(), Box<RuntimeError>> {
         let right = self.pop();
         let left = self.pop();
 
-        self.push(f(left, right));
+        match f(left, right) {
+            Ok(res) => {
+                self.push(res);
+                Ok(())
+            }
+            Err(err) => {
+                let current_module = self.current_module();
+                let line = self.current_chunk().line(self.current_frame().ip - 1);
+                Err(Box::new(RuntimeError::from_value_error(
+                    err,
+                    current_module.source_arc(),
+                    current_module.filename(),
+                    Label::new(self.current_module().line_span(line)),
+                )))
+            }
+        }
     }
 
     fn push(&mut self, value: Value) {
@@ -248,10 +313,22 @@ impl VM {
     fn print_value(&self, value: &Value) {
         match value {
             Value::Str(id) => {
-                println!("{}", self.string_interner.get(*id));
+                println!("{}", self.ctx.string_interner().get(*id));
             }
 
             val => println!("{val}"),
         }
+    }
+
+    fn current_module(&self) -> &Module {
+        self.ctx.module_by_id(self.current_frame().module_id)
+    }
+
+    fn current_module_mut(&mut self) -> &mut Module {
+        self.ctx.module_by_id_mut(self.current_frame().module_id)
+    }
+
+    fn current_ip(&self) -> usize {
+        self.current_frame().ip - 1
     }
 }

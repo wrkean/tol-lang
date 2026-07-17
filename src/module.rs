@@ -2,7 +2,10 @@ use std::{mem, path::PathBuf, sync::Arc};
 
 use crate::{
     parse::ast::{Ast, stmt::Stmt},
-    tol::diagnostic::{Severity, TolDiagnostic, miette_diagnostic::MietteDiagnostic},
+    tol::{
+        diagnostic::{Severity, TolDiagnostic, miette_diagnostic::MietteDiagnostic},
+        token::Span,
+    },
 };
 
 pub type ModuleId = usize;
@@ -128,6 +131,29 @@ impl Module {
     /// Returns the line number in the source code from the given offset
     pub fn line_of(&self, offset: usize) -> usize {
         self.line_starts.partition_point(|&x| x <= offset)
+    }
+
+    pub fn line_span(&self, line: usize) -> Span {
+        let source = self.source();
+        let mut current_line = 1;
+        let mut line_start = 0;
+
+        for (i, ch) in source.char_indices() {
+            if current_line == line {
+                // found the start of the target line, now find where it ends
+                let line_end = source[i..]
+                    .find('\n')
+                    .map(|rel| i + rel)
+                    .unwrap_or(source.len());
+                return line_start..line_end;
+            }
+            if ch == '\n' {
+                current_line += 1;
+                line_start = i + 1;
+            }
+        }
+
+        line_start..source.len() // fallback: last line, no trailing newline
     }
 
     pub fn set_ast(&mut self, ast: Ast) {
