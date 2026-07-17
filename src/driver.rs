@@ -102,6 +102,9 @@ fn parse_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     let source = module.source_arc();
 
     let tokens = Lexer::new(&source, ctx, module_id).lex();
+    for tok in tokens.iter() {
+        println!("{:?}", tok.kind());
+    }
     Parser::new(tokens, ctx, module_id).parse();
 }
 

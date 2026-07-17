@@ -52,7 +52,7 @@ impl<'c> Parser<'c> {
                 Err(diag) => {
                     let current_module = self.current_module_mut();
                     current_module.add_diagnostic(*diag);
-                    self.synchonize();
+                    self.synchronize();
                 }
             }
         }
@@ -254,7 +254,7 @@ impl<'c> Parser<'c> {
             match self.parse_statement() {
                 Ok(statement) => statements.push(statement),
                 Err(diag) => {
-                    self.synchonize();
+                    self.synchronize();
                     self.current_module_mut().add_diagnostic(*diag);
                 }
             }
@@ -403,7 +403,6 @@ impl<'c> Parser<'c> {
                     "hindi ito maaaring mag-simula ng isang expresyon",
                     span,
                 );
-                self.advance();
 
                 Err(Box::new(diagnostic))
             }
@@ -472,7 +471,7 @@ impl<'c> Parser<'c> {
         Ok(args)
     }
 
-    fn synchonize(&mut self) {
+    fn synchronize(&mut self) {
         if self.at_end() {
             return;
         }
@@ -482,7 +481,6 @@ impl<'c> Parser<'c> {
         while !self.at_end() {
             let previous = &self.tokens[self.current - 1];
 
-            // Tokens provided here are statement delimiters
             if matches!(previous.kind(), TokenKind::SemiColon | TokenKind::RBrace) {
                 return;
             }
