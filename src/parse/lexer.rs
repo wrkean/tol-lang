@@ -93,6 +93,7 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
             '}' => self.add_token(TokenKind::RBrace, self.current_span()),
             ':' => self.add_token(TokenKind::Colon, self.current_span()),
             ';' => self.add_token(TokenKind::SemiColon, self.current_span()),
+            '|' => self.add_token(TokenKind::Pipe, self.current_span()),
             '!' => {
                 if self.match_ch('=') {
                     self.add_token(TokenKind::NotEq, self.current_span())
@@ -103,6 +104,8 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
             '=' => {
                 if self.match_ch('=') {
                     self.add_token(TokenKind::EqualEq, self.current_span());
+                } else if self.match_ch('>') {
+                    self.add_token(TokenKind::ThickArrow, self.current_span());
                 } else {
                     self.add_token(TokenKind::Equal, self.current_span());
                 }

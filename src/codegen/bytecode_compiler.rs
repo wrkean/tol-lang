@@ -294,6 +294,32 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 self.chunk.emit_opcode(OpCode::Call, line);
                 self.chunk.emit_byte(args.len() as u8, line);
             }
+            ExprKind::AnonymousFn { params, body } => {
+                let symbol = self.ctx.symbol_by_id(expression.symbol_id());
+
+                let mut function_chunk = Chunk::new();
+                let old_chunk = mem::replace(&mut self.chunk, function_chunk);
+
+                self.compile_expression(body);
+                let line = self.current_module().line_of(body.span().end);
+                self.chunk.emit_opcode(OpCode::Return, line);
+
+                function_chunk = mem::replace(&mut self.chunk, old_chunk);
+
+                let function = Function::new(
+                    format!(
+                        "__anonymous_fn_{}_{}__",
+                        expression.span().start,
+                        expression.span().end
+                    ),
+                    function_chunk,
+                    params.len() as u8,
+                );
+
+                let line = self.current_module().line_of(expression.span().start);
+                self.chunk
+                    .add_and_emit_constant(Value::Function(Rc::new(function)), line);
+            }
         }
     }
 

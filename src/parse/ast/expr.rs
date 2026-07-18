@@ -2,6 +2,7 @@ use std::fmt;
 
 use crate::{
     analyze::symbol::SymbolId,
+    parse::ast::stmt::{ParamList, Stmt},
     tol::token::{Span, Token},
 };
 
@@ -44,7 +45,7 @@ impl Expr {
 
     pub fn is_lvalue(&self) -> bool {
         use ExprKind::*;
-        matches!(self.kind(), Identifier(_))
+        matches!(self.kind(), Identifier(_) | AnonymousFn { .. })
     }
 }
 
@@ -53,6 +54,10 @@ pub enum ExprKind {
     Integer(i64),
     Float(f64),
     Identifier(String),
+    AnonymousFn {
+        params: ParamList,
+        body: Box<Expr>,
+    },
     Str {
         text: String,
         interned_id: Option<usize>,
@@ -78,6 +83,7 @@ impl fmt::Display for Expr {
             ExprKind::Binary { left, right, op } => {
                 write!(f, "({:?} {} {})", op.kind(), left, right)
             }
+            ExprKind::AnonymousFn { .. } => unimplemented!(),
             ExprKind::Call { .. } => unimplemented!(),
         }
     }

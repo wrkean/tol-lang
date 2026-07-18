@@ -64,6 +64,8 @@ pub enum TokenKind {
     Lesser,
     Comma,
     ThinArrow,
+    ThickArrow,
+    Pipe,
 
     Indent,
     Dedent,
@@ -78,6 +80,7 @@ impl TokenKind {
             self,
             RParen
                 | RSquare
+                | RBrace
                 | Identifier(_)
                 | IntLiteral(_)
                 | FloatLiteral(_)

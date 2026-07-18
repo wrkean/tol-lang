@@ -155,7 +155,7 @@ impl<'c> Parser<'c> {
                 "umaasa ako ng pangalan dito pagkatapos ng `paraan` para sa pag-deklara",
             )?
             .clone();
-        let params = self.parse_params()?;
+        let params = self.parse_params(TokenKind::LParen, TokenKind::RParen)?;
         let ret_ty = if self.peek().kind() == &TokenKind::ThinArrow {
             self.advance();
             dbg!(self.peek().kind());
@@ -272,14 +272,18 @@ impl<'c> Parser<'c> {
         Ok(Stmt::new(start..end, StmtKind::Block { statements }))
     }
 
-    fn parse_params(&mut self) -> DiagResult<ParamList> {
+    fn parse_params(
+        &mut self,
+        begin_delim: TokenKind,
+        end_delim: TokenKind,
+    ) -> DiagResult<ParamList> {
         let start = self
-            .consume(TokenKind::LParen, "umaasa ako ng `(` dito")?
+            .consume(begin_delim, "hindi ko ito inaasahan")?
             .span()
             .start;
 
         let mut params = Vec::new();
-        while !self.at_end() && self.peek().kind() != &TokenKind::RParen {
+        while !self.at_end() && self.peek().kind() != &end_delim {
             let start = self.peek().span().start;
             let mut is_mutable = false;
             if self.peek().kind() == &TokenKind::Iiba {
@@ -309,7 +313,7 @@ impl<'c> Parser<'c> {
 
         let end = self
             .consume(
-                TokenKind::RParen,
+                end_delim,
                 "hindi na-isarado ang mga parametro gamit ang `)`",
             )?
             .span()
@@ -393,6 +397,21 @@ impl<'c> Parser<'c> {
                     ExprKind::Str {
                         text: s,
                         interned_id: None,
+                    },
+                ))
+            }
+            TokenKind::Pipe => {
+                let start = self.peek().span().start;
+                let params = self.parse_params(TokenKind::Pipe, TokenKind::Pipe)?;
+                self.consume(TokenKind::ThickArrow, "umaasa ng `=>` dito")?;
+                let expr = self.parse_expression(0)?;
+                let span = start..expr.span().end;
+
+                Ok(Expr::new(
+                    span,
+                    ExprKind::AnonymousFn {
+                        params,
+                        body: Box::new(expr),
                     },
                 ))
             }

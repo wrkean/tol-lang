@@ -13,6 +13,7 @@ use crate::{
     tol::{
         diagnostic::{Label, TolDiagnostic, predefined_diagnostics},
         token::{Token, TokenKind},
+        types::TolType,
     },
 };
 
@@ -274,6 +275,7 @@ impl<'gctx> Analyzer<'gctx> {
     }
 
     fn resolve_expression(&mut self, expression: &mut Expr) -> DiagResult<()> {
+        let span = expression.span().clone();
         match expression.kind_mut() {
             ExprKind::Integer(_) => Ok(()),
             ExprKind::Float(_) => Ok(()),
@@ -335,6 +337,54 @@ impl<'gctx> Analyzer<'gctx> {
                         self.current_module_mut().add_diagnostic(*diag);
                     }
                 }
+
+                Ok(())
+            }
+            ExprKind::AnonymousFn { params, body } => {
+                let storage = self.assign_storage();
+                let param_types = params.spanned_types();
+                let name = format!("__anonymous_fn_{}_{}__", span.start, span.end,);
+                let symbol = Symbol::new(
+                    name,
+                    span,
+                    storage,
+                    SymbolKind::Function {
+                        param_types,
+                        ret_ty: TolType::DiAlam,
+                    },
+                );
+                let id = self.declare_symbol(symbol)?;
+
+                self.enter_function();
+                self.enter_scope();
+
+                for param in params.params.iter() {
+                    let TokenKind::Identifier(param_name) = param.name.kind() else {
+                        unreachable!()
+                    };
+                    let symbol = Symbol::new(
+                        param_name.clone(),
+                        param.span.clone(),
+                        self.assign_storage(),
+                        SymbolKind::Name {
+                            is_mutable: param.is_mutable,
+                            ty: param.ty.clone(),
+                        },
+                    );
+
+                    if let Err(diag) = self.declare_symbol(symbol) {
+                        self.current_module_mut().add_diagnostic(*diag);
+                    }
+                }
+
+                self.enter_scope();
+                self.resolve_expression(body)?;
+
+                self.exit_function();
+                self.exit_scope();
+                self.exit_scope();
+
+                expression.set_symbol_id(id);
 
                 Ok(())
             }
