@@ -8,7 +8,7 @@ use crate::{
         expr::{Expr, ExprKind},
         stmt::{Stmt, StmtKind},
     },
-    tol::token::TokenKind,
+    tol::token::{Span, TokenKind},
     vm::{chunk::Chunk, function::Function, opcode::OpCode, value::Value},
 };
 
@@ -42,7 +42,15 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         for statement in ast {
             self.compile_statement(statement);
         }
-        self.chunk.emit_opcode(OpCode::Halt, 0);
+
+        let span = {
+            if let Some(last) = ast.last() {
+                last.span().clone()
+            } else {
+                0..0
+            }
+        };
+        self.chunk.emit_opcode(OpCode::Halt, span);
 
         mem::take(&mut self.chunk)
     }
@@ -79,8 +87,8 @@ impl<'gctx> BytecodeCompiler<'gctx> {
 
         self.compile_expression(rhs);
         let id = ang.symbol_id();
-        let line = self.current_module().line_of(ang.span().start);
-        self.store_symbol(id, line);
+        let span = name.span().clone();
+        self.store_symbol(id, span);
     }
 
     fn compile_paraan(&mut self, paraan: &Stmt) {
@@ -101,10 +109,10 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         let old_chunk = mem::replace(&mut self.chunk, function_chunk);
 
         self.compile_statement(block);
-        let line = self.current_module().line_of(block.span().end);
+        let span = block.span().clone();
         if !self.chunk.ends_with_return() {
-            self.chunk.emit_opcode(OpCode::Null, line);
-            self.chunk.emit_opcode(OpCode::Return, line);
+            self.chunk.emit_opcode(OpCode::Null, span.clone());
+            self.chunk.emit_opcode(OpCode::Return, span);
         }
 
         // After compiling the block, we put the chunk back to its place and retrieve the chunks
@@ -116,10 +124,10 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         };
         let function = Function::new(function_name.clone(), function_chunk, params.len() as u8);
 
-        let line = self.current_module().line_of(paraan.span().start);
+        let span = paraan.span().clone();
         self.chunk
-            .add_and_emit_constant(Value::Function(Rc::new(function)), line);
-        self.store_symbol(paraan.symbol_id(), line);
+            .add_and_emit_constant(Value::Function(Rc::new(function)), span.clone());
+        self.store_symbol(paraan.symbol_id(), span);
     }
 
     fn compile_print(&mut self, print: &Stmt) {
@@ -127,9 +135,9 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             unreachable!()
         };
 
-        let line = self.current_module().line_of(print.span().start);
+        let span = print.span().clone();
         self.compile_expression(expr);
-        self.chunk.emit_opcode(OpCode::Print, line);
+        self.chunk.emit_opcode(OpCode::Print, span);
     }
 
     fn compile_kung(&mut self, kung: &Stmt) {
@@ -145,16 +153,16 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         for then in then_branches {
             let condition = then.condition.as_ref().unwrap();
             let block = &then.block;
-            let cond_line = self.current_module().line_of(condition.span().start);
+            let cond_span = condition.span().clone();
             self.compile_expression(condition);
-            let jump_if_false = self.chunk.emit_jump(OpCode::JumpIfFalse, cond_line);
-            self.chunk.emit_opcode(OpCode::Pop, cond_line);
+            let jump_if_false = self.chunk.emit_jump(OpCode::JumpIfFalse, cond_span.clone());
+            self.chunk.emit_opcode(OpCode::Pop, cond_span.clone());
 
-            let block_line = self.current_module().line_of(block.span().start);
+            let block_span = block.span().clone();
             self.compile_statement(block);
-            end_jumps.push(self.chunk.emit_jump(OpCode::Jump, block_line));
+            end_jumps.push(self.chunk.emit_jump(OpCode::Jump, block_span));
             self.chunk.patch_jump(jump_if_false);
-            self.chunk.emit_opcode(OpCode::Pop, cond_line);
+            self.chunk.emit_opcode(OpCode::Pop, cond_span);
         }
 
         if let Some(branch) = else_branch {
@@ -178,16 +186,16 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             break_jumps: Vec::new(),
         });
 
-        let line = self.current_module().line_of(condition.span().start);
+        let span = condition.span().clone();
 
         self.compile_expression(condition);
-        let exit_jump = self.chunk.emit_jump(OpCode::JumpIfFalse, line);
-        self.chunk.emit_opcode(OpCode::Pop, line);
+        let exit_jump = self.chunk.emit_jump(OpCode::JumpIfFalse, span.clone());
+        self.chunk.emit_opcode(OpCode::Pop, span.clone());
 
         self.compile_statement(block);
-        self.chunk.emit_loop(loop_start, line);
+        self.chunk.emit_loop(loop_start, span.clone());
         self.chunk.patch_jump(exit_jump);
-        self.chunk.emit_opcode(OpCode::Pop, line);
+        self.chunk.emit_opcode(OpCode::Pop, span);
 
         let ctx = self.loop_stack.pop().unwrap();
         for jump in ctx.break_jumps {
@@ -196,16 +204,16 @@ impl<'gctx> BytecodeCompiler<'gctx> {
     }
 
     fn compile_biyakin(&mut self, biyakin: &Stmt) {
-        let line = self.current_module().line_of(biyakin.span().start);
-        let jump = self.chunk.emit_jump(OpCode::Jump, line);
+        let span = biyakin.span().clone();
+        let jump = self.chunk.emit_jump(OpCode::Jump, span);
         let loop_ctx = self.loop_stack.last_mut().unwrap();
         loop_ctx.break_jumps.push(jump);
     }
 
     fn compile_ituloy(&mut self, ituloy: &Stmt) {
-        let line = self.current_module().line_of(ituloy.span().start);
+        let span = ituloy.span().clone();
         let loop_ctx = self.loop_stack.last().unwrap();
-        self.chunk.emit_loop(loop_ctx.loop_start, line);
+        self.chunk.emit_loop(loop_ctx.loop_start, span);
     }
 
     fn compile_ibalik(&mut self, ibalik: &Stmt) {
@@ -213,25 +221,25 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             unreachable!()
         };
 
-        let line = self.current_module().line_of(ibalik.span().start);
+        let span = ibalik.span().clone();
         match expr {
             Some(ex) => self.compile_expression(ex),
-            None => self.chunk.add_and_emit_constant(Value::Null, line),
+            None => self.chunk.add_and_emit_constant(Value::Null, span.clone()),
         }
 
-        self.chunk.emit_opcode(OpCode::Return, line);
+        self.chunk.emit_opcode(OpCode::Return, span);
     }
 
-    fn store_symbol(&mut self, symbol_id: SymbolId, line: usize) {
+    fn store_symbol(&mut self, symbol_id: SymbolId, span: Span) {
         let symbol = self.ctx.symbol_by_id(symbol_id);
         match symbol.storage() {
             Storage::Global(slot) => {
-                self.chunk.emit_opcode(OpCode::StoreGlobal, line);
-                self.chunk.emit_byte(*slot as u8, line);
+                self.chunk.emit_opcode(OpCode::StoreGlobal, span.clone());
+                self.chunk.emit_byte(*slot as u8, span);
             }
             Storage::Local(slot) => {
-                self.chunk.emit_opcode(OpCode::StoreLocal, line);
-                self.chunk.emit_byte(*slot as u8, line);
+                self.chunk.emit_opcode(OpCode::StoreLocal, span.clone());
+                self.chunk.emit_byte(*slot as u8, span);
             }
         }
     }
@@ -242,33 +250,33 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         };
 
         let current_module = self.current_module();
-        let line = current_module.line_of(expr_stmt.span().start);
+        let span = expr.span().clone();
         self.compile_expression(expr);
 
         // This is an expression statement, we discard the value of the expression afterwards
-        self.chunk.emit_opcode(OpCode::Pop, line);
+        self.chunk.emit_opcode(OpCode::Pop, span);
     }
 
     fn compile_expression(&mut self, expression: &Expr) {
-        let line = self.current_module().line_of(expression.span().start);
+        let span = expression.span().clone();
         match expression.kind() {
-            ExprKind::Integer(x) => self.chunk.add_and_emit_constant(Value::Int(*x), line),
-            ExprKind::Float(x) => self.chunk.add_and_emit_constant(Value::Float(*x), line),
+            ExprKind::Integer(x) => self.chunk.add_and_emit_constant(Value::Int(*x), span),
+            ExprKind::Float(x) => self.chunk.add_and_emit_constant(Value::Float(*x), span),
             ExprKind::Str { interned_id, .. } => {
                 self.chunk
-                    .add_and_emit_constant(Value::Str(interned_id.unwrap()), line);
+                    .add_and_emit_constant(Value::Str(interned_id.unwrap()), span);
             }
             ExprKind::Identifier(ident) => {
                 let id = expression.symbol_id();
                 let symbol = self.ctx.symbol_by_id(id);
                 match symbol.storage() {
                     Storage::Global(slot) => {
-                        self.chunk.emit_opcode(OpCode::LoadGlobal, line);
-                        self.chunk.emit_byte(*slot as u8, line);
+                        self.chunk.emit_opcode(OpCode::LoadGlobal, span.clone());
+                        self.chunk.emit_byte(*slot as u8, span);
                     }
                     Storage::Local(slot) => {
-                        self.chunk.emit_opcode(OpCode::LoadLocal, line);
-                        self.chunk.emit_byte(*slot as u8, line);
+                        self.chunk.emit_opcode(OpCode::LoadLocal, span.clone());
+                        self.chunk.emit_byte(*slot as u8, span);
                     }
                 }
             }
@@ -280,7 +288,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 } else {
                     self.compile_expression(left);
                     self.compile_expression(right);
-                    self.chunk.emit_operator(op.kind(), line);
+                    self.chunk.emit_operator(op.kind(), span);
                 }
             }
             ExprKind::Call { left, args } => {
@@ -291,8 +299,8 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 }
 
                 let line = self.current_module().line_of(left.span().start);
-                self.chunk.emit_opcode(OpCode::Call, line);
-                self.chunk.emit_byte(args.len() as u8, line);
+                self.chunk.emit_opcode(OpCode::Call, span.clone());
+                self.chunk.emit_byte(args.len() as u8, span);
             }
             ExprKind::AnonymousFn { params, body } => {
                 let symbol = self.ctx.symbol_by_id(expression.symbol_id());
@@ -302,7 +310,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
 
                 self.compile_expression(body);
                 let line = self.current_module().line_of(body.span().end);
-                self.chunk.emit_opcode(OpCode::Return, line);
+                self.chunk.emit_opcode(OpCode::Return, span.clone());
 
                 function_chunk = mem::replace(&mut self.chunk, old_chunk);
 
@@ -318,7 +326,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
 
                 let line = self.current_module().line_of(expression.span().start);
                 self.chunk
-                    .add_and_emit_constant(Value::Function(Rc::new(function)), line);
+                    .add_and_emit_constant(Value::Function(Rc::new(function)), span);
             }
         }
     }
@@ -329,10 +337,10 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         };
 
         self.compile_expression(right);
-        let line = self.current_module().line_of(assignment.span().start);
-        self.store_symbol(left.symbol_id(), line);
+        let span = left.span().clone();
+        self.store_symbol(left.symbol_id(), span.clone());
 
-        self.chunk.emit_opcode(OpCode::Null, line);
+        self.chunk.emit_opcode(OpCode::Null, span);
     }
 
     fn current_module(&self) -> &Module {

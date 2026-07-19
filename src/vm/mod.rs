@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::{
     global_ctx::{GlobalContext, StringInterner},
     module::{Module, ModuleId},
-    tol::diagnostic::{Label, runtime::RuntimeError},
+    tol::diagnostic::{Label, miette_diagnostic::MietteDiagnostic, runtime::RuntimeError},
     vm::{
         chunk::Chunk,
         opcode::OpCode,
@@ -45,7 +45,7 @@ impl<'gctx> VM<'gctx> {
         }
     }
 
-    pub fn run(&mut self) -> Result<(), Box<RuntimeError>> {
+    pub fn run(&mut self) {
         while self.frames.last().is_some() {
             let opcode = self.read_byte();
 
@@ -58,17 +58,17 @@ impl<'gctx> VM<'gctx> {
                 op if op == OpCode::Pop as u8 => {
                     self.pop();
                 }
-                op if op == OpCode::Add as u8 => self.binary_op(Value::add)?,
-                op if op == OpCode::Concat as u8 => self.concat()?,
-                op if op == OpCode::Sub as u8 => self.binary_op(Value::sub)?,
-                op if op == OpCode::Mult as u8 => self.binary_op(Value::mult)?,
-                op if op == OpCode::Div as u8 => self.binary_op(Value::div)?,
-                op if op == OpCode::EqualEq as u8 => self.binary_op(Value::eqeq)?,
-                op if op == OpCode::NotEq as u8 => self.binary_op(Value::neq)?,
-                op if op == OpCode::Greater as u8 => self.binary_op(Value::gt)?,
-                op if op == OpCode::GreatEq as u8 => self.binary_op(Value::ge)?,
-                op if op == OpCode::Lesser as u8 => self.binary_op(Value::lt)?,
-                op if op == OpCode::LessEq as u8 => self.binary_op(Value::le)?,
+                op if op == OpCode::Add as u8 => self.binary_op(Value::add),
+                op if op == OpCode::Concat as u8 => self.concat(),
+                op if op == OpCode::Sub as u8 => self.binary_op(Value::sub),
+                op if op == OpCode::Mult as u8 => self.binary_op(Value::mult),
+                op if op == OpCode::Div as u8 => self.binary_op(Value::div),
+                op if op == OpCode::EqualEq as u8 => self.binary_op(Value::eqeq),
+                op if op == OpCode::NotEq as u8 => self.binary_op(Value::neq),
+                op if op == OpCode::Greater as u8 => self.binary_op(Value::gt),
+                op if op == OpCode::GreatEq as u8 => self.binary_op(Value::ge),
+                op if op == OpCode::Lesser as u8 => self.binary_op(Value::lt),
+                op if op == OpCode::LessEq as u8 => self.binary_op(Value::le),
                 op if op == OpCode::StoreGlobal as u8 => {
                     let index = self.read_byte() as usize;
                     let value = self.pop();
@@ -101,7 +101,7 @@ impl<'gctx> VM<'gctx> {
                 }
                 op if op == OpCode::Call as u8 => {
                     let arity = self.read_byte();
-                    self.call_function(arity, self.current_frame().module_id)?;
+                    self.call_function(arity, self.current_frame().module_id);
                 }
                 op if op == OpCode::Return as u8 => {
                     let value = self.pop();
@@ -117,13 +117,7 @@ impl<'gctx> VM<'gctx> {
                         Value::Bool(true) => {}
                         _ => {
                             let current_module = self.current_module();
-                            let line = self.current_chunk().line(self.current_ip());
-                            return Err(Box::new(RuntimeError::new(
-                                current_module.source_arc(),
-                                current_module.filename(),
-                                "ang kondisyon dito ay tumatanggap lamang ng expresyong nagreresulta sa tipong `bool`",
-                                Label::new(current_module.line_span(line)),
-                            )));
+                            self.runtime_error("ang kondisyon dito ay tumatanggap lamang ng expresyong nagreresulta sa tipong `bool`", self.current_ip());
                         }
                     }
                 }
@@ -138,11 +132,9 @@ impl<'gctx> VM<'gctx> {
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }
         }
-
-        Ok(())
     }
 
-    fn concat(&mut self) -> Result<(), Box<RuntimeError>> {
+    fn concat(&mut self) {
         let rhs = self.pop();
         let lhs = self.pop();
 
@@ -155,18 +147,13 @@ impl<'gctx> VM<'gctx> {
 
                 let id = interner.intern(&format);
                 self.push(Value::Str(id));
-
-                Ok(())
             }
             _ => {
                 let current_module = self.current_module();
-                let line = self.current_chunk().line(self.current_ip());
-                Err(Box::new(RuntimeError::new(
-                    current_module.source_arc(),
-                    current_module.filename(),
+                self.runtime_error(
                     "mga strings lamang ang pwede i-\"concatenate\"",
-                    Label::new(current_module.line_span(line)),
-                )))
+                    self.current_ip(),
+                );
             }
         }
     }
@@ -180,19 +167,14 @@ impl<'gctx> VM<'gctx> {
         self.push(return_val);
     }
 
-    fn call_function(&mut self, arity: u8, module_id: ModuleId) -> Result<(), Box<RuntimeError>> {
+    fn call_function(&mut self, arity: u8, module_id: ModuleId) {
         let callee_index = self.stack.len() - 1 - arity as usize;
 
         let is_function = matches!(self.stack[callee_index], Value::Function(_));
         if !is_function {
             let current_module = self.current_module();
-            let line = self.current_chunk().line(self.current_ip());
-            return Err(Box::new(RuntimeError::new(
-                current_module.source_arc(),
-                current_module.filename(),
-                "hindi paraan ang tinawag dito",
-                Label::new(current_module.line_span(line)),
-            )));
+            self.runtime_error("hindi paraan ang tinawag dito", self.current_ip());
+            return;
         }
         let func_arity = match &self.stack[callee_index] {
             Value::Function(f) => f.arity,
@@ -200,16 +182,8 @@ impl<'gctx> VM<'gctx> {
         };
         if func_arity != arity {
             let current_module = self.current_module();
-            let line = self.current_chunk().line(self.current_ip());
-            return Err(Box::new(RuntimeError::new(
-                current_module.source_arc(),
-                current_module.filename(),
-                format!(
-                    "hindi tugmang bilang ng parametro at argumento: `{}` na bilang ng parametro at `{}` na bilang ng argumento",
-                    func_arity, arity
-                ),
-                Label::new(current_module.line_span(line)),
-            )));
+            self.runtime_error("hindi tugmang bilang ng parametro at argumento: `{}` na bilang ng parametro at `{}` na bilang ng argumento", self.current_ip());
+            return;
         }
 
         let mut locals = vec![Value::Null; arity as usize];
@@ -227,8 +201,6 @@ impl<'gctx> VM<'gctx> {
             locals,
             module_id,
         });
-
-        Ok(())
     }
 
     fn store_global(&mut self, index: usize, value: Value) {
@@ -246,27 +218,17 @@ impl<'gctx> VM<'gctx> {
         frame.locals[index] = value;
     }
 
-    fn binary_op(
-        &mut self,
-        f: impl Fn(Value, Value) -> Result<Value, ValueError>,
-    ) -> Result<(), Box<RuntimeError>> {
+    fn binary_op(&mut self, f: impl Fn(Value, Value) -> Result<Value, ValueError>) {
         let right = self.pop();
         let left = self.pop();
 
         match f(left, right) {
             Ok(res) => {
                 self.push(res);
-                Ok(())
             }
             Err(err) => {
                 let current_module = self.current_module();
-                let line = self.current_chunk().line(self.current_frame().ip - 1);
-                Err(Box::new(RuntimeError::from_value_error(
-                    err,
-                    current_module.source_arc(),
-                    current_module.filename(),
-                    Label::new(self.current_module().line_span(line)),
-                )))
+                self.runtime_error(&err.message, self.current_ip());
             }
         }
     }
@@ -330,5 +292,26 @@ impl<'gctx> VM<'gctx> {
 
     fn current_ip(&self) -> usize {
         self.current_frame().ip - 1
+    }
+
+    fn runtime_error(&mut self, message: &str, instruction: usize) {
+        let span = self.current_chunk().span_of(instruction);
+        let current_module = self.current_module();
+        let runtime_err = RuntimeError::new(
+            current_module.source_arc(),
+            current_module.filename(),
+            message,
+            Label::new(span),
+        );
+        eprintln!(
+            "{:?}",
+            miette::Report::new(MietteDiagnostic::from(runtime_err))
+        );
+        self.force_stop_vm();
+    }
+
+    fn force_stop_vm(&mut self) {
+        // naively
+        self.frames.clear();
     }
 }

@@ -45,12 +45,7 @@ pub fn compile_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     chunk.disassemble("main");
 
     let mut vm = VM::new(chunk, ctx, module_id);
-    if let Err(e) = vm.run() {
-        eprintln!("{:?}", miette::Report::new(MietteDiagnostic::from(*e)));
-        let module = ctx.module_by_id_mut(module_id);
-        module.report_diagnostics();
-        return;
-    }
+    vm.run();
 
     let module = ctx.module_by_id_mut(module_id);
     module.report_diagnostics();

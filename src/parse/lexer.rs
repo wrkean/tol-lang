@@ -82,7 +82,7 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
                 };
             }
             ')' | ']' => {
-                self.bracket_depth -= 1;
+                self.bracket_depth.overflowing_sub(1);
                 match current_char {
                     ')' => self.add_token(TokenKind::RParen, self.current_span()),
                     ']' => self.add_token(TokenKind::RSquare, self.current_span()),

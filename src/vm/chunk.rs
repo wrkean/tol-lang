@@ -1,11 +1,11 @@
 use crate::{
-    tol::token::TokenKind,
+    tol::token::{Span, TokenKind},
     vm::{opcode::OpCode, value::Value},
 };
 
 #[derive(Debug, Clone)]
-struct LineRun {
-    line: usize,
+struct SpanRun {
+    span: Span,
     count: usize,
 }
 
@@ -13,7 +13,7 @@ struct LineRun {
 pub struct Chunk {
     code: Vec<u8>,
     constants: Vec<Value>,
-    lines: Vec<LineRun>,
+    lines: Vec<SpanRun>,
 }
 
 impl Chunk {
@@ -26,13 +26,13 @@ impl Chunk {
     }
 
     /// Emits and stores an opcode into the bytecode list
-    pub fn emit_opcode(&mut self, opcode: OpCode, line: usize) {
-        self.write(opcode as u8, line);
+    pub fn emit_opcode(&mut self, opcode: OpCode, span: Span) {
+        self.write(opcode as u8, span);
     }
 
     /// Emits and stores a raw byte into the bytecode list
-    pub fn emit_byte(&mut self, byte: u8, line: usize) {
-        self.write(byte, line);
+    pub fn emit_byte(&mut self, byte: u8, span: Span) {
+        self.write(byte, span);
     }
 
     pub fn add_constant(&mut self, constant: Value) -> u8 {
@@ -45,18 +45,18 @@ impl Chunk {
         self.constants[constant_index].clone()
     }
 
-    pub fn emit_constant(&mut self, index: u8, line: usize) {
-        self.emit_opcode(OpCode::Constant, line);
-        self.emit_byte(index, line);
+    pub fn emit_constant(&mut self, index: u8, span: Span) {
+        self.emit_opcode(OpCode::Constant, span.clone());
+        self.emit_byte(index, span);
     }
 
-    pub fn add_and_emit_constant(&mut self, value: Value, line: usize) {
+    pub fn add_and_emit_constant(&mut self, value: Value, span: Span) {
         let index = self.add_constant(value);
-        self.emit_opcode(OpCode::Constant, line);
-        self.emit_byte(index, line);
+        self.emit_opcode(OpCode::Constant, span.clone());
+        self.emit_byte(index, span);
     }
 
-    pub fn emit_operator(&mut self, op_kind: &TokenKind, line: usize) {
+    pub fn emit_operator(&mut self, op_kind: &TokenKind, span: Span) {
         let opcode = match op_kind {
             TokenKind::Plus => OpCode::Add,
             TokenKind::PlusPlus => OpCode::Concat,
@@ -71,21 +71,21 @@ impl Chunk {
             TokenKind::LessEq => OpCode::LessEq,
             _ => unimplemented!(),
         };
-        self.emit_opcode(opcode, line);
+        self.emit_opcode(opcode, span);
     }
 
-    pub fn emit_jump(&mut self, jump_op: OpCode, line: usize) -> usize {
-        self.emit_opcode(jump_op, line);
+    pub fn emit_jump(&mut self, jump_op: OpCode, span: Span) -> usize {
+        self.emit_opcode(jump_op, span.clone());
 
         // Fill with placeholders (0xDEAD)
-        self.emit_byte(0xDE, line);
-        self.emit_byte(0xAD, line);
+        self.emit_byte(0xDE, span.clone());
+        self.emit_byte(0xAD, span);
 
         self.code.len() - 2
     }
 
-    pub fn emit_loop(&mut self, loop_start: usize, line: usize) {
-        self.emit_opcode(OpCode::Loop, line);
+    pub fn emit_loop(&mut self, loop_start: usize, span: Span) {
+        self.emit_opcode(OpCode::Loop, span.clone());
 
         let offset = self.code.len() - loop_start + 2;
 
@@ -93,8 +93,8 @@ impl Chunk {
             panic!("Loop body too large.");
         }
 
-        self.emit_byte((offset >> 8) as u8, line);
-        self.emit_byte(offset as u8, line);
+        self.emit_byte((offset >> 8) as u8, span.clone());
+        self.emit_byte(offset as u8, span);
     }
 
     pub fn patch_jump(&mut self, offset: usize) {
@@ -130,15 +130,15 @@ impl Chunk {
 
     // Helper function responsible for writing into the bytecode list `self.code`
     // It writes a byte (can be an opcode or a raw byte) and records it's line
-    fn write(&mut self, byte: u8, line: usize) -> usize {
+    fn write(&mut self, byte: u8, span: Span) -> usize {
         self.code.push(byte);
 
         match self.lines.last_mut() {
             // Similar to self.lines.last_mut().is_some_and(|run| run.line == line)
-            Some(run) if run.line == line => {
+            Some(run) if run.span == span => {
                 run.count += 1;
             }
-            _ => self.lines.push(LineRun { line, count: 1 }),
+            _ => self.lines.push(SpanRun { span, count: 1 }),
         }
 
         self.code.len() - 1 // Return the index to where the byte was written
@@ -147,12 +147,12 @@ impl Chunk {
     fn disassemble_instruction(&self, offset: usize) -> usize {
         print!("{:04}    ", offset);
 
-        let line = self.line(offset);
+        let span = self.span_of(offset);
 
-        if offset > 0 && line == self.line(offset - 1) {
-            print!("       | ");
+        if offset > 0 && span == self.span_of(offset - 1) {
+            print!("    | ");
         } else {
-            print!("{:8} ", line);
+            print!("{:?} ", span);
         }
 
         let instruction = self.code[offset];
@@ -229,14 +229,14 @@ impl Chunk {
         offset + 1
     }
 
-    pub fn line(&self, instruction: usize) -> usize {
+    pub fn span_of(&self, instruction: usize) -> Span {
         let mut current = 0;
 
         for run in self.lines.iter() {
             current += run.count;
 
             if instruction < current {
-                return run.line;
+                return run.span.clone();
             }
         }
 
