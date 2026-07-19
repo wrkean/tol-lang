@@ -133,10 +133,6 @@ impl GlobalContext {
         self.string_interner.intern(s)
     }
 
-    pub fn take_string_interner(&mut self) -> StringInterner {
-        mem::take(&mut self.string_interner)
-    }
-
     pub fn string_interner(&self) -> &StringInterner {
         &self.string_interner
     }
