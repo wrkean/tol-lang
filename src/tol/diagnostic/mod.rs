@@ -4,7 +4,6 @@ use crate::tol::token::Span;
 
 pub mod miette_diagnostic;
 pub mod runtime;
-
 /// Diagnostic struct used to construct diagnostics at compile time
 #[derive(Debug)]
 pub struct TolDiagnostic {
@@ -46,6 +45,86 @@ impl TolDiagnostic {
     pub fn severity(&self) -> &Severity {
         &self.severity
     }
+
+    /// Converts a byte offset into (line, column), both 1-indexed.
+    fn line_col(&self, offset: usize) -> (usize, usize) {
+        let mut line = 1;
+        let mut col = 1;
+
+        for (i, ch) in self.source.char_indices() {
+            if i >= offset {
+                break;
+            }
+            if ch == '\n' {
+                line += 1;
+                col = 1;
+            } else {
+                col += 1;
+            }
+        }
+
+        (line, col)
+    }
+
+    /// Extracts the full line of source text containing the given byte offset.
+    fn line_text(&self, offset: usize) -> &str {
+        let start = self.source[..offset]
+            .rfind('\n')
+            .map(|i| i + 1)
+            .unwrap_or(0);
+        let end = self.source[offset..]
+            .find('\n')
+            .map(|i| offset + i)
+            .unwrap_or(self.source.len());
+        &self.source[start..end]
+    }
+
+    /// Formats this diagnostic into a human-readable string:
+    /// <severity>
+    /// [<filename>:<line>:<column>]
+    /// <source line for each label>
+    /// <label message, if any>
+    ///
+    /// <help, if any>
+    pub fn simple_report(&self) -> String {
+        let mut out = String::new();
+
+        // Header: severity
+        out.push_str(&format!("{}: {}", self.severity.as_str(), &self.message));
+        out.push('\n');
+
+        // Location: use the first label's span for the primary position,
+        // falling back to (1, 1) if there are no labels.
+        let (line, col) = self
+            .labels
+            .first()
+            .map(|l| self.line_col(l.span.start))
+            .unwrap_or((1, 1));
+
+        out.push_str(&format!("[{}:{}:{}]\n\n", self.filename, line, col));
+
+        // Labeled source lines
+        for label in &self.labels {
+            print!("|    ");
+            let text = self.line_text(label.span.start);
+            out.push_str(text);
+            out.push('\n');
+
+            if let Some(msg) = &label.message {
+                out.push_str(&format!("{} {}", "^".repeat(text.len()), msg));
+                out.push('\n');
+            }
+        }
+
+        // Help section
+        if let Some(help) = &self.help {
+            out.push('\n');
+            out.push_str(&format!("tulong: {}", help));
+            out.push('\n');
+        }
+
+        out
+    }
 }
 
 /// The severity of the diagnostic
@@ -54,6 +133,16 @@ pub enum Severity {
     Error,
     Warning,
     Advice,
+}
+
+impl Severity {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Severity::Error => "error",
+            Severity::Warning => "warning",
+            Severity::Advice => "advice",
+        }
+    }
 }
 
 /// Label pointing to the diagnostic, does not own the source. We are responsible for pointing this

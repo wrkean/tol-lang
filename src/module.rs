@@ -118,12 +118,7 @@ impl Module {
 
         diagnostics
             .into_iter()
-            .map(|diagnostic| {
-                format!(
-                    "{:?}",
-                    miette::Report::new(MietteDiagnostic::from(diagnostic))
-                )
-            })
+            .map(|diagnostic| diagnostic.simple_report())
             .collect()
     }
 
