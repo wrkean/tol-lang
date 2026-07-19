@@ -49,7 +49,21 @@ impl<'gctx> Analyzer<'gctx> {
 
     /// Runs the analyzer on the target module
     pub fn analyze(&mut self) {
+        self.define_native("input");
         self.resolve_names();
+    }
+
+    fn define_native(&mut self, name: impl Into<String>) -> DiagResult<()> {
+        let storage = self.assign_storage();
+        let Storage::Global(id) = storage else {
+            unreachable!()
+        };
+        let name = name.into();
+        let symbol = Symbol::new(name.clone(), 0..0, storage, SymbolKind::NativeFunction);
+        self.declare_symbol(symbol)?;
+        self.ctx.new_native_fn(name, id);
+
+        Ok(())
     }
 
     fn resolve_names(&mut self) {
@@ -439,6 +453,20 @@ impl<'gctx> Analyzer<'gctx> {
                 .label(
                     Label::new(left_symbol.span().clone())
                         .message("i-dineklara ito bilaang paraan"),
+                )
+                .label(Label::new(left.span().clone()).message("sinubukan mong i-assign dito"));
+
+                Err(Box::new(diagnostic))
+            }
+            SymbolKind::NativeFunction => {
+                let diagnostic = TolDiagnostic::err(
+                    current_module.source_arc(),
+                    current_module.filename(),
+                    "pag-assign sa isang native na paraan",
+                )
+                .label(
+                    Label::new(left_symbol.span().clone())
+                        .message("i-dineklara ito bilang isang native na paraan"),
                 )
                 .label(Label::new(left.span().clone()).message("sinubukan mong i-assign dito"));
 

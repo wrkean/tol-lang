@@ -68,6 +68,8 @@ pub struct GlobalContext {
 
     // Used to intern strings at compile time
     string_interner: StringInterner,
+
+    native_functions: HashMap<String, usize>,
 }
 
 impl GlobalContext {
@@ -79,6 +81,7 @@ impl GlobalContext {
             module_registry: HashMap::new(),
             symbols: Vec::new(),
             string_interner: StringInterner::new(),
+            native_functions: HashMap::new(),
         }
     }
 
@@ -139,5 +142,17 @@ impl GlobalContext {
 
     pub fn string_interner_mut(&mut self) -> &mut StringInterner {
         &mut self.string_interner
+    }
+
+    pub fn new_native_fn(&mut self, name: String, id: usize) {
+        self.native_functions.insert(name, id);
+    }
+
+    pub fn get_native(&self, name: &str) -> usize {
+        self.native_functions[name]
+    }
+
+    pub fn native_functions(&self) -> &HashMap<String, usize> {
+        &self.native_functions
     }
 }

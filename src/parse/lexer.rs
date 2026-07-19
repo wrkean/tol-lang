@@ -59,6 +59,7 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
             .last()
             .is_some_and(|tok| tok.kind().infers_semicolon())
         {
+            println!("{:?}", self.tokens.last().unwrap());
             self.add_token(TokenKind::SemiColon, self.current_span());
         }
 
@@ -82,7 +83,18 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
                 };
             }
             ')' | ']' => {
-                self.bracket_depth.overflowing_sub(1);
+                if self.bracket_depth == 0 {
+                    let current_module = self.current_module();
+                    let diagnostic = TolDiagnostic::err(
+                        current_module.source_arc(),
+                        current_module.filename(),
+                        "walang kapares na bracket",
+                    )
+                    .label(Label::new(self.current_span()).message("wala itong kapares"));
+                    self.current_module_mut().add_diagnostic(diagnostic);
+                    return;
+                }
+                self.bracket_depth -= 1;
                 match current_char {
                     ')' => self.add_token(TokenKind::RParen, self.current_span()),
                     ']' => self.add_token(TokenKind::RSquare, self.current_span()),

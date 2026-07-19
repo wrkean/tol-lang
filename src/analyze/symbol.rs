@@ -52,6 +52,7 @@ pub enum SymbolKind {
         param_types: Spanned<Vec<TolType>>,
         ret_ty: TolType,
     },
+    NativeFunction,
 }
 
 pub type StorageId = usize;

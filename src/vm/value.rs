@@ -5,6 +5,7 @@ pub enum Value {
     Bool(bool),
     Str(usize),
     Function(Rc<Function>),
+    NativeFunction(Rc<NativeFunction>),
     Null,
 }
 
@@ -12,7 +13,10 @@ use std::{fmt, rc::Rc, sync::Arc};
 
 use Value::*;
 
-use crate::{tol::diagnostic::runtime::RuntimeError, vm::function::Function};
+use crate::{
+    tol::diagnostic::runtime::RuntimeError,
+    vm::{function::Function, native_functions::NativeFunction},
+};
 impl Value {
     pub fn add(self, right: Self) -> Result<Self, ValueError> {
         match (self, right) {
@@ -134,6 +138,7 @@ impl fmt::Display for Value {
             Bool(false) => write!(f, "mali"),
             Null => write!(f, "<WALA>"),
             Function(func) => write!(f, "<paraan '{}'>", func.name),
+            NativeFunction(func) => write!(f, "<native_paraan '{}'>", func.name),
             Str(s) => write!(f, "<string id={s}>"),
         }
     }
