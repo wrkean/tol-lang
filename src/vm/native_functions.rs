@@ -49,3 +49,34 @@ pub fn native_input(_vm: &mut VM, _args: &[Value]) -> Result<Value, Box<RuntimeE
         }
     }
 }
+
+pub fn native_alis(_vm: &mut VM, _args: &[Value]) -> Result<Value, Box<RuntimeError>> {
+    match _args.first() {
+        Some(arg) => {
+            let current_module = _vm.current_module();
+            let Value::Int(exit_code) = arg else {
+                return Err(Box::new(RuntimeError::new(
+                    current_module.source_arc(),
+                    current_module.filename(),
+                    "umaasa ng numero na argumento",
+                    Label::new(0..0),
+                )));
+            };
+
+            std::process::exit((*exit_code).clamp(0, 255) as i32);
+
+            Ok(Value::Null)
+        }
+        None => {
+            let current_module = _vm.current_module();
+            let err = RuntimeError::new(
+                current_module.source_arc(),
+                current_module.filename(),
+                "ang alis() ay umaasa ng kahit isang argumento",
+                Label::new(0..0),
+            );
+
+            Err(Box::new(err))
+        }
+    }
+}

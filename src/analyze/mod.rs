@@ -50,6 +50,7 @@ impl<'gctx> Analyzer<'gctx> {
     /// Runs the analyzer on the target module
     pub fn analyze(&mut self) {
         self.define_native("input");
+        self.define_native("alis");
         self.resolve_names();
     }
 

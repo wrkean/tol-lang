@@ -49,6 +49,7 @@ impl<'gctx> VM<'gctx> {
 
     pub fn run(&mut self) {
         self.assign_native("input".to_string(), 1, native_functions::native_input);
+        self.assign_native("alis".to_string(), 1, native_functions::native_alis);
 
         while self.frames.last().is_some() {
             let opcode = self.read_byte();
