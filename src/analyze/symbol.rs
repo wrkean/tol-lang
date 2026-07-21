@@ -1,4 +1,5 @@
 use crate::{
+    parse::ast::stmt::Param,
     prelude::Spanned,
     tol::{token::Span, types::TolType},
 };
@@ -53,6 +54,9 @@ pub enum SymbolKind {
         ret_ty: TolType,
     },
     NativeFunction,
+    Klase {
+        fields: Vec<Param>,
+    },
 }
 
 pub type StorageId = usize;

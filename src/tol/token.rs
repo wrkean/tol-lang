@@ -20,6 +20,15 @@ impl Token {
     pub fn span(&self) -> &Span {
         &self.span
     }
+
+    /// Get the lexeme of identifiers ONLY
+    pub fn lexeme(&self) -> &str {
+        let TokenKind::Identifier(lexeme) = self.kind() else {
+            unimplemented!()
+        };
+
+        lexeme
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -35,6 +44,7 @@ pub enum TokenKind {
     Biyakin,
     Ituloy,
     Ibalik,
+    Klase,
 
     SemiColon,
     Colon,

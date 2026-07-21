@@ -6,6 +6,7 @@ pub enum Value {
     Str(usize),
     Function(Rc<Function>),
     NativeFunction(Rc<NativeFunction>),
+    ClassDef(Rc<ClassDef>),
     Null,
 }
 
@@ -15,7 +16,7 @@ use Value::*;
 
 use crate::{
     tol::diagnostic::runtime::RuntimeError,
-    vm::{function::Function, native_functions::NativeFunction},
+    vm::{class::ClassDef, function::Function, native_functions::NativeFunction},
 };
 impl Value {
     pub fn add(self, right: Self) -> Result<Self, ValueError> {
@@ -140,6 +141,7 @@ impl fmt::Display for Value {
             Function(func) => write!(f, "<paraan '{}'>", func.name),
             NativeFunction(func) => write!(f, "<native_paraan '{}'>", func.name),
             Str(s) => write!(f, "<string id={s}>"),
+            ClassDef(def) => write!(f, "<klase_def '{}'>", def.name),
         }
     }
 }

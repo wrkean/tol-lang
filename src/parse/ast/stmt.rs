@@ -77,6 +77,10 @@ pub enum StmtKind {
     Ibalik {
         expr: Option<Expr>,
     },
+    Klase {
+        name: Token,
+        fields: Vec<Field>,
+    },
 
     // Expression statement
     Expr {
@@ -104,12 +108,15 @@ impl ParamList {
     }
 }
 
+#[derive(Clone)]
 pub struct Param {
     pub name: Token,
     pub ty: TolType,
     pub span: Span,
     pub is_mutable: bool,
 }
+
+pub type Field = Param;
 
 pub struct Branch {
     pub condition: Option<Expr>,

@@ -9,7 +9,7 @@ use crate::{
         stmt::{Stmt, StmtKind},
     },
     tol::token::{Span, TokenKind},
-    vm::{chunk::Chunk, function::Function, opcode::OpCode, value::Value},
+    vm::{chunk::Chunk, class::ClassDef, function::Function, opcode::OpCode, value::Value},
 };
 
 struct LoopContext {
@@ -65,6 +65,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             StmtKind::Biyakin => self.compile_biyakin(statement),
             StmtKind::Ituloy => self.compile_ituloy(statement),
             StmtKind::Ibalik { .. } => self.compile_ibalik(statement),
+            StmtKind::Klase { name, fields } => self.compile_klase(statement),
             StmtKind::Expr { .. } => self.compile_expression_statement(statement),
             StmtKind::Block { statements } => {
                 for statement in statements {
@@ -228,6 +229,18 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         }
 
         self.chunk.emit_opcode(OpCode::Return, span);
+    }
+
+    fn compile_klase(&mut self, klase: &Stmt) {
+        let StmtKind::Klase { name, .. } = klase.kind() else {
+            unreachable!()
+        };
+
+        let def = ClassDef::new(name.lexeme().to_string());
+
+        self.chunk
+            .add_and_emit_constant(Value::ClassDef(Rc::new(def)), klase.span().clone());
+        self.store_symbol(klase.symbol_id(), klase.span().clone());
     }
 
     fn store_symbol(&mut self, symbol_id: SymbolId, span: Span) {

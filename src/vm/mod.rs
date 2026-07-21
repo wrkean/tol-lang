@@ -13,6 +13,7 @@ use crate::{
 };
 
 pub mod chunk;
+pub mod class;
 pub mod function;
 pub mod native_functions;
 pub mod opcode;

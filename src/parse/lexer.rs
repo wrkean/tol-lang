@@ -74,15 +74,16 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
         self.advance();
 
         match current_char {
-            '(' | '[' => {
+            '(' | '[' | '{' => {
                 self.bracket_depth += 1;
                 match current_char {
                     '(' => self.add_token(TokenKind::LParen, self.current_span()),
                     '[' => self.add_token(TokenKind::LSquare, self.current_span()),
+                    '{' => self.add_token(TokenKind::LBrace, self.current_span()),
                     _ => unreachable!(),
                 };
             }
-            ')' | ']' => {
+            ')' | ']' | '}' => {
                 if self.bracket_depth == 0 {
                     let current_module = self.current_module();
                     let diagnostic = TolDiagnostic::err(
@@ -98,11 +99,10 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
                 match current_char {
                     ')' => self.add_token(TokenKind::RParen, self.current_span()),
                     ']' => self.add_token(TokenKind::RSquare, self.current_span()),
+                    '}' => self.add_token(TokenKind::RBrace, self.current_span()),
                     _ => unreachable!(),
                 };
             }
-            '{' => self.add_token(TokenKind::LBrace, self.current_span()),
-            '}' => self.add_token(TokenKind::RBrace, self.current_span()),
             ':' => self.add_token(TokenKind::Colon, self.current_span()),
             ';' => self.add_token(TokenKind::SemiColon, self.current_span()),
             '|' => self.add_token(TokenKind::Pipe, self.current_span()),

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::{
     analyze::symbol::{Storage, Symbol, SymbolId, SymbolKind},
@@ -88,6 +88,7 @@ impl<'gctx> Analyzer<'gctx> {
             StmtKind::Biyakin => self.resolve_biyakin(statement),
             StmtKind::Ituloy => self.resolve_ituloy(statement),
             StmtKind::Ibalik { .. } => self.resolve_ibalik(statement),
+            StmtKind::Klase { .. } => self.resolve_klase(statement),
             StmtKind::Block { statements } => {
                 for statement in statements {
                     if let Err(diag) = self.resolve_statement(statement) {
@@ -289,6 +290,49 @@ impl<'gctx> Analyzer<'gctx> {
         Ok(())
     }
 
+    fn resolve_klase(&mut self, klase: &mut Stmt) -> DiagResult<()> {
+        let StmtKind::Klase { name, fields } = klase.kind_mut() else {
+            unreachable!()
+        };
+
+        let TokenKind::Identifier(klase_name) = name.kind() else {
+            unreachable!()
+        };
+        let mut seen_fields = HashSet::new();
+        for field in fields.iter_mut() {
+            let TokenKind::Identifier(field_name) = field.name.kind() else {
+                unreachable!()
+            };
+            match seen_fields.get(field_name) {
+                Some(f) => {
+                    let current_module = self.current_module();
+                    let diagnostic = TolDiagnostic::err(
+                        current_module.source_arc(),
+                        current_module.filename(),
+                        format!("duplikadong pangalan sa `{}`", klase_name),
+                    )
+                    .label(Label::new(field.span.clone()).message("duplikado ito"));
+                    return Err(Box::new(diagnostic));
+                }
+                None => seen_fields.insert(field_name),
+            };
+        }
+
+        let storage = self.assign_storage();
+        let symbol = Symbol::new(
+            klase_name.clone(),
+            name.span().clone(),
+            storage,
+            SymbolKind::Klase {
+                fields: fields.clone(),
+            },
+        );
+        let id = self.declare_symbol(symbol)?;
+        klase.set_symbol_id(id);
+
+        Ok(())
+    }
+
     fn resolve_expression(&mut self, expression: &mut Expr) -> DiagResult<()> {
         let span = expression.span().clone();
         match expression.kind_mut() {
@@ -468,6 +512,20 @@ impl<'gctx> Analyzer<'gctx> {
                 .label(
                     Label::new(left_symbol.span().clone())
                         .message("i-dineklara ito bilang isang native na paraan"),
+                )
+                .label(Label::new(left.span().clone()).message("sinubukan mong i-assign dito"));
+
+                Err(Box::new(diagnostic))
+            }
+            SymbolKind::Klase { fields } => {
+                let diagnostic = TolDiagnostic::err(
+                    current_module.source_arc(),
+                    current_module.filename(),
+                    "pag-assign sa isang klase",
+                )
+                .label(
+                    Label::new(left_symbol.span().clone())
+                        .message("i-dineklara ito bilang isang klase"),
                 )
                 .label(Label::new(left.span().clone()).message("sinubukan mong i-assign dito"));
 

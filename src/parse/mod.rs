@@ -5,7 +5,7 @@ use crate::{
     module::{Module, ModuleId},
     parse::ast::{
         expr::{Expr, ExprKind},
-        stmt::{Branch, Param, ParamList, Stmt, StmtKind},
+        stmt::{Branch, Field, Param, ParamList, Stmt, StmtKind},
     },
     prelude::DiagResult,
     tol::{
@@ -66,6 +66,7 @@ impl<'c> Parser<'c> {
             TokenKind::Kung => self.parse_kung(),
             TokenKind::Habang => self.parse_habang(),
             TokenKind::Ibalik => self.parse_ibalik(),
+            TokenKind::Klase => self.parse_klase(),
             TokenKind::Biyakin => {
                 let span = self.advance().span().clone();
                 self.consume(
@@ -242,6 +243,58 @@ impl<'c> Parser<'c> {
             .end;
 
         Ok(Stmt::new(start..end, StmtKind::Ibalik { expr }))
+    }
+
+    fn parse_klase(&mut self) -> DiagResult<Stmt> {
+        let start = self.advance().span().start;
+        let name = self
+            .consume_ident("umaasa ng pangalan ng klase dito")?
+            .clone();
+        self.consume(TokenKind::Colon, "umaasa ng `:` dito")?;
+        let fields = self.parse_fields()?;
+        let end = match fields.last() {
+            Some(p) => p.span.end,
+            None => self.peek().span().end,
+        };
+
+        Ok(Stmt::new(start..end, StmtKind::Klase { name, fields }))
+    }
+
+    fn parse_fields(&mut self) -> DiagResult<Vec<Field>> {
+        self.consume(TokenKind::Indent, "umaasa ako ng \"indent\" dito")?;
+
+        let mut fields = Vec::new();
+        while !self.at_end() && self.peek().kind() != &TokenKind::Dedent {
+            let start = self.peek().span().start;
+            let is_mutable = if self.peek().kind() == &TokenKind::Iiba {
+                self.advance();
+                true
+            } else {
+                false
+            };
+            let name = self.consume_ident("umaasa ako ng pangalan dito")?.clone();
+            let ty = if self.peek().kind() == &TokenKind::Comma {
+                self.advance();
+                self.parse_type()?
+            } else {
+                TolType::DiAlam
+            };
+            let end = self
+                .consume(TokenKind::SemiColon, "umaasa ako ng `;` dito")?
+                .span()
+                .end;
+
+            fields.push(Field {
+                name,
+                ty,
+                span: start..end,
+                is_mutable,
+            });
+        }
+
+        self.consume(TokenKind::Dedent, "umaasa ako ng \"dedent\" dito")?;
+
+        Ok(fields)
     }
 
     fn parse_block(&mut self) -> DiagResult<Stmt> {
