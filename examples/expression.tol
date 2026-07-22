@@ -1,8 +1,0 @@
-ang x = "global"
-paraan outer():
-    ang x = "outer"
-    paraan inner():
-        print x
-
-    inner()
-outer()

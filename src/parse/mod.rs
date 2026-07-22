@@ -460,7 +460,6 @@ impl<'c> Parser<'c> {
             TokenKind::Pipe => {
                 let start = self.peek().span().start;
                 let params = self.parse_params(TokenKind::Pipe, TokenKind::Pipe)?;
-                self.consume(TokenKind::ThickArrow, "umaasa ng `=>` dito")?;
                 let expr = self.parse_expression(0)?;
                 let span = start..expr.span().end;
 
