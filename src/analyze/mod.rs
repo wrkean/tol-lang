@@ -19,7 +19,28 @@ use crate::{
 
 pub mod symbol;
 
-type Scope = HashMap<String, SymbolId>;
+#[derive(Debug)]
+struct Scope {
+    symbols: HashMap<String, SymbolId>,
+    is_function_scope: bool,
+}
+
+impl Scope {
+    fn new(is_function_scope: bool) -> Self {
+        Self {
+            symbols: HashMap::new(),
+            is_function_scope,
+        }
+    }
+
+    fn get(&self, symbol_name: &str) -> Option<&SymbolId> {
+        self.symbols.get(symbol_name)
+    }
+
+    fn insert(&mut self, symbol_name: String, id: SymbolId) {
+        self.symbols.insert(symbol_name, id);
+    }
+}
 
 /// Analyzes the target module's ast
 pub struct Analyzer<'gctx> {
@@ -37,7 +58,7 @@ impl<'gctx> Analyzer<'gctx> {
     /// Creates a new analyze instance that targets the given module by id
     pub fn new(ctx: &'gctx mut GlobalContext, module_id: ModuleId) -> Self {
         Self {
-            scopes: vec![Scope::new()],
+            scopes: vec![Scope::new(false)],
             ctx,
             module_id,
             loop_depth: 0,
@@ -164,7 +185,7 @@ impl<'gctx> Analyzer<'gctx> {
         let id = self.declare_symbol(symbol)?;
 
         self.enter_function();
-        self.enter_scope();
+        self.enter_scope(true);
 
         for param in params.params.iter() {
             let TokenKind::Identifier(param_name) = param.name.kind() else {
@@ -185,11 +206,9 @@ impl<'gctx> Analyzer<'gctx> {
             }
         }
 
-        self.enter_scope();
         self.resolve_statement(block)?;
 
         self.exit_function();
-        self.exit_scope();
         self.exit_scope();
 
         paraan.set_symbol_id(id);
@@ -418,7 +437,7 @@ impl<'gctx> Analyzer<'gctx> {
                 let id = self.declare_symbol(symbol)?;
 
                 self.enter_function();
-                self.enter_scope();
+                self.enter_scope(true);
 
                 for param in params.params.iter() {
                     let TokenKind::Identifier(param_name) = param.name.kind() else {
@@ -439,11 +458,9 @@ impl<'gctx> Analyzer<'gctx> {
                     }
                 }
 
-                self.enter_scope();
                 self.resolve_expression(body)?;
 
                 self.exit_function();
-                self.exit_scope();
                 self.exit_scope();
 
                 expression.set_symbol_id(id);
@@ -639,12 +656,19 @@ impl<'gctx> Analyzer<'gctx> {
 
     fn lookup_symbol(&mut self, name: &str) -> Option<SymbolId> {
         for scope in self.scopes.iter().rev() {
+            // If found before a function boundary, returns the id
             if let Some(id) = scope.get(name) {
                 return Some(*id);
             }
+
+            // Stops, so that it does not resolve upvalues
+            if scope.is_function_scope {
+                break;
+            }
         }
 
-        None
+        // Searches the global scope as a fallback
+        self.scopes.first()?.get(name).copied()
     }
 
     fn current_module(&self) -> &Module {
@@ -670,8 +694,8 @@ impl<'gctx> Analyzer<'gctx> {
         local_count
     }
 
-    fn enter_scope(&mut self) {
-        self.scopes.push(Scope::new());
+    fn enter_scope(&mut self, is_function_scope: bool) {
+        self.scopes.push(Scope::new(is_function_scope));
     }
 
     fn exit_scope(&mut self) {

@@ -1,7 +1,8 @@
-paraan fibo(n):
-    kung n <= 1:
-        ibalik 1
+ang x = "global"
+paraan outer():
+    ang x = "outer"
+    paraan inner():
+        print x
 
-    ibalik fibo(n - 1) + fibo(n - 2)
-
-print fibo(10)
+    inner()
+outer()
