@@ -10,6 +10,7 @@ pub fn precedence(kind: &TokenKind) -> u8 {
         Plus | PlusPlus | Minus => 4,
         Star | Slash => 5,
         TokenKind::LParen => 6,
+        TokenKind::Dot => 7,
         _ => 0,
     }
 }
@@ -19,7 +20,7 @@ pub fn associativity(kind: &TokenKind) -> Associativity {
     use TokenKind::*;
     match kind {
         Plus | Minus | Star | Slash | EqualEq | NotEq | Greater | GreatEq | Lesser | LessEq
-        | LParen => Associativity::Left,
+        | LParen | Dot => Associativity::Left,
         _ => Associativity::Right,
     }
 }

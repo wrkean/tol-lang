@@ -1,3 +1,15 @@
 klase Tao:
     pangalan
     edad
+
+ang iiba tao = Tao {
+    pangalan = "Keanne"
+    edad = 50
+};
+
+paraan println(msg):
+    print msg
+
+tao.method = println
+tao.method("Hello")
+1.hello()

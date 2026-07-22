@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
     global_ctx::{GlobalContext, StringInterner},
@@ -6,6 +6,7 @@ use crate::{
     tol::diagnostic::{Label, miette_diagnostic::MietteDiagnostic, runtime::RuntimeError},
     vm::{
         chunk::Chunk,
+        class::ClassInstance,
         native_functions::NativeFunction,
         opcode::OpCode,
         value::{Value, ValueError},
@@ -135,6 +136,67 @@ impl<'gctx> VM<'gctx> {
                 x if x == OpCode::Loop as u8 => {
                     let offset = self.read_u16() as usize;
                     self.current_frame_mut().ip -= offset;
+                }
+                op if op == OpCode::NewClassInst as u8 => {
+                    let def = self.pop();
+                    let field_count = self.read_byte() as usize;
+
+                    let Value::ClassDef(class_def) = def else {
+                        self.runtime_error(
+                            "hindi isang klase ang nasa kaliwa ng `.`",
+                            self.current_ip(),
+                        );
+                        return;
+                    };
+
+                    let mut fields = HashMap::new();
+                    for _ in 0..field_count {
+                        let Value::UninternedStr(field_name) = self.pop() else {
+                            unreachable!()
+                        };
+                        let field_name = field_name.to_string();
+                        let field_val = self.pop();
+
+                        fields.insert(field_name, field_val);
+                    }
+
+                    let instance = ClassInstance {
+                        def: class_def,
+                        fields,
+                    };
+                    self.push(Value::ClassInstance(Rc::new(RefCell::new(instance))));
+                }
+                op if op == OpCode::GetField as u8 => {
+                    let Value::UninternedStr(field_name) = self.pop() else {
+                        panic!("Should be struct")
+                    };
+
+                    let Value::ClassInstance(instance) = self.pop() else {
+                        self.runtime_error("hindi ito klase", self.current_ip());
+                        return;
+                    };
+
+                    let value = instance
+                        .borrow()
+                        .fields
+                        .get(field_name.as_ref())
+                        .unwrap()
+                        .clone();
+                    self.push(value);
+                }
+                op if op == OpCode::SetField as u8 => {
+                    let Value::UninternedStr(field_name) = self.pop() else {
+                        panic!("str")
+                    };
+
+                    let Value::ClassInstance(instance) = self.pop() else {
+                        unreachable!()
+                    };
+
+                    instance
+                        .borrow_mut()
+                        .fields
+                        .insert(field_name.to_string(), self.pop());
                 }
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }

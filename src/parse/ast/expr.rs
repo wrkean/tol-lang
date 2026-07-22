@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{collections::HashMap, fmt};
 
 use crate::{
     analyze::symbol::SymbolId,
@@ -45,7 +45,10 @@ impl Expr {
 
     pub fn is_lvalue(&self) -> bool {
         use ExprKind::*;
-        matches!(self.kind(), Identifier(_) | AnonymousFn { .. })
+        matches!(
+            self.kind(),
+            Identifier(_) | AnonymousFn { .. } | FieldAccess { .. }
+        )
     }
 }
 
@@ -71,6 +74,14 @@ pub enum ExprKind {
         left: Box<Expr>,
         args: Vec<Expr>,
     },
+    ClassInit {
+        name: Token,
+        inits: Vec<(Token, Expr, usize)>,
+    },
+    FieldAccess {
+        object: Box<Expr>,
+        field: Token,
+    },
 }
 
 impl fmt::Display for Expr {
@@ -85,6 +96,8 @@ impl fmt::Display for Expr {
             }
             ExprKind::AnonymousFn { .. } => unimplemented!(),
             ExprKind::Call { .. } => unimplemented!(),
+            ExprKind::ClassInit { .. } => unimplemented!(),
+            ExprKind::FieldAccess { .. } => unimplemented!(),
         }
     }
 }

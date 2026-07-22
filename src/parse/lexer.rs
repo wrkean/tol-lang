@@ -46,7 +46,7 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
         while let Some(current_char) = self.peek() {
             self.start = self.current;
 
-            if self.at_line_start {
+            if self.at_line_start && self.bracket_depth == 0 {
                 self.handle_indents();
                 continue;
             }
@@ -72,6 +72,7 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
 
     fn lex_token(&mut self, current_char: char) {
         self.advance();
+        self.at_line_start = false;
 
         match current_char {
             '(' | '[' | '{' => {
@@ -106,6 +107,7 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
             ':' => self.add_token(TokenKind::Colon, self.current_span()),
             ';' => self.add_token(TokenKind::SemiColon, self.current_span()),
             '|' => self.add_token(TokenKind::Pipe, self.current_span()),
+            '.' => self.add_token(TokenKind::Dot, self.current_span()),
             '!' => {
                 if self.match_ch('=') {
                     self.add_token(TokenKind::NotEq, self.current_span())

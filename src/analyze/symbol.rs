@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     parse::ast::stmt::Param,
     prelude::Spanned,
@@ -55,7 +57,7 @@ pub enum SymbolKind {
     },
     NativeFunction,
     Klase {
-        fields: Vec<Param>,
+        fields: HashMap<String, (TolType, usize)>,
     },
 }
 

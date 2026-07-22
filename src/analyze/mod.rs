@@ -319,13 +319,16 @@ impl<'gctx> Analyzer<'gctx> {
         }
 
         let storage = self.assign_storage();
+        let fields_map = fields
+            .iter()
+            .enumerate()
+            .map(|(id, param)| (param.name.lexeme().to_string(), (param.ty.clone(), id)))
+            .collect();
         let symbol = Symbol::new(
             klase_name.clone(),
             name.span().clone(),
             storage,
-            SymbolKind::Klase {
-                fields: fields.clone(),
-            },
+            SymbolKind::Klase { fields: fields_map },
         );
         let id = self.declare_symbol(symbol)?;
         klase.set_symbol_id(id);
@@ -447,6 +450,76 @@ impl<'gctx> Analyzer<'gctx> {
 
                 Ok(())
             }
+            ExprKind::ClassInit { name, inits } => {
+                let (fields, id) = match self.lookup_symbol(name.lexeme()) {
+                    Some(id) => match self.ctx.symbol_by_id(id).kind() {
+                        SymbolKind::Klase { fields } => (fields.clone(), id),
+                        _ => todo!(),
+                    },
+                    None => {
+                        let current_module = self.current_module();
+                        let diagnostic = predefined_diagnostics::use_of_undeclared_variable(
+                            current_module,
+                            name.span().clone(),
+                        );
+                        return Err(Box::new(diagnostic));
+                    }
+                };
+
+                let mut initialized_fields = HashSet::new();
+                for (name, expr, field_id) in inits.iter_mut() {
+                    self.resolve_expression(expr)?;
+
+                    if !fields.contains_key(name.lexeme()) {
+                        let current_module = self.current_module();
+                        let symbol_name = self.ctx.symbol_by_id(id).name();
+                        let diagnostic = TolDiagnostic::err(
+                            current_module.source_arc(),
+                            current_module.filename(),
+                            format!(
+                                "walang miyembro na `{}` ang `{}`",
+                                name.lexeme(),
+                                symbol_name,
+                            ),
+                        )
+                        .label(Label::new(name.span().clone()).message("hindi kilalang miyembro"));
+                        return Err(Box::new(diagnostic));
+                    }
+
+                    let id = fields.get(name.lexeme()).unwrap().1;
+                    *field_id = id;
+                    initialized_fields.insert(name.lexeme().to_string());
+                }
+
+                let span = expression.span().clone();
+                for (name, _) in fields.iter() {
+                    if !initialized_fields.contains(name) {
+                        let current_module = self.current_module();
+                        let diagnostic = TolDiagnostic::err(
+                            current_module.source_arc(),
+                            current_module.filename(),
+                            "hindi na \"initialize\" na pangalan",
+                        )
+                        .label(
+                            Label::new(span)
+                                .message(format!("hindi na-\"initialize\" ang `{}`", name)),
+                        );
+
+                        return Err(Box::new(diagnostic));
+                    }
+                }
+
+                expression.set_symbol_id(id);
+
+                Ok(())
+            }
+            ExprKind::FieldAccess { object, field } => {
+                self.resolve_expression(object)?;
+                // let id = object.symbol_id();
+                // expression.set_symbol_id(id);
+
+                Ok(())
+            }
         }
     }
 
@@ -463,75 +536,77 @@ impl<'gctx> Analyzer<'gctx> {
             return Err(Box::new(diagnostic));
         }
 
-        let left_symbol = self.ctx.symbol_by_id(left.symbol_id());
-        match left_symbol.kind() {
-            SymbolKind::Name { is_mutable, ty } => {
-                if !*is_mutable {
-                    let diagnostic = TolDiagnostic::err(
-                        current_module.source_arc(),
-                        current_module.filename(),
-                        "pag-iba ng hindi naiibang variable",
-                    )
-                    .label(
-                        Label::new(left_symbol.span().clone())
-                            .message("i-dineklara itong hindi naiiba"),
-                    )
-                    .label(
-                        Label::new(left.span().clone())
-                            .message("ngunit sinubukan mong ibahin dito"),
-                    );
+        Ok(())
 
-                    Err(Box::new(diagnostic))
-                } else {
-                    Ok(())
-                }
-            }
-            SymbolKind::Function {
-                param_types,
-                ret_ty,
-            } => {
-                let diagnostic = TolDiagnostic::err(
-                    current_module.source_arc(),
-                    current_module.filename(),
-                    "pag-assign sa isang paraan",
-                )
-                .label(
-                    Label::new(left_symbol.span().clone())
-                        .message("i-dineklara ito bilaang paraan"),
-                )
-                .label(Label::new(left.span().clone()).message("sinubukan mong i-assign dito"));
-
-                Err(Box::new(diagnostic))
-            }
-            SymbolKind::NativeFunction => {
-                let diagnostic = TolDiagnostic::err(
-                    current_module.source_arc(),
-                    current_module.filename(),
-                    "pag-assign sa isang native na paraan",
-                )
-                .label(
-                    Label::new(left_symbol.span().clone())
-                        .message("i-dineklara ito bilang isang native na paraan"),
-                )
-                .label(Label::new(left.span().clone()).message("sinubukan mong i-assign dito"));
-
-                Err(Box::new(diagnostic))
-            }
-            SymbolKind::Klase { fields } => {
-                let diagnostic = TolDiagnostic::err(
-                    current_module.source_arc(),
-                    current_module.filename(),
-                    "pag-assign sa isang klase",
-                )
-                .label(
-                    Label::new(left_symbol.span().clone())
-                        .message("i-dineklara ito bilang isang klase"),
-                )
-                .label(Label::new(left.span().clone()).message("sinubukan mong i-assign dito"));
-
-                Err(Box::new(diagnostic))
-            }
-        }
+        // let left_symbol = self.ctx.symbol_by_id(left.symbol_id());
+        // match left_symbol.kind() {
+        //     SymbolKind::Name { is_mutable, ty } => {
+        //         if !*is_mutable {
+        //             let diagnostic = TolDiagnostic::err(
+        //                 current_module.source_arc(),
+        //                 current_module.filename(),
+        //                 "pag-iba ng hindi naiibang variable",
+        //             )
+        //             .label(
+        //                 Label::new(left_symbol.span().clone())
+        //                     .message("i-dineklara itong hindi naiiba"),
+        //             )
+        //             .label(
+        //                 Label::new(left.span().clone())
+        //                     .message("ngunit sinubukan mong ibahin dito"),
+        //             );
+        //
+        //             Err(Box::new(diagnostic))
+        //         } else {
+        //             Ok(())
+        //         }
+        //     }
+        //     SymbolKind::Function {
+        //         param_types,
+        //         ret_ty,
+        //     } => {
+        //         let diagnostic = TolDiagnostic::err(
+        //             current_module.source_arc(),
+        //             current_module.filename(),
+        //             "pag-assign sa isang paraan",
+        //         )
+        //         .label(
+        //             Label::new(left_symbol.span().clone())
+        //                 .message("i-dineklara ito bilaang paraan"),
+        //         )
+        //         .label(Label::new(left.span().clone()).message("sinubukan mong i-assign dito"));
+        //
+        //         Err(Box::new(diagnostic))
+        //     }
+        //     SymbolKind::NativeFunction => {
+        //         let diagnostic = TolDiagnostic::err(
+        //             current_module.source_arc(),
+        //             current_module.filename(),
+        //             "pag-assign sa isang native na paraan",
+        //         )
+        //         .label(
+        //             Label::new(left_symbol.span().clone())
+        //                 .message("i-dineklara ito bilang isang native na paraan"),
+        //         )
+        //         .label(Label::new(left.span().clone()).message("sinubukan mong i-assign dito"));
+        //
+        //         Err(Box::new(diagnostic))
+        //     }
+        //     SymbolKind::Klase { fields } => {
+        //         let diagnostic = TolDiagnostic::err(
+        //             current_module.source_arc(),
+        //             current_module.filename(),
+        //             "pag-assign sa isang klase",
+        //         )
+        //         .label(
+        //             Label::new(left_symbol.span().clone())
+        //                 .message("i-dineklara ito bilang isang klase"),
+        //         )
+        //         .label(Label::new(left.span().clone()).message("sinubukan mong i-assign dito"));
+        //
+        //         Err(Box::new(diagnostic))
+        //     }
+        // }
     }
 
     fn declare_symbol(&mut self, symbol: Symbol) -> DiagResult<SymbolId> {

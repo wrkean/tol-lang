@@ -54,6 +54,7 @@ pub enum TokenKind {
     Minus,
     Star,
     Slash,
+    Dot,
 
     IntLiteral(i64),
     FloatLiteral(f64),

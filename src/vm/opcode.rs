@@ -9,6 +9,9 @@ pub enum OpCode {
     JumpIfFalse,
     Jump,
     Loop,
+    NewClassInst,
+    GetField,
+    SetField,
 
     Pop,
     Halt,

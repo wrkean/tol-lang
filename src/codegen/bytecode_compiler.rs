@@ -1,4 +1,4 @@
-use std::{mem, rc::Rc};
+use std::{cmp::Reverse, mem, rc::Rc};
 
 use crate::{
     analyze::symbol::{Storage, SymbolId},
@@ -257,6 +257,20 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         }
     }
 
+    fn load_symbol(&mut self, symbol_id: SymbolId, span: Span) {
+        let symbol = self.ctx.symbol_by_id(symbol_id);
+        match symbol.storage() {
+            Storage::Global(slot) => {
+                self.chunk.emit_opcode(OpCode::LoadGlobal, span.clone());
+                self.chunk.emit_byte(*slot as u8, span);
+            }
+            Storage::Local(slot) => {
+                self.chunk.emit_opcode(OpCode::LoadLocal, span.clone());
+                self.chunk.emit_byte(*slot as u8, span);
+            }
+        }
+    }
+
     fn compile_expression_statement(&mut self, expr_stmt: &Stmt) {
         let StmtKind::Expr { expr } = expr_stmt.kind() else {
             unreachable!()
@@ -341,6 +355,32 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 self.chunk
                     .add_and_emit_constant(Value::Function(Rc::new(function)), span);
             }
+            ExprKind::ClassInit { name, inits } => {
+                let id = expression.symbol_id();
+
+                for (name, ex, _) in inits {
+                    self.compile_expression(ex);
+                    self.chunk.add_and_emit_constant(
+                        Value::UninternedStr(Rc::from(name.lexeme())),
+                        name.span().clone(),
+                    );
+                }
+
+                self.load_symbol(id, name.span().clone());
+                self.chunk
+                    .emit_opcode(OpCode::NewClassInst, name.span().clone());
+                self.chunk.emit_byte(inits.len() as u8, name.span().clone());
+            }
+            ExprKind::FieldAccess { object, field } => {
+                self.compile_expression(object);
+
+                self.chunk.add_and_emit_constant(
+                    Value::UninternedStr(Rc::from(field.lexeme())),
+                    field.span().clone(),
+                );
+                self.chunk
+                    .emit_opcode(OpCode::GetField, field.span().clone());
+            }
         }
     }
 
@@ -350,10 +390,25 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         };
 
         self.compile_expression(right);
-        let span = left.span().clone();
-        self.store_symbol(left.symbol_id(), span.clone());
 
-        self.chunk.emit_opcode(OpCode::Null, span);
+        match left.kind() {
+            ExprKind::FieldAccess { object, field } => {
+                self.compile_expression(object);
+                self.chunk.add_and_emit_constant(
+                    Value::UninternedStr(Rc::from(field.lexeme())),
+                    field.span().clone(),
+                );
+                self.chunk
+                    .emit_opcode(OpCode::SetField, field.span().clone());
+            }
+            _ => {
+                let span = left.span().clone();
+                self.store_symbol(left.symbol_id(), span.clone());
+            }
+        }
+
+        self.chunk
+            .emit_opcode(OpCode::Null, assignment.span().clone());
     }
 
     fn current_module(&self) -> &Module {

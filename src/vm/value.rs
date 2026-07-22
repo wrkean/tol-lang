@@ -4,19 +4,25 @@ pub enum Value {
     Float(f64),
     Bool(bool),
     Str(usize),
+    UninternedStr(Rc<str>),
     Function(Rc<Function>),
     NativeFunction(Rc<NativeFunction>),
     ClassDef(Rc<ClassDef>),
+    ClassInstance(Rc<RefCell<ClassInstance>>),
     Null,
 }
 
-use std::{fmt, rc::Rc, sync::Arc};
+use std::{cell::RefCell, fmt, rc::Rc, sync::Arc};
 
 use Value::*;
 
 use crate::{
     tol::diagnostic::runtime::RuntimeError,
-    vm::{class::ClassDef, function::Function, native_functions::NativeFunction},
+    vm::{
+        class::{ClassDef, ClassInstance},
+        function::Function,
+        native_functions::NativeFunction,
+    },
 };
 impl Value {
     pub fn add(self, right: Self) -> Result<Self, ValueError> {
@@ -142,6 +148,8 @@ impl fmt::Display for Value {
             NativeFunction(func) => write!(f, "<native_paraan '{}'>", func.name),
             Str(s) => write!(f, "<string id={s}>"),
             ClassDef(def) => write!(f, "<klase_def '{}'>", def.name),
+            UninternedStr(s) => write!(f, "<uninterned_str '{}'>", s),
+            ClassInstance(inst) => write!(f, "<klase_inst '{}'>", inst.borrow().def.name),
         }
     }
 }
