@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, iter::Filter, rc::Rc};
 
 use crate::{
     global_ctx::{GlobalContext, StringInterner},
@@ -23,7 +23,7 @@ pub mod value;
 struct Frame {
     chunk: Rc<Chunk>,
     ip: usize,
-    locals: Vec<Value>,
+    locals_base: usize,
     module_id: ModuleId,
 }
 
@@ -43,7 +43,7 @@ impl<'gctx> VM<'gctx> {
             frames: vec![Frame {
                 chunk: Rc::new(chunk),
                 ip: 0,
-                locals: Vec::new(),
+                locals_base: 0,
                 module_id,
             }],
         }
@@ -93,7 +93,8 @@ impl<'gctx> VM<'gctx> {
                 }
                 op if op == OpCode::LoadLocal as u8 => {
                     let index = self.read_byte() as usize;
-                    let value = self.current_frame().locals.get(index).unwrap().clone();
+                    let index = self.current_frame().locals_base + index;
+                    let value = self.stack[index].clone();
                     self.push(value);
                 }
                 op if op == OpCode::Print as u8 => {
@@ -244,7 +245,8 @@ impl<'gctx> VM<'gctx> {
     }
 
     fn return_from_frame(&mut self, return_val: Value) {
-        self.frames.pop();
+        let frame = self.frames.pop().unwrap();
+        self.stack.truncate(frame.locals_base);
         self.push(return_val);
     }
 
@@ -271,22 +273,19 @@ impl<'gctx> VM<'gctx> {
             return;
         }
 
-        let mut locals = vec![Value::Null; arity as usize];
-        for slot in (0..arity).rev() {
-            locals[slot as usize] = self.pop();
-        }
-        let args = locals.clone();
-
-        match self.pop() {
+        match self.peek(arity as usize) {
             Value::Function(func) => {
                 self.frames.push(Frame {
                     chunk: Rc::clone(&func.chunk),
                     ip: 0,
-                    locals,
+                    locals_base: self.stack.len() - arity as usize,
                     module_id,
                 });
             }
             Value::NativeFunction(func) => {
+                let base = self.current_frame().locals_base + 1;
+                let args = self.stack[base..arity as usize + base].to_vec();
+
                 match ((func.func)(self, &args)) {
                     Ok(v) => self.push(v),
                     Err(r) => {
@@ -306,11 +305,14 @@ impl<'gctx> VM<'gctx> {
     }
 
     fn store_local(&mut self, index: usize, value: Value) {
+        let locals_base = self.current_frame().locals_base;
         let frame = self.current_frame_mut();
-        if index >= frame.locals.len() {
-            frame.locals.resize(index + 1, Value::Null);
+
+        if locals_base + index >= self.stack.len() {
+            eprintln!("stack increased by {}", locals_base + index + 1);
+            self.stack.resize(locals_base + index + 1, Value::Null);
         }
-        frame.locals[index] = value;
+        self.stack[locals_base + index] = value;
     }
 
     fn binary_op(&mut self, f: impl Fn(Value, Value) -> Result<Value, ValueError>) {
