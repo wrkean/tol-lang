@@ -43,7 +43,7 @@ impl<'gctx> VM<'gctx> {
             frames: vec![Frame {
                 chunk: Rc::new(chunk),
                 ip: 0,
-                locals_base: 0,
+                locals_base: 1,
                 module_id,
             }],
         }
@@ -278,7 +278,7 @@ impl<'gctx> VM<'gctx> {
                 self.frames.push(Frame {
                     chunk: Rc::clone(&func.chunk),
                     ip: 0,
-                    locals_base: self.stack.len() - arity as usize,
+                    locals_base: self.stack.len() - arity as usize - 1,
                     module_id,
                 });
             }

@@ -42,7 +42,7 @@ impl<'gctx> Analyzer<'gctx> {
             module_id,
             loop_depth: 0,
             next_global_slot: 0,
-            next_local_slot: 0,
+            next_local_slot: 1,
             next_local_slot_stack: Vec::new(),
         }
     }
@@ -657,7 +657,7 @@ impl<'gctx> Analyzer<'gctx> {
 
     fn enter_function(&mut self) {
         self.next_local_slot_stack.push(self.next_local_slot);
-        self.next_local_slot = 0;
+        self.next_local_slot = 1;
     }
 
     fn exit_function(&mut self) -> usize {
