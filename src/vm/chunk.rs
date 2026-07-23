@@ -191,6 +191,15 @@ impl Chunk {
                 self.disassemble_2byte_instruction("JUMP_IF_FALSE", offset)
             }
             op if op == OpCode::Jump as u8 => self.disassemble_2byte_instruction("JUMP", offset),
+            op if op == OpCode::Constant as u8 => {
+                let mut offset = offset + 1;
+                let constant = self.code[offset];
+                offset += 1;
+                print!("{:-16} {:4}", "CLOSURE", constant);
+                println!("{}", self.constants[constant as usize]);
+
+                offset
+            }
             _ => {
                 println!("UNKNOWN OPCODE: {:02X}", offset);
                 offset + 1

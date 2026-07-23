@@ -2,6 +2,11 @@ use std::rc::Rc;
 
 use crate::vm::chunk::Chunk;
 
+#[derive(Debug)]
+pub struct Closure {
+    pub func: Rc<Function>,
+}
+
 #[derive(Debug, Clone)]
 pub struct Function {
     pub name: String,

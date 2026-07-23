@@ -12,6 +12,7 @@ pub enum OpCode {
     NewClassInst,
     GetField,
     SetField,
+    Closure,
 
     Pop,
     Halt,

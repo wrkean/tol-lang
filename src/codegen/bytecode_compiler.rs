@@ -126,8 +126,9 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         let function = Function::new(function_name.clone(), function_chunk, params.len() as u8);
 
         let span = paraan.span().clone();
-        self.chunk
-            .add_and_emit_constant(Value::Function(Rc::new(function)), span.clone());
+        let index = self.chunk.add_constant(Value::Function(Rc::new(function)));
+        self.chunk.emit_opcode(OpCode::Closure, span.clone());
+        self.chunk.emit_byte(index, span.clone());
         self.store_symbol(paraan.symbol_id(), span);
     }
 

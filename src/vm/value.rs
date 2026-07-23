@@ -6,6 +6,7 @@ pub enum Value {
     Str(usize),
     UninternedStr(Rc<str>),
     Function(Rc<Function>),
+    Closure(Rc<Closure>),
     NativeFunction(Rc<NativeFunction>),
     ClassDef(Rc<ClassDef>),
     ClassInstance(Rc<RefCell<ClassInstance>>),
@@ -20,7 +21,7 @@ use crate::{
     tol::diagnostic::runtime::RuntimeError,
     vm::{
         class::{ClassDef, ClassInstance},
-        function::Function,
+        function::{Closure, Function},
         native_functions::NativeFunction,
     },
 };
@@ -145,6 +146,7 @@ impl fmt::Display for Value {
             Bool(false) => write!(f, "mali"),
             Null => write!(f, "<WALA>"),
             Function(func) => write!(f, "<paraan '{}'>", func.name),
+            Closure(cl) => write!(f, "<paraan '{}'>", cl.func.name),
             NativeFunction(func) => write!(f, "<native_paraan '{}'>", func.name),
             Str(s) => write!(f, "<string id={s}>"),
             ClassDef(def) => write!(f, "<klase_def '{}'>", def.name),

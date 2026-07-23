@@ -7,6 +7,7 @@ use crate::{
     vm::{
         chunk::Chunk,
         class::ClassInstance,
+        function::Closure,
         native_functions::NativeFunction,
         opcode::OpCode,
         value::{Value, ValueError},
@@ -199,6 +200,15 @@ impl<'gctx> VM<'gctx> {
                         .fields
                         .insert(field_name.to_string(), self.pop());
                 }
+                op if op == OpCode::Closure as u8 => {
+                    let index = self.read_byte() as usize;
+                    let constant = self.current_chunk().get_constant(index);
+                    let Value::Function(func) = constant else {
+                        unreachable!()
+                    };
+                    let closure = Value::Closure(Rc::new(Closure { func }));
+                    self.push(closure);
+                }
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }
         }
@@ -255,7 +265,7 @@ impl<'gctx> VM<'gctx> {
 
         let is_function = matches!(
             self.stack[callee_index],
-            Value::Function(_) | Value::NativeFunction(_)
+            Value::NativeFunction(_) | Value::Closure(_)
         );
         if !is_function {
             let current_module = self.current_module();
@@ -274,7 +284,8 @@ impl<'gctx> VM<'gctx> {
         }
 
         match self.peek(arity as usize) {
-            Value::Function(func) => {
+            Value::Closure(cl) => {
+                let func = &cl.func;
                 self.frames.push(Frame {
                     chunk: Rc::clone(&func.chunk),
                     ip: 0,
