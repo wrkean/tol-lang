@@ -237,23 +237,38 @@ impl<'gctx> VM<'gctx> {
                     };
 
                     let upvalue_count = self.read_byte() as usize;
-                    let mut upvalues = Vec::with_capacity(upvalue_count);
-
-                    for _ in 0..upvalue_count {
-                        let is_local = self.read_byte() == 1;
-                        let index = self.read_byte() as usize;
-
-                        if is_local {
-                            let stack_slot = self.current_frame().locals_base + index;
-                            upvalues.push(self.capture_upvalue(stack_slot));
+                    if upvalue_count == 0 {
+                        let closure = if let Some(cached) = func.cached_closure.borrow().as_ref() {
+                            Rc::clone(cached)
                         } else {
-                            // Inherit upvalue from the current frame's closure
-                            let current_closure = &self.current_frame().closure;
-                            upvalues.push(current_closure.upvalues[index].clone());
+                            let cl = Rc::new(Closure {
+                                func: Rc::clone(&func),
+                                upvalues: Vec::new(),
+                            });
+                            *func.cached_closure.borrow_mut() = Some(Rc::clone(&cl));
+                            cl
+                        };
+                        self.push(Value::Closure(closure));
+                    } else {
+                        let mut upvalues = Vec::with_capacity(upvalue_count);
+
+                        for _ in 0..upvalue_count {
+                            let is_local = self.read_byte() == 1;
+                            let index = self.read_byte() as usize;
+
+                            if is_local {
+                                let stack_slot = self.current_frame().locals_base + index;
+                                upvalues.push(self.capture_upvalue(stack_slot));
+                            } else {
+                                // Inherit upvalue from the current frame's closure
+                                let current_closure = &self.current_frame().closure;
+                                upvalues.push(current_closure.upvalues[index].clone());
+                            }
                         }
+
+                        let closure = Value::Closure(Rc::new(Closure { func, upvalues }));
+                        self.push(closure);
                     }
-                    let closure = Value::Closure(Rc::new(Closure { func, upvalues }));
-                    self.push(closure);
                 }
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }

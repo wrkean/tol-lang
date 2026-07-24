@@ -22,6 +22,7 @@ pub struct Function {
     pub chunk: Rc<Chunk>,
     pub arity: u8,
     pub frame_size: usize,
+    pub cached_closure: RefCell<Option<Rc<Closure>>>,
 }
 
 impl Function {
@@ -31,6 +32,7 @@ impl Function {
             chunk: Rc::new(chunk),
             arity,
             frame_size,
+            cached_closure: RefCell::new(None),
         }
     }
 
