@@ -118,6 +118,10 @@ impl GlobalContext {
         &self.symbols[index]
     }
 
+    pub fn symbol_by_id_mut(&mut self, index: usize) -> &mut Symbol {
+        &mut self.symbols[index]
+    }
+
     pub fn add_symbol(&mut self, symbol: Symbol) -> SymbolId {
         self.symbols.push(symbol);
 

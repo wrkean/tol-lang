@@ -23,13 +23,15 @@ pub mod symbol;
 struct Scope {
     symbols: HashMap<String, SymbolId>,
     is_function_scope: bool,
+    slot_start: usize,
 }
 
 impl Scope {
-    fn new(is_function_scope: bool) -> Self {
+    fn new(is_function_scope: bool, slot_start: usize) -> Self {
         Self {
             symbols: HashMap::new(),
             is_function_scope,
+            slot_start,
         }
     }
 
@@ -51,20 +53,24 @@ pub struct Analyzer<'gctx> {
 
     next_global_slot: usize,
     next_local_slot: usize,
+    max_local_slot: usize,
     next_local_slot_stack: Vec<usize>,
+    max_local_slot_stack: Vec<usize>,
 }
 
 impl<'gctx> Analyzer<'gctx> {
     /// Creates a new analyze instance that targets the given module by id
     pub fn new(ctx: &'gctx mut GlobalContext, module_id: ModuleId) -> Self {
         Self {
-            scopes: vec![Scope::new(false)],
+            scopes: vec![Scope::new(false, 1)],
             ctx,
             module_id,
             loop_depth: 0,
             next_global_slot: 0,
             next_local_slot: 1,
+            max_local_slot: 1,
             next_local_slot_stack: Vec::new(),
+            max_local_slot_stack: Vec::new(),
         }
     }
 
@@ -111,11 +117,14 @@ impl<'gctx> Analyzer<'gctx> {
             StmtKind::Ibalik { .. } => self.resolve_ibalik(statement),
             StmtKind::Klase { .. } => self.resolve_klase(statement),
             StmtKind::Block { statements } => {
+                self.enter_scope(false);
                 for statement in statements {
                     if let Err(diag) = self.resolve_statement(statement) {
                         self.current_module_mut().add_diagnostic(*diag);
                     }
                 }
+
+                self.exit_scope();
 
                 Ok(())
             }
@@ -180,6 +189,7 @@ impl<'gctx> Analyzer<'gctx> {
             SymbolKind::Function {
                 param_types: params.spanned_types(),
                 ret_ty: ret_ty.clone(),
+                frame_size: 0,
             },
         );
         let id = self.declare_symbol(symbol)?;
@@ -208,8 +218,10 @@ impl<'gctx> Analyzer<'gctx> {
 
         self.resolve_statement(block)?;
 
-        self.exit_function();
+        let frame_size = self.exit_function();
         self.exit_scope();
+
+        self.ctx.symbol_by_id_mut(id).set_frame_size(frame_size);
 
         paraan.set_symbol_id(id);
 
@@ -432,6 +444,7 @@ impl<'gctx> Analyzer<'gctx> {
                     SymbolKind::Function {
                         param_types,
                         ret_ty: TolType::DiAlam,
+                        frame_size: 0,
                     },
                 );
                 let id = self.declare_symbol(symbol)?;
@@ -460,8 +473,10 @@ impl<'gctx> Analyzer<'gctx> {
 
                 self.resolve_expression(body)?;
 
-                self.exit_function();
+                let frame_size = self.exit_function();
                 self.exit_scope();
+
+                self.ctx.symbol_by_id_mut(id).set_frame_size(frame_size);
 
                 expression.set_symbol_id(id);
 
@@ -681,25 +696,38 @@ impl<'gctx> Analyzer<'gctx> {
 
     fn enter_function(&mut self) {
         self.next_local_slot_stack.push(self.next_local_slot);
+        self.max_local_slot_stack.push(self.max_local_slot);
         self.next_local_slot = 1;
+        self.max_local_slot = 1;
     }
 
     fn exit_function(&mut self) -> usize {
-        let local_count = self.next_local_slot;
+        let frame_size = self.max_local_slot;
+
         self.next_local_slot = self
             .next_local_slot_stack
             .pop()
             .expect("function scope stack underflow");
+        self.max_local_slot_stack
+            .pop()
+            .expect("function scope stack underflow");
 
-        local_count
+        frame_size
     }
 
     fn enter_scope(&mut self, is_function_scope: bool) {
-        self.scopes.push(Scope::new(is_function_scope));
+        self.scopes
+            .push(Scope::new(is_function_scope, self.next_local_slot));
     }
 
     fn exit_scope(&mut self) {
-        self.scopes.pop();
+        let scope = self
+            .scopes
+            .pop()
+            .expect("exit_scope called with no active scope");
+        if !self.is_in_global_scope() {
+            self.next_local_slot = scope.slot_start;
+        }
     }
 
     fn is_in_global_scope(&self) -> bool {
@@ -716,6 +744,9 @@ impl<'gctx> Analyzer<'gctx> {
     fn get_local_slot(&mut self) -> usize {
         let slot = self.next_local_slot;
         self.next_local_slot += 1;
+        if self.next_local_slot > self.max_local_slot {
+            self.max_local_slot = self.next_local_slot;
+        }
 
         slot
     }

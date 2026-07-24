@@ -44,6 +44,25 @@ impl Symbol {
     pub fn storage(&self) -> &Storage {
         &self.storage
     }
+
+    pub fn set_frame_size(&mut self, frame_size: usize) {
+        let SymbolKind::Function {
+            frame_size: fsize, ..
+        } = &mut self.kind
+        else {
+            unimplemented!()
+        };
+
+        *fsize = frame_size;
+    }
+
+    pub fn frame_size(&self) -> usize {
+        let SymbolKind::Function { frame_size, .. } = &self.kind else {
+            unimplemented!()
+        };
+
+        *frame_size
+    }
 }
 
 pub enum SymbolKind {
@@ -54,6 +73,7 @@ pub enum SymbolKind {
     Function {
         param_types: Spanned<Vec<TolType>>,
         ret_ty: TolType,
+        frame_size: usize,
     },
     NativeFunction,
     Klase {

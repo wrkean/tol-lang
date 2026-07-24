@@ -123,12 +123,18 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         let TokenKind::Identifier(function_name) = name.kind() else {
             unreachable!()
         };
-        let function = Function::new(function_name.clone(), function_chunk, params.len() as u8);
+        let function = Function::new(
+            function_name.clone(),
+            function_chunk,
+            params.len() as u8,
+            symbol.frame_size(),
+        );
 
         let span = paraan.span().clone();
-        let index = self.chunk.add_constant(Value::Function(Rc::new(function)));
-        self.chunk.emit_opcode(OpCode::Closure, span.clone());
-        self.chunk.emit_byte(index, span.clone());
+        self.chunk
+            .add_and_emit_constant(Value::Function(Rc::new(function)), span.clone());
+        // self.chunk.emit_opcode(OpCode::Closure, span.clone());
+        // self.chunk.emit_byte(index, span.clone());
         self.store_symbol(paraan.symbol_id(), span);
     }
 
@@ -350,6 +356,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                     ),
                     function_chunk,
                     params.len() as u8,
+                    symbol.frame_size(),
                 );
 
                 let line = self.current_module().line_of(expression.span().start);

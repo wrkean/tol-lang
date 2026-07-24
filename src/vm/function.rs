@@ -12,14 +12,16 @@ pub struct Function {
     pub name: String,
     pub chunk: Rc<Chunk>,
     pub arity: u8,
+    pub frame_size: usize,
 }
 
 impl Function {
-    pub fn new(name: String, chunk: Chunk, arity: u8) -> Self {
+    pub fn new(name: String, chunk: Chunk, arity: u8, frame_size: usize) -> Self {
         Self {
             name,
             chunk: Rc::new(chunk),
             arity,
+            frame_size,
         }
     }
 

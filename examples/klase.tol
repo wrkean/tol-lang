@@ -12,4 +12,3 @@ paraan println(msg):
 
 tao.method = println
 tao.method("Hello")
-1.hello()

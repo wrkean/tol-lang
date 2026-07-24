@@ -265,7 +265,7 @@ impl<'gctx> VM<'gctx> {
 
         let is_function = matches!(
             self.stack[callee_index],
-            Value::NativeFunction(_) | Value::Closure(_)
+            Value::NativeFunction(_) | Value::Function(_)
         );
         if !is_function {
             let current_module = self.current_module();
@@ -284,14 +284,14 @@ impl<'gctx> VM<'gctx> {
         }
 
         match self.peek(arity as usize) {
-            Value::Closure(cl) => {
-                let func = &cl.func;
-                self.frames.push(Frame {
-                    chunk: Rc::clone(&func.chunk),
-                    ip: 0,
-                    locals_base: self.stack.len() - arity as usize - 1,
+            Value::Function(func) => {
+                func.chunk.disassemble(&func.name);
+                self.new_frame(
+                    Rc::clone(&func.chunk),
+                    callee_index,
+                    func.frame_size,
                     module_id,
-                });
+                );
             }
             Value::NativeFunction(func) => {
                 let base = self.current_frame().locals_base + 1;
@@ -339,6 +339,22 @@ impl<'gctx> VM<'gctx> {
                 self.runtime_error(&err.message, self.current_ip());
             }
         }
+    }
+
+    fn new_frame(
+        &mut self,
+        chunk: Rc<Chunk>,
+        locals_base: usize,
+        frame_size: usize,
+        module_id: ModuleId,
+    ) {
+        self.stack.resize(locals_base + frame_size, Value::Null);
+        self.frames.push(Frame {
+            chunk,
+            ip: 0,
+            locals_base,
+            module_id,
+        })
     }
 
     fn push(&mut self, value: Value) {
