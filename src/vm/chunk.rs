@@ -191,17 +191,45 @@ impl Chunk {
                 self.disassemble_2byte_instruction("JUMP_IF_FALSE", offset)
             }
             op if op == OpCode::Jump as u8 => self.disassemble_2byte_instruction("JUMP", offset),
-            op if op == OpCode::Constant as u8 => {
+            op if op == OpCode::LoadUpvalue as u8 => {
+                self.disassemble_byte_instruction("LOAD_UPVALUE", offset)
+            }
+            op if op == OpCode::StoreUpvalue as u8 => {
+                self.disassemble_byte_instruction("STORE_UPVALUE", offset)
+            }
+            op if op == OpCode::Null as u8 => self.simple_instruction("NULL", offset),
+            op if op == OpCode::Return as u8 => self.simple_instruction("RETURN", offset),
+            op if op == OpCode::Loop as u8 => self.disassemble_2byte_instruction("LOOP", offset),
+            op if op == OpCode::NewClassInst as u8 => {
+                self.disassemble_byte_instruction("NEW_CLASS_INST", offset)
+            }
+            op if op == OpCode::GetField as u8 => self.simple_instruction("GET_FIELD", offset),
+            op if op == OpCode::SetField as u8 => self.simple_instruction("SET_FIELD", offset),
+            op if op == OpCode::Closure as u8 => {
                 let mut offset = offset + 1;
                 let constant = self.code[offset];
                 offset += 1;
                 print!("{:-16} {:4}", "CLOSURE", constant);
                 println!("{}", self.constants[constant as usize]);
 
+                let upvalue_count = self.code[offset];
+                offset += 1;
+                for _ in 0..upvalue_count {
+                    let is_local = self.code[offset] == 1;
+                    let index = self.code[offset + 1];
+                    println!(
+                        "{:04}    |                     {} {}",
+                        offset,
+                        if is_local { "local" } else { "upvalue" },
+                        index
+                    );
+                    offset += 2;
+                }
+
                 offset
             }
             _ => {
-                println!("UNKNOWN OPCODE: {:02X}", offset);
+                println!("UNKNOWN OPCODE {:02X} AT OFFSET {:04}", instruction, offset);
                 offset + 1
             }
         }

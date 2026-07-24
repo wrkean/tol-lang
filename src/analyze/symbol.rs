@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
+    analyze::UpvalueDesc,
     parse::ast::stmt::Param,
     prelude::Spanned,
     tol::{token::Span, types::TolType},
@@ -63,6 +64,10 @@ impl Symbol {
 
         *frame_size
     }
+
+    pub fn kind_mut(&mut self) -> &mut SymbolKind {
+        &mut self.kind
+    }
 }
 
 pub enum SymbolKind {
@@ -72,6 +77,7 @@ pub enum SymbolKind {
     },
     Function {
         param_types: Spanned<Vec<TolType>>,
+        upvalues: Vec<UpvalueDesc>,
         ret_ty: TolType,
         frame_size: usize,
     },

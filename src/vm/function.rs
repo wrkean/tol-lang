@@ -1,10 +1,19 @@
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
-use crate::vm::chunk::Chunk;
+use crate::vm::{chunk::Chunk, value::Value};
+
+#[derive(Debug)]
+pub enum UpvalueState {
+    Open(usize),  // Points to the stack
+    Close(Value), // Captured, transferred to the heap
+}
+
+pub type Upvalue = Rc<RefCell<UpvalueState>>;
 
 #[derive(Debug)]
 pub struct Closure {
     pub func: Rc<Function>,
+    pub upvalues: Vec<Upvalue>,
 }
 
 #[derive(Debug, Clone)]

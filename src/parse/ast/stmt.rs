@@ -1,5 +1,5 @@
 use crate::{
-    analyze::symbol::SymbolId,
+    analyze::{ResolvedVar, symbol::SymbolId},
     parse::ast::expr::Expr,
     prelude::Spanned,
     tol::{
@@ -12,7 +12,7 @@ use crate::{
 pub struct Stmt {
     span: Span,
     kind: StmtKind,
-    symbol_id: Option<SymbolId>,
+    resolved_var: Option<ResolvedVar>,
 }
 
 impl Stmt {
@@ -20,7 +20,7 @@ impl Stmt {
         Self {
             span,
             kind,
-            symbol_id: None,
+            resolved_var: None,
         }
     }
 
@@ -36,12 +36,13 @@ impl Stmt {
         &mut self.kind
     }
 
-    pub fn set_symbol_id(&mut self, id: SymbolId) {
-        self.symbol_id = Some(id);
+    pub fn set_resolved_var(&mut self, var: ResolvedVar) {
+        self.resolved_var = Some(var);
     }
 
-    pub fn symbol_id(&self) -> usize {
-        self.symbol_id
+    pub fn resolved_var(&self) -> ResolvedVar {
+        self.resolved_var
+            .clone()
             .expect("this statement's symbol id is never set")
     }
 }

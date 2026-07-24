@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt};
 
 use crate::{
-    analyze::symbol::SymbolId,
+    analyze::{ResolvedVar, symbol::SymbolId},
     parse::ast::stmt::{ParamList, Stmt},
     tol::token::{Span, Token},
 };
@@ -10,7 +10,7 @@ use crate::{
 pub struct Expr {
     span: Span,
     kind: ExprKind,
-    symbol_id: Option<SymbolId>,
+    resolved_var: Option<ResolvedVar>,
 }
 
 impl Expr {
@@ -18,7 +18,7 @@ impl Expr {
         Self {
             span,
             kind,
-            symbol_id: None,
+            resolved_var: None,
         }
     }
 
@@ -34,12 +34,13 @@ impl Expr {
         &mut self.kind
     }
 
-    pub fn set_symbol_id(&mut self, id: SymbolId) {
-        self.symbol_id = Some(id);
+    pub fn set_resolved_var(&mut self, var: ResolvedVar) {
+        self.resolved_var = Some(var);
     }
 
-    pub fn symbol_id(&self) -> usize {
-        self.symbol_id
+    pub fn resolved_var(&self) -> ResolvedVar {
+        self.resolved_var
+            .clone()
             .expect("this expression's symbol id is never set")
     }
 

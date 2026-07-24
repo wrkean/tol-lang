@@ -1,0 +1,13 @@
+paraan gawa_counter(simula):
+    ang iiba bilang = simula;
+
+    paraan dagdag():
+        bilang = bilang + 1;
+        ibalik bilang;
+
+    ibalik dagdag;
+
+ang counter = gawa_counter(10);
+print counter();
+print counter();
+print counter();

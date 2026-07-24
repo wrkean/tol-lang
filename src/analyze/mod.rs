@@ -19,6 +19,42 @@ use crate::{
 
 pub mod symbol;
 
+#[derive(Clone)]
+pub enum ResolvedVar {
+    Local(SymbolId),
+    Global(SymbolId),
+    Upvalue(usize),
+}
+
+impl ResolvedVar {
+    pub fn symbol_id(&self) -> SymbolId {
+        let (ResolvedVar::Local(id) | ResolvedVar::Global(id)) = self else {
+            unimplemented!()
+        };
+
+        *id
+    }
+}
+
+pub struct FunctionCtx {
+    scopes: Vec<Scope>,
+    upvalues: Vec<UpvalueDesc>,
+}
+
+impl FunctionCtx {
+    pub fn new() -> Self {
+        Self {
+            scopes: Vec::new(),
+            upvalues: Vec::new(),
+        }
+    }
+}
+
+pub struct UpvalueDesc {
+    pub is_local: bool,
+    pub index: usize,
+}
+
 #[derive(Debug)]
 struct Scope {
     symbols: HashMap<String, SymbolId>,
@@ -46,7 +82,7 @@ impl Scope {
 
 /// Analyzes the target module's ast
 pub struct Analyzer<'gctx> {
-    scopes: Vec<Scope>,
+    functions: Vec<FunctionCtx>,
     ctx: &'gctx mut GlobalContext,
     module_id: ModuleId,
     loop_depth: u8,
@@ -62,7 +98,7 @@ impl<'gctx> Analyzer<'gctx> {
     /// Creates a new analyze instance that targets the given module by id
     pub fn new(ctx: &'gctx mut GlobalContext, module_id: ModuleId) -> Self {
         Self {
-            scopes: vec![Scope::new(false, 1)],
+            functions: vec![FunctionCtx::new()],
             ctx,
             module_id,
             loop_depth: 0,
@@ -76,9 +112,13 @@ impl<'gctx> Analyzer<'gctx> {
 
     /// Runs the analyzer on the target module
     pub fn analyze(&mut self) {
+        self.enter_scope(false);
+
         self.define_native("input");
         self.define_native("alis");
         self.resolve_names();
+
+        self.exit_scope();
     }
 
     fn define_native(&mut self, name: impl Into<String>) -> DiagResult<()> {
@@ -159,10 +199,10 @@ impl<'gctx> Analyzer<'gctx> {
             },
         );
 
-        let id = self.declare_symbol(symbol)?;
+        let var = self.declare_symbol(symbol)?;
 
         // This ast node is now pointing it's symbol id to its declaration in the symbol table
-        ang.set_symbol_id(id);
+        ang.set_resolved_var(var);
 
         Ok(())
     }
@@ -190,9 +230,10 @@ impl<'gctx> Analyzer<'gctx> {
                 param_types: params.spanned_types(),
                 ret_ty: ret_ty.clone(),
                 frame_size: 0,
+                upvalues: Vec::new(),
             },
         );
-        let id = self.declare_symbol(symbol)?;
+        let resolved_var = self.declare_symbol(symbol)?;
 
         self.enter_function();
         self.enter_scope(true);
@@ -218,12 +259,18 @@ impl<'gctx> Analyzer<'gctx> {
 
         self.resolve_statement(block)?;
 
-        let frame_size = self.exit_function();
         self.exit_scope();
+        let (frame_size, upvalues) = self.exit_function();
 
+        let id = resolved_var.symbol_id();
         self.ctx.symbol_by_id_mut(id).set_frame_size(frame_size);
+        let SymbolKind::Function { upvalues: uvs, .. } = self.ctx.symbol_by_id_mut(id).kind_mut()
+        else {
+            unreachable!()
+        };
+        *uvs = upvalues;
 
-        paraan.set_symbol_id(id);
+        paraan.set_resolved_var(resolved_var);
 
         Ok(())
     }
@@ -361,8 +408,8 @@ impl<'gctx> Analyzer<'gctx> {
             storage,
             SymbolKind::Klase { fields: fields_map },
         );
-        let id = self.declare_symbol(symbol)?;
-        klase.set_symbol_id(id);
+        let resolved_var = self.declare_symbol(symbol)?;
+        klase.set_resolved_var(resolved_var);
 
         Ok(())
     }
@@ -378,9 +425,9 @@ impl<'gctx> Analyzer<'gctx> {
 
                 Ok(())
             }
-            ExprKind::Identifier(ident) => match self.lookup_symbol(ident) {
-                Some(id) => {
-                    expression.set_symbol_id(id);
+            ExprKind::Identifier(ident) => match self.resolve_identifier(ident) {
+                Some(var) => {
+                    expression.set_resolved_var(var);
                     Ok(())
                 }
                 None => {
@@ -396,7 +443,7 @@ impl<'gctx> Analyzer<'gctx> {
             ExprKind::Binary { left, right, op } => {
                 if let Err(diag) = self.resolve_expression(left) {
                     self.current_module_mut().add_diagnostic(*diag);
-                    dbg!(&self.scopes);
+                    // dbg!(&self.scopes);
                     println!("it errored: {left}")
                 }
 
@@ -445,9 +492,10 @@ impl<'gctx> Analyzer<'gctx> {
                         param_types,
                         ret_ty: TolType::DiAlam,
                         frame_size: 0,
+                        upvalues: Vec::new(),
                     },
                 );
-                let id = self.declare_symbol(symbol)?;
+                let resolved_var = self.declare_symbol(symbol)?;
 
                 self.enter_function();
                 self.enter_scope(true);
@@ -473,76 +521,86 @@ impl<'gctx> Analyzer<'gctx> {
 
                 self.resolve_expression(body)?;
 
-                let frame_size = self.exit_function();
+                let (frame_size, upvalues) = self.exit_function();
                 self.exit_scope();
 
-                self.ctx.symbol_by_id_mut(id).set_frame_size(frame_size);
+                self.ctx
+                    .symbol_by_id_mut(resolved_var.symbol_id())
+                    .set_frame_size(frame_size);
+                let SymbolKind::Function { upvalues: uvs, .. } = self
+                    .ctx
+                    .symbol_by_id_mut(resolved_var.symbol_id())
+                    .kind_mut()
+                else {
+                    unreachable!()
+                };
+                *uvs = upvalues;
 
-                expression.set_symbol_id(id);
+                expression.set_resolved_var(resolved_var);
 
                 Ok(())
             }
             ExprKind::ClassInit { name, inits } => {
-                let (fields, id) = match self.lookup_symbol(name.lexeme()) {
-                    Some(id) => match self.ctx.symbol_by_id(id).kind() {
-                        SymbolKind::Klase { fields } => (fields.clone(), id),
-                        _ => todo!(),
-                    },
-                    None => {
-                        let current_module = self.current_module();
-                        let diagnostic = predefined_diagnostics::use_of_undeclared_variable(
-                            current_module,
-                            name.span().clone(),
-                        );
-                        return Err(Box::new(diagnostic));
-                    }
-                };
-
-                let mut initialized_fields = HashSet::new();
-                for (name, expr, field_id) in inits.iter_mut() {
-                    self.resolve_expression(expr)?;
-
-                    if !fields.contains_key(name.lexeme()) {
-                        let current_module = self.current_module();
-                        let symbol_name = self.ctx.symbol_by_id(id).name();
-                        let diagnostic = TolDiagnostic::err(
-                            current_module.source_arc(),
-                            current_module.filename(),
-                            format!(
-                                "walang miyembro na `{}` ang `{}`",
-                                name.lexeme(),
-                                symbol_name,
-                            ),
-                        )
-                        .label(Label::new(name.span().clone()).message("hindi kilalang miyembro"));
-                        return Err(Box::new(diagnostic));
-                    }
-
-                    let id = fields.get(name.lexeme()).unwrap().1;
-                    *field_id = id;
-                    initialized_fields.insert(name.lexeme().to_string());
-                }
-
-                let span = expression.span().clone();
-                for (name, _) in fields.iter() {
-                    if !initialized_fields.contains(name) {
-                        let current_module = self.current_module();
-                        let diagnostic = TolDiagnostic::err(
-                            current_module.source_arc(),
-                            current_module.filename(),
-                            "hindi na \"initialize\" na pangalan",
-                        )
-                        .label(
-                            Label::new(span)
-                                .message(format!("hindi na-\"initialize\" ang `{}`", name)),
-                        );
-
-                        return Err(Box::new(diagnostic));
-                    }
-                }
-
-                expression.set_symbol_id(id);
-
+                // let (fields, id) = match self.resolve_identifier(name.lexeme()) {
+                //     Some(var) => match self.ctx.symbol_by_id(var.symbol_id()).kind() {
+                //         SymbolKind::Klase { fields } => (fields.clone(), var.symbol_id()),
+                //         _ => todo!(),
+                //     },
+                //     None => {
+                //         let current_module = self.current_module();
+                //         let diagnostic = predefined_diagnostics::use_of_undeclared_variable(
+                //             current_module,
+                //             name.span().clone(),
+                //         );
+                //         return Err(Box::new(diagnostic));
+                //     }
+                // };
+                //
+                // let mut initialized_fields = HashSet::new();
+                // for (name, expr, field_id) in inits.iter_mut() {
+                //     self.resolve_expression(expr)?;
+                //
+                //     if !fields.contains_key(name.lexeme()) {
+                //         let current_module = self.current_module();
+                //         let symbol_name = self.ctx.symbol_by_id(id).name();
+                //         let diagnostic = TolDiagnostic::err(
+                //             current_module.source_arc(),
+                //             current_module.filename(),
+                //             format!(
+                //                 "walang miyembro na `{}` ang `{}`",
+                //                 name.lexeme(),
+                //                 symbol_name,
+                //             ),
+                //         )
+                //         .label(Label::new(name.span().clone()).message("hindi kilalang miyembro"));
+                //         return Err(Box::new(diagnostic));
+                //     }
+                //
+                //     let id = fields.get(name.lexeme()).unwrap().1;
+                //     *field_id = id;
+                //     initialized_fields.insert(name.lexeme().to_string());
+                // }
+                //
+                // let span = expression.span().clone();
+                // for (name, _) in fields.iter() {
+                //     if !initialized_fields.contains(name) {
+                //         let current_module = self.current_module();
+                //         let diagnostic = TolDiagnostic::err(
+                //             current_module.source_arc(),
+                //             current_module.filename(),
+                //             "hindi na \"initialize\" na pangalan",
+                //         )
+                //         .label(
+                //             Label::new(span)
+                //                 .message(format!("hindi na-\"initialize\" ang `{}`", name)),
+                //         );
+                //
+                //         return Err(Box::new(diagnostic));
+                //     }
+                // }
+                //
+                // expression.set_resolved_var(id);
+                //
                 Ok(())
             }
             ExprKind::FieldAccess { object, field } => {
@@ -569,83 +627,19 @@ impl<'gctx> Analyzer<'gctx> {
         }
 
         Ok(())
-
-        // let left_symbol = self.ctx.symbol_by_id(left.symbol_id());
-        // match left_symbol.kind() {
-        //     SymbolKind::Name { is_mutable, ty } => {
-        //         if !*is_mutable {
-        //             let diagnostic = TolDiagnostic::err(
-        //                 current_module.source_arc(),
-        //                 current_module.filename(),
-        //                 "pag-iba ng hindi naiibang variable",
-        //             )
-        //             .label(
-        //                 Label::new(left_symbol.span().clone())
-        //                     .message("i-dineklara itong hindi naiiba"),
-        //             )
-        //             .label(
-        //                 Label::new(left.span().clone())
-        //                     .message("ngunit sinubukan mong ibahin dito"),
-        //             );
-        //
-        //             Err(Box::new(diagnostic))
-        //         } else {
-        //             Ok(())
-        //         }
-        //     }
-        //     SymbolKind::Function {
-        //         param_types,
-        //         ret_ty,
-        //     } => {
-        //         let diagnostic = TolDiagnostic::err(
-        //             current_module.source_arc(),
-        //             current_module.filename(),
-        //             "pag-assign sa isang paraan",
-        //         )
-        //         .label(
-        //             Label::new(left_symbol.span().clone())
-        //                 .message("i-dineklara ito bilaang paraan"),
-        //         )
-        //         .label(Label::new(left.span().clone()).message("sinubukan mong i-assign dito"));
-        //
-        //         Err(Box::new(diagnostic))
-        //     }
-        //     SymbolKind::NativeFunction => {
-        //         let diagnostic = TolDiagnostic::err(
-        //             current_module.source_arc(),
-        //             current_module.filename(),
-        //             "pag-assign sa isang native na paraan",
-        //         )
-        //         .label(
-        //             Label::new(left_symbol.span().clone())
-        //                 .message("i-dineklara ito bilang isang native na paraan"),
-        //         )
-        //         .label(Label::new(left.span().clone()).message("sinubukan mong i-assign dito"));
-        //
-        //         Err(Box::new(diagnostic))
-        //     }
-        //     SymbolKind::Klase { fields } => {
-        //         let diagnostic = TolDiagnostic::err(
-        //             current_module.source_arc(),
-        //             current_module.filename(),
-        //             "pag-assign sa isang klase",
-        //         )
-        //         .label(
-        //             Label::new(left_symbol.span().clone())
-        //                 .message("i-dineklara ito bilang isang klase"),
-        //         )
-        //         .label(Label::new(left.span().clone()).message("sinubukan mong i-assign dito"));
-        //
-        //         Err(Box::new(diagnostic))
-        //     }
-        // }
     }
 
-    fn declare_symbol(&mut self, symbol: Symbol) -> DiagResult<SymbolId> {
-        let current_scope = self.scopes.last_mut().unwrap();
+    fn declare_symbol(&mut self, symbol: Symbol) -> DiagResult<ResolvedVar> {
+        let current_scope = self
+            .functions
+            .last_mut()
+            .unwrap()
+            .scopes
+            .last_mut()
+            .unwrap();
         match current_scope.get(symbol.name()) {
-            Some(id) => {
-                let declared_symbol = self.ctx.symbol_by_id(*id);
+            Some(&id) => {
+                let declared_symbol = self.ctx.symbol_by_id(id);
                 let declared_span = declared_symbol.span().clone();
 
                 let current_module = self.current_module();
@@ -664,26 +658,72 @@ impl<'gctx> Analyzer<'gctx> {
                 let id = self.ctx.add_symbol(symbol);
                 current_scope.insert(name, id);
 
-                Ok(id)
+                if self.is_in_global_scope() {
+                    Ok(ResolvedVar::Global(id))
+                } else {
+                    Ok(ResolvedVar::Local(id))
+                }
             }
         }
     }
 
-    fn lookup_symbol(&mut self, name: &str) -> Option<SymbolId> {
-        for scope in self.scopes.iter().rev() {
-            // If found before a function boundary, returns the id
-            if let Some(id) = scope.get(name) {
-                return Some(*id);
-            }
+    fn resolve_identifier(&mut self, name: &str) -> Option<ResolvedVar> {
+        self.resolve_in_function(self.functions.len() - 1, name)
+    }
 
-            // Stops, so that it does not resolve upvalues
-            if scope.is_function_scope {
-                break;
+    fn resolve_in_function(&mut self, func_idx: usize, name: &str) -> Option<ResolvedVar> {
+        // 1. Check local scopes of the function at func_idx
+        for scope in self.functions[func_idx].scopes.iter().rev() {
+            if let Some(&id) = scope.get(name) {
+                if func_idx == 0 {
+                    return Some(ResolvedVar::Global(id));
+                } else {
+                    return Some(ResolvedVar::Local(id));
+                }
             }
         }
 
-        // Searches the global scope as a fallback
-        self.scopes.first()?.get(name).copied()
+        // 2. Base case: If we're at the top-level (func_idx == 0) and didn't find it, return None
+        if func_idx == 0 {
+            return None;
+        }
+
+        // 3. Recursively resolve in enclosing outer functions (func_idx - 1)
+        match self.resolve_in_function(func_idx - 1, name) {
+            Some(ResolvedVar::Local(symbol_id)) => {
+                // Extract the local stack slot index from Symbol.storage (not the SymbolId)
+                let symbol = self.ctx.symbol_by_id(symbol_id);
+                let Storage::Local(slot) = symbol.storage() else {
+                    unreachable!()
+                };
+
+                let idx = self.add_upvalue(func_idx, *slot, true);
+                Some(ResolvedVar::Upvalue(idx))
+            }
+            Some(ResolvedVar::Upvalue(parent_upvalue_idx)) => {
+                let idx = self.add_upvalue(func_idx, parent_upvalue_idx, false);
+                Some(ResolvedVar::Upvalue(idx))
+            }
+            Some(ResolvedVar::Global(symbol_id)) => {
+                // Globals do not need upvalues; inner functions access globals directly!
+                Some(ResolvedVar::Global(symbol_id))
+            }
+            None => None,
+        }
+    }
+
+    fn add_upvalue(&mut self, func_idx: usize, index: usize, is_local: bool) -> usize {
+        let upvalues = &mut self.functions[func_idx].upvalues;
+
+        if let Some(index) = upvalues
+            .iter()
+            .position(|uv| uv.is_local == is_local && uv.index == index)
+        {
+            return index;
+        }
+
+        upvalues.push(UpvalueDesc { is_local, index });
+        upvalues.len() - 1
     }
 
     fn current_module(&self) -> &Module {
@@ -695,43 +735,49 @@ impl<'gctx> Analyzer<'gctx> {
     }
 
     fn enter_function(&mut self) {
+        self.functions.push(FunctionCtx::new());
         self.next_local_slot_stack.push(self.next_local_slot);
         self.max_local_slot_stack.push(self.max_local_slot);
         self.next_local_slot = 1;
         self.max_local_slot = 1;
     }
 
-    fn exit_function(&mut self) -> usize {
+    fn exit_function(&mut self) -> (usize, Vec<UpvalueDesc>) {
+        let upvalues = self.functions.pop().unwrap().upvalues;
         let frame_size = self.max_local_slot;
 
         self.next_local_slot = self
             .next_local_slot_stack
             .pop()
             .expect("function scope stack underflow");
-        self.max_local_slot_stack
+        self.max_local_slot = self
+            .max_local_slot_stack
             .pop()
             .expect("function scope stack underflow");
 
-        frame_size
+        (frame_size, upvalues)
     }
 
     fn enter_scope(&mut self, is_function_scope: bool) {
-        self.scopes
+        let current_fn = self.functions.last_mut().unwrap();
+        current_fn
+            .scopes
             .push(Scope::new(is_function_scope, self.next_local_slot));
     }
 
     fn exit_scope(&mut self) {
-        let scope = self
+        let current_fn = self.functions.last_mut().unwrap();
+        let scope = current_fn
             .scopes
             .pop()
             .expect("exit_scope called with no active scope");
-        if !self.is_in_global_scope() {
+        if self.functions.len() > 1 {
             self.next_local_slot = scope.slot_start;
         }
     }
 
     fn is_in_global_scope(&self) -> bool {
-        self.scopes.len() == 1
+        self.functions.len() == 1 && self.functions.first().unwrap().scopes.len() == 1
     }
 
     fn get_global_slot(&mut self) -> usize {

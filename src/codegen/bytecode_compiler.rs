@@ -1,7 +1,10 @@
 use std::{cmp::Reverse, mem, rc::Rc};
 
 use crate::{
-    analyze::symbol::{Storage, SymbolId},
+    analyze::{
+        ResolvedVar,
+        symbol::{Storage, SymbolId, SymbolKind},
+    },
     global_ctx::GlobalContext,
     module::{Module, ModuleId},
     parse::ast::{
@@ -87,9 +90,9 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         };
 
         self.compile_expression(rhs);
-        let id = ang.symbol_id();
+        let id = ang.resolved_var();
         let span = name.span().clone();
-        self.store_symbol(id, span);
+        self.store_var(id, span);
     }
 
     fn compile_paraan(&mut self, paraan: &Stmt) {
@@ -102,8 +105,6 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         else {
             unreachable!()
         };
-
-        let symbol = self.ctx.symbol_by_id(paraan.symbol_id());
 
         // Temporarily replace current chunk with a new chunk assumed to be chunks produced by the blocks of this function
         let mut function_chunk = Chunk::new();
@@ -120,6 +121,8 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         // produced by compiling the function block
         function_chunk = mem::replace(&mut self.chunk, old_chunk);
 
+        let symbol = self.ctx.symbol_by_id(paraan.resolved_var().symbol_id());
+
         let TokenKind::Identifier(function_name) = name.kind() else {
             unreachable!()
         };
@@ -130,12 +133,20 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             symbol.frame_size(),
         );
 
+        let SymbolKind::Function { upvalues, .. } = symbol.kind() else {
+            unreachable!()
+        };
         let span = paraan.span().clone();
-        self.chunk
-            .add_and_emit_constant(Value::Function(Rc::new(function)), span.clone());
-        // self.chunk.emit_opcode(OpCode::Closure, span.clone());
-        // self.chunk.emit_byte(index, span.clone());
-        self.store_symbol(paraan.symbol_id(), span);
+        let const_index = self.chunk.add_constant(Value::Function(Rc::new(function)));
+        self.chunk.emit_opcode(OpCode::Closure, span.clone());
+        self.chunk.emit_byte(const_index, span.clone());
+        self.chunk.emit_byte(upvalues.len() as u8, span.clone());
+        for upvalue in upvalues {
+            self.chunk
+                .emit_byte(if upvalue.is_local { 1 } else { 0 }, span.clone());
+            self.chunk.emit_byte(upvalue.index as u8, span.clone());
+        }
+        self.store_var(paraan.resolved_var(), span);
     }
 
     fn compile_print(&mut self, print: &Stmt) {
@@ -247,33 +258,49 @@ impl<'gctx> BytecodeCompiler<'gctx> {
 
         self.chunk
             .add_and_emit_constant(Value::ClassDef(Rc::new(def)), klase.span().clone());
-        self.store_symbol(klase.symbol_id(), klase.span().clone());
+        self.store_var(klase.resolved_var(), klase.span().clone());
     }
 
-    fn store_symbol(&mut self, symbol_id: SymbolId, span: Span) {
-        let symbol = self.ctx.symbol_by_id(symbol_id);
-        match symbol.storage() {
-            Storage::Global(slot) => {
-                self.chunk.emit_opcode(OpCode::StoreGlobal, span.clone());
-                self.chunk.emit_byte(*slot as u8, span);
+    fn store_var(&mut self, var: ResolvedVar, span: Span) {
+        match var {
+            ResolvedVar::Global(symbol_id) | ResolvedVar::Local(symbol_id) => {
+                let symbol = self.ctx.symbol_by_id(symbol_id);
+                match symbol.storage() {
+                    Storage::Global(slot) => {
+                        self.chunk.emit_opcode(OpCode::StoreGlobal, span.clone());
+                        self.chunk.emit_byte(*slot as u8, span);
+                    }
+                    Storage::Local(slot) => {
+                        self.chunk.emit_opcode(OpCode::StoreLocal, span.clone());
+                        self.chunk.emit_byte(*slot as u8, span);
+                    }
+                }
             }
-            Storage::Local(slot) => {
-                self.chunk.emit_opcode(OpCode::StoreLocal, span.clone());
-                self.chunk.emit_byte(*slot as u8, span);
+            ResolvedVar::Upvalue(upvalue_idx) => {
+                self.chunk.emit_opcode(OpCode::StoreUpvalue, span.clone());
+                self.chunk.emit_byte(upvalue_idx as u8, span);
             }
         }
     }
 
-    fn load_symbol(&mut self, symbol_id: SymbolId, span: Span) {
-        let symbol = self.ctx.symbol_by_id(symbol_id);
-        match symbol.storage() {
-            Storage::Global(slot) => {
-                self.chunk.emit_opcode(OpCode::LoadGlobal, span.clone());
-                self.chunk.emit_byte(*slot as u8, span);
+    fn load_var(&mut self, var: ResolvedVar, span: Span) {
+        match var {
+            ResolvedVar::Global(symbol_id) | ResolvedVar::Local(symbol_id) => {
+                let symbol = self.ctx.symbol_by_id(symbol_id);
+                match symbol.storage() {
+                    Storage::Global(slot) => {
+                        self.chunk.emit_opcode(OpCode::LoadGlobal, span.clone());
+                        self.chunk.emit_byte(*slot as u8, span);
+                    }
+                    Storage::Local(slot) => {
+                        self.chunk.emit_opcode(OpCode::LoadLocal, span.clone());
+                        self.chunk.emit_byte(*slot as u8, span);
+                    }
+                }
             }
-            Storage::Local(slot) => {
-                self.chunk.emit_opcode(OpCode::LoadLocal, span.clone());
-                self.chunk.emit_byte(*slot as u8, span);
+            ResolvedVar::Upvalue(upvalue_idx) => {
+                self.chunk.emit_opcode(OpCode::LoadUpvalue, span.clone());
+                self.chunk.emit_byte(upvalue_idx as u8, span);
             }
         }
     }
@@ -300,20 +327,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 self.chunk
                     .add_and_emit_constant(Value::Str(interned_id.unwrap()), span);
             }
-            ExprKind::Identifier(ident) => {
-                let id = expression.symbol_id();
-                let symbol = self.ctx.symbol_by_id(id);
-                match symbol.storage() {
-                    Storage::Global(slot) => {
-                        self.chunk.emit_opcode(OpCode::LoadGlobal, span.clone());
-                        self.chunk.emit_byte(*slot as u8, span);
-                    }
-                    Storage::Local(slot) => {
-                        self.chunk.emit_opcode(OpCode::LoadLocal, span.clone());
-                        self.chunk.emit_byte(*slot as u8, span);
-                    }
-                }
-            }
+            ExprKind::Identifier(ident) => self.load_var(expression.resolved_var(), span),
             ExprKind::Binary { left, right, op } => {
                 let line = self.current_module().line_of(op.span().start);
 
@@ -337,7 +351,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 self.chunk.emit_byte(args.len() as u8, span);
             }
             ExprKind::AnonymousFn { params, body } => {
-                let symbol = self.ctx.symbol_by_id(expression.symbol_id());
+                let symbol = self.ctx.symbol_by_id(expression.resolved_var().symbol_id());
 
                 let mut function_chunk = Chunk::new();
                 let old_chunk = mem::replace(&mut self.chunk, function_chunk);
@@ -359,26 +373,20 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                     symbol.frame_size(),
                 );
 
-                let line = self.current_module().line_of(expression.span().start);
-                self.chunk
-                    .add_and_emit_constant(Value::Function(Rc::new(function)), span);
-            }
-            ExprKind::ClassInit { name, inits } => {
-                let id = expression.symbol_id();
-
-                for (name, ex, _) in inits {
-                    self.compile_expression(ex);
-                    self.chunk.add_and_emit_constant(
-                        Value::UninternedStr(Rc::from(name.lexeme())),
-                        name.span().clone(),
-                    );
+                let SymbolKind::Function { upvalues, .. } = symbol.kind() else {
+                    unreachable!()
+                };
+                let const_index = self.chunk.add_constant(Value::Function(Rc::new(function)));
+                self.chunk.emit_opcode(OpCode::Closure, span.clone());
+                self.chunk.emit_byte(const_index, span.clone());
+                self.chunk.emit_byte(upvalues.len() as u8, span.clone());
+                for upvalue in upvalues {
+                    self.chunk
+                        .emit_byte(if upvalue.is_local { 1 } else { 0 }, span.clone());
+                    self.chunk.emit_byte(upvalue.index as u8, span.clone());
                 }
-
-                self.load_symbol(id, name.span().clone());
-                self.chunk
-                    .emit_opcode(OpCode::NewClassInst, name.span().clone());
-                self.chunk.emit_byte(inits.len() as u8, name.span().clone());
             }
+            ExprKind::ClassInit { name, inits } => {}
             ExprKind::FieldAccess { object, field } => {
                 self.compile_expression(object);
 
@@ -411,7 +419,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             }
             _ => {
                 let span = left.span().clone();
-                self.store_symbol(left.symbol_id(), span.clone());
+                self.store_var(left.resolved_var(), span.clone());
             }
         }
 

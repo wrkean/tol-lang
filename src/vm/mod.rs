@@ -7,7 +7,7 @@ use crate::{
     vm::{
         chunk::Chunk,
         class::ClassInstance,
-        function::Closure,
+        function::{Closure, Function, Upvalue, UpvalueState},
         native_functions::NativeFunction,
         opcode::OpCode,
         value::{Value, ValueError},
@@ -22,7 +22,7 @@ pub mod opcode;
 pub mod value;
 
 struct Frame {
-    chunk: Rc<Chunk>,
+    closure: Rc<Closure>,
     ip: usize,
     locals_base: usize,
     module_id: ModuleId,
@@ -33,16 +33,23 @@ pub struct VM<'gctx> {
     frames: Vec<Frame>,
     globals: Vec<Value>,
     ctx: &'gctx mut GlobalContext,
+    open_upvalues: Vec<Upvalue>,
 }
 
 impl<'gctx> VM<'gctx> {
     pub fn new(chunk: Chunk, ctx: &'gctx mut GlobalContext, module_id: ModuleId) -> Self {
+        let closure = Rc::new(Closure {
+            func: Rc::new(Function::new("__paraan_na_una__".to_string(), chunk, 0, 0)),
+            upvalues: Vec::new(),
+        });
+
         Self {
             stack: Vec::new(),
             globals: Vec::new(),
             ctx,
+            open_upvalues: Vec::new(),
             frames: vec![Frame {
-                chunk: Rc::new(chunk),
+                closure,
                 ip: 0,
                 locals_base: 1,
                 module_id,
@@ -97,6 +104,28 @@ impl<'gctx> VM<'gctx> {
                     let index = self.current_frame().locals_base + index;
                     let value = self.stack[index].clone();
                     self.push(value);
+                }
+                op if op == OpCode::LoadUpvalue as u8 => {
+                    let index = self.read_byte() as usize;
+                    let upvalue = &self.current_frame().closure.upvalues[index];
+                    let val = match &*upvalue.borrow() {
+                        UpvalueState::Open(slot) => self.stack[*slot].clone(),
+                        UpvalueState::Close(value) => value.clone(),
+                    };
+                    self.push(val);
+                }
+                op if op == OpCode::StoreUpvalue as u8 => {
+                    let index = self.read_byte() as usize;
+                    let value = self.pop();
+                    let upvalue = &self.frames.last().unwrap().closure.upvalues[index];
+
+                    let mut state = upvalue.borrow_mut();
+                    match &mut *state {
+                        UpvalueState::Open(slot) => {
+                            self.stack[*slot] = value;
+                        }
+                        UpvalueState::Close(closed_val) => *closed_val = value,
+                    }
                 }
                 op if op == OpCode::Print as u8 => {
                     let value = self.pop();
@@ -206,12 +235,44 @@ impl<'gctx> VM<'gctx> {
                     let Value::Function(func) = constant else {
                         unreachable!()
                     };
-                    let closure = Value::Closure(Rc::new(Closure { func }));
+
+                    let upvalue_count = self.read_byte() as usize;
+                    let mut upvalues = Vec::with_capacity(upvalue_count);
+
+                    for _ in 0..upvalue_count {
+                        let is_local = self.read_byte() == 1;
+                        let index = self.read_byte() as usize;
+
+                        if is_local {
+                            let stack_slot = self.current_frame().locals_base + index;
+                            upvalues.push(self.capture_upvalue(stack_slot));
+                        } else {
+                            // Inherit upvalue from the current frame's closure
+                            let current_closure = &self.current_frame().closure;
+                            upvalues.push(current_closure.upvalues[index].clone());
+                        }
+                    }
+                    let closure = Value::Closure(Rc::new(Closure { func, upvalues }));
                     self.push(closure);
                 }
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }
         }
+    }
+
+    fn capture_upvalue(&mut self, stack_location: usize) -> Upvalue {
+        // Search open_upvalues for an existing upvalue at stack_location
+        for upvalue in &self.open_upvalues {
+            if let UpvalueState::Open(location) = *upvalue.borrow()
+                && location == stack_location
+            {
+                return upvalue.clone();
+            }
+        }
+
+        let new_upvalue = Rc::new(RefCell::new(UpvalueState::Open(stack_location)));
+        self.open_upvalues.push(new_upvalue.clone());
+        new_upvalue
     }
 
     fn assign_native(
@@ -256,8 +317,23 @@ impl<'gctx> VM<'gctx> {
 
     fn return_from_frame(&mut self, return_val: Value) {
         let frame = self.frames.pop().unwrap();
+        self.close_upvalues(frame.locals_base);
         self.stack.truncate(frame.locals_base);
         self.push(return_val);
+    }
+
+    fn close_upvalues(&mut self, last_slot: usize) {
+        self.open_upvalues.retain(|uv| {
+            let mut state = uv.borrow_mut();
+            if let UpvalueState::Open(location) = *state
+                && location >= last_slot
+            {
+                *state = UpvalueState::Close(self.stack[location].clone());
+                return false;
+            }
+
+            true
+        });
     }
 
     fn call_function(&mut self, arity: u8, module_id: ModuleId) {
@@ -265,7 +341,7 @@ impl<'gctx> VM<'gctx> {
 
         let is_function = matches!(
             self.stack[callee_index],
-            Value::NativeFunction(_) | Value::Function(_)
+            Value::NativeFunction(_) | Value::Closure(_)
         );
         if !is_function {
             let current_module = self.current_module();
@@ -273,7 +349,7 @@ impl<'gctx> VM<'gctx> {
             return;
         }
         let func_arity = match &self.stack[callee_index] {
-            Value::Function(f) => f.arity,
+            Value::Closure(f) => f.func.arity,
             Value::NativeFunction(f) => f.arity as u8,
             _ => unreachable!(),
         };
@@ -284,14 +360,9 @@ impl<'gctx> VM<'gctx> {
         }
 
         match self.peek(arity as usize) {
-            Value::Function(func) => {
-                func.chunk.disassemble(&func.name);
-                self.new_frame(
-                    Rc::clone(&func.chunk),
-                    callee_index,
-                    func.frame_size,
-                    module_id,
-                );
+            Value::Closure(cl) => {
+                cl.func.chunk.disassemble(&cl.func.name);
+                self.new_frame(Rc::clone(cl), callee_index, cl.func.frame_size, module_id);
             }
             Value::NativeFunction(func) => {
                 let base = self.current_frame().locals_base + 1;
@@ -343,14 +414,14 @@ impl<'gctx> VM<'gctx> {
 
     fn new_frame(
         &mut self,
-        chunk: Rc<Chunk>,
+        closure: Rc<Closure>,
         locals_base: usize,
         frame_size: usize,
         module_id: ModuleId,
     ) {
         self.stack.resize(locals_base + frame_size, Value::Null);
         self.frames.push(Frame {
-            chunk,
+            closure,
             ip: 0,
             locals_base,
             module_id,
@@ -367,7 +438,7 @@ impl<'gctx> VM<'gctx> {
 
     fn read_byte(&mut self) -> u8 {
         let frame = self.current_frame_mut();
-        let byte = frame.chunk.get_byte(frame.ip);
+        let byte = frame.closure.func.chunk.get_byte(frame.ip);
         frame.ip += 1;
 
         byte
@@ -375,7 +446,7 @@ impl<'gctx> VM<'gctx> {
 
     fn read_u16(&mut self) -> u16 {
         let frame = self.current_frame_mut();
-        let bytes = &frame.chunk.code()[frame.ip..frame.ip + 2];
+        let bytes = &frame.closure.func.chunk.code()[frame.ip..frame.ip + 2];
         frame.ip += 2;
 
         u16::from_be_bytes([bytes[0], bytes[1]])
@@ -390,7 +461,7 @@ impl<'gctx> VM<'gctx> {
     }
 
     fn current_chunk(&self) -> &Chunk {
-        &self.current_frame().chunk
+        &self.current_frame().closure.func.chunk
     }
 
     // These are what gets shown when the value is to be printed.
