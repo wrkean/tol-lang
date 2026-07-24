@@ -261,18 +261,23 @@ impl<'gctx> VM<'gctx> {
     }
 
     fn capture_upvalue(&mut self, stack_location: usize) -> Upvalue {
-        // Search open_upvalues for an existing upvalue at stack_location
-        for upvalue in &self.open_upvalues {
-            if let UpvalueState::Open(location) = *upvalue.borrow()
-                && location == stack_location
-            {
-                return upvalue.clone();
+        let get_location = |uv: &Upvalue| match *uv.borrow() {
+            UpvalueState::Open(loc) => loc,
+            _ => unreachable!(),
+        };
+
+        // Maintain open_upvalues in descending order of stack location
+        match self
+            .open_upvalues
+            .binary_search_by(|uv| get_location(uv).cmp(&stack_location).reverse())
+        {
+            Ok(idx) => self.open_upvalues[idx].clone(),
+            Err(idx) => {
+                let new_upvalue = Rc::new(RefCell::new(UpvalueState::Open(stack_location)));
+                self.open_upvalues.insert(idx, new_upvalue.clone());
+                new_upvalue
             }
         }
-
-        let new_upvalue = Rc::new(RefCell::new(UpvalueState::Open(stack_location)));
-        self.open_upvalues.push(new_upvalue.clone());
-        new_upvalue
     }
 
     fn assign_native(
@@ -323,17 +328,26 @@ impl<'gctx> VM<'gctx> {
     }
 
     fn close_upvalues(&mut self, last_slot: usize) {
-        self.open_upvalues.retain(|uv| {
-            let mut state = uv.borrow_mut();
-            if let UpvalueState::Open(location) = *state
-                && location >= last_slot
-            {
-                *state = UpvalueState::Close(self.stack[location].clone());
-                return false;
-            }
+        let get_location = |uv: &Upvalue| match *uv.borrow() {
+            UpvalueState::Open(loc) => loc,
+            _ => unreachable!(),
+        };
 
-            true
-        });
+        let mut close_count = 0;
+        for uv in &self.open_upvalues {
+            if get_location(uv) >= last_slot {
+                close_count += 1;
+            } else {
+                break;
+            }
+        }
+
+        for uv in self.open_upvalues.drain(0..close_count) {
+            let mut state = uv.borrow_mut();
+            if let UpvalueState::Open(location) = *state {
+                *state = UpvalueState::Close(self.stack[location].clone());
+            }
+        }
     }
 
     fn call_function(&mut self, arity: u8, module_id: ModuleId) {
