@@ -8,11 +8,12 @@ use crate::vm::value::Value;
 #[derive(Debug)]
 pub struct ClassDef {
     pub name: String,
+    pub methods: HashMap<String, Value>,
 }
 
 impl ClassDef {
-    pub fn new(name: String) -> Self {
-        Self { name }
+    pub fn new(name: String, methods: HashMap<String, Value>) -> Self {
+        Self { name, methods }
     }
 }
 

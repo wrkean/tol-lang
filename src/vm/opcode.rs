@@ -13,6 +13,8 @@ pub enum OpCode {
     GetField,
     SetField,
     Closure,
+    Method,
+    DefineClass,
     LoadUpvalue,
     StoreUpvalue,
 

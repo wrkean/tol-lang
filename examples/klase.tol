@@ -4,5 +4,4 @@ klase Tao:
 
 ang tao = Tao()
 tao.pangalan = "Keanne"
-tao.edad = 10
-print tao.edad
+print tao.pangalan

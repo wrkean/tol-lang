@@ -123,11 +123,9 @@ impl<'gctx> BytecodeCompiler<'gctx> {
 
         let symbol = self.ctx.symbol_by_id(paraan.resolved_var().symbol_id());
 
-        let TokenKind::Identifier(function_name) = name.kind() else {
-            unreachable!()
-        };
+        let function_name = name.lexeme();
         let function = Function::new(
-            function_name.clone(),
+            function_name.to_string(),
             function_chunk,
             params.len() as u8,
             symbol.frame_size(),
@@ -250,15 +248,36 @@ impl<'gctx> BytecodeCompiler<'gctx> {
     }
 
     fn compile_klase(&mut self, klase: &Stmt) {
-        let StmtKind::Klase { name, .. } = klase.kind() else {
+        let StmtKind::Klase { name, methods } = klase.kind() else {
             unreachable!()
         };
 
-        let def = ClassDef::new(name.lexeme().to_string());
+        for method in methods {
+            self.compile_method(method);
+        }
 
+        self.chunk.add_and_emit_constant(
+            Value::UninternedStr(Rc::from(name.lexeme())),
+            name.span().clone(),
+        );
         self.chunk
-            .add_and_emit_constant(Value::ClassDef(Rc::new(def)), klase.span().clone());
+            .emit_opcode(OpCode::DefineClass, name.span().clone());
+        self.chunk
+            .emit_byte(methods.len() as u8, klase.span().clone());
+
         self.store_var(klase.resolved_var(), klase.span().clone());
+    }
+
+    fn compile_method(&mut self, method: &Stmt) {
+        self.compile_paraan(method);
+        let StmtKind::Paraan { name, .. } = method.kind() else {
+            unreachable!()
+        };
+        self.chunk.add_and_emit_constant(
+            Value::UninternedStr(Rc::from(name.lexeme())),
+            name.span().clone(),
+        );
+        self.load_var(method.resolved_var(), name.span().clone()); // Pushes the method into the stack
     }
 
     fn store_var(&mut self, var: ResolvedVar, span: Span) {

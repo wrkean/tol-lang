@@ -394,6 +394,7 @@ impl<'gctx> Analyzer<'gctx> {
             },
         );
         let resolved_var = self.declare_symbol(symbol)?;
+
         self.enter_scope(false);
 
         for method in methods.iter_mut() {

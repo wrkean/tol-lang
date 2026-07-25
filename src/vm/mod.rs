@@ -6,7 +6,7 @@ use crate::{
     tol::diagnostic::{Label, miette_diagnostic::MietteDiagnostic, runtime::RuntimeError},
     vm::{
         chunk::Chunk,
-        class::ClassInstance,
+        class::{ClassDef, ClassInstance},
         function::{Closure, Function, Upvalue, UpvalueState},
         native_functions::NativeFunction,
         opcode::OpCode,
@@ -168,35 +168,6 @@ impl<'gctx> VM<'gctx> {
                     let offset = self.read_u16() as usize;
                     self.current_frame_mut().ip -= offset;
                 }
-                op if op == OpCode::NewClassInst as u8 => {
-                    let def = self.pop();
-                    let field_count = self.read_byte() as usize;
-
-                    let Value::ClassDef(class_def) = def else {
-                        self.runtime_error(
-                            "hindi isang klase ang nasa kaliwa ng `.`",
-                            self.current_ip(),
-                        );
-                        return;
-                    };
-
-                    let mut fields = HashMap::new();
-                    for _ in 0..field_count {
-                        let Value::UninternedStr(field_name) = self.pop() else {
-                            unreachable!()
-                        };
-                        let field_name = field_name.to_string();
-                        let field_val = self.pop();
-
-                        fields.insert(field_name, field_val);
-                    }
-
-                    let instance = ClassInstance {
-                        def: class_def,
-                        fields,
-                    };
-                    self.push(Value::ClassInstance(Rc::new(RefCell::new(instance))));
-                }
                 op if op == OpCode::GetField as u8 => {
                     let Value::UninternedStr(field_name) = self.pop() else {
                         panic!("Should be struct")
@@ -207,13 +178,22 @@ impl<'gctx> VM<'gctx> {
                         return;
                     };
 
-                    let value = instance
-                        .borrow()
-                        .fields
-                        .get(field_name.as_ref())
-                        .unwrap()
-                        .clone();
-                    self.push(value);
+                    let inst = instance.borrow();
+                    match inst.fields.get(field_name.as_ref()) {
+                        Some(v) => self.push(v.clone()),
+                        None => match inst.def.methods.get(field_name.as_ref()) {
+                            Some(v) => self.push(v.clone()),
+                            None => {
+                                self.runtime_error(
+                                    &format!(
+                                        "hindi miyembro ng `{}` ang `{}`",
+                                        inst.def.name, field_name
+                                    ),
+                                    self.current_ip(),
+                                );
+                            }
+                        },
+                    }
                 }
                 op if op == OpCode::SetField as u8 => {
                     let Value::UninternedStr(field_name) = self.pop() else {
@@ -269,6 +249,33 @@ impl<'gctx> VM<'gctx> {
                         let closure = Value::Closure(Rc::new(Closure { func, upvalues }));
                         self.push(closure);
                     }
+                }
+                op if op == OpCode::Method as u8 => {
+                    let Value::Closure(cl) = self.pop() else {
+                        unreachable!()
+                    };
+                    let Value::ClassDef(def) = self.peek(0) else {
+                        unreachable!()
+                    };
+                }
+                op if op == OpCode::DefineClass as u8 => {
+                    eprintln!("{}", self.stack.len());
+                    let Value::UninternedStr(class_name) = self.pop() else {
+                        unreachable!()
+                    };
+                    let methods_count = self.read_byte() as usize;
+                    let mut methods: HashMap<String, Value> = (0..methods_count)
+                        .map(|_| {
+                            let method = self.pop();
+                            let Value::UninternedStr(name) = self.pop() else {
+                                unreachable!()
+                            };
+
+                            (name.to_string(), method)
+                        })
+                        .collect();
+                    let def = ClassDef::new(class_name.to_string(), methods);
+                    self.push(Value::ClassDef(Rc::new(def)));
                 }
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }
@@ -395,7 +402,7 @@ impl<'gctx> VM<'gctx> {
                 self.new_frame(Rc::clone(cl), callee_index, cl.func.frame_size, module_id);
             }
             Value::NativeFunction(func) => {
-                let base = self.current_frame().locals_base + 1;
+                let base = callee_index + 1; // + 1 to skip the callee itself
                 let args = self.stack[base..arity as usize + base].to_vec();
 
                 match ((func.func)(self, &args)) {
@@ -410,7 +417,6 @@ impl<'gctx> VM<'gctx> {
                     def: Rc::clone(c),
                     fields: HashMap::new(),
                 };
-                self.pop(); // Pop the class definition
                 self.push(Value::ClassInstance(Rc::new(RefCell::new(new_instance))));
             }
             _ => unreachable!(),
