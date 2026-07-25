@@ -386,7 +386,6 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                     self.chunk.emit_byte(upvalue.index as u8, span.clone());
                 }
             }
-            ExprKind::ClassInit { name, inits } => {}
             ExprKind::FieldAccess { object, field } => {
                 self.compile_expression(object);
 

@@ -540,69 +540,6 @@ impl<'gctx> Analyzer<'gctx> {
 
                 Ok(())
             }
-            ExprKind::ClassInit { name, inits } => {
-                // let (fields, id) = match self.resolve_identifier(name.lexeme()) {
-                //     Some(var) => match self.ctx.symbol_by_id(var.symbol_id()).kind() {
-                //         SymbolKind::Klase { fields } => (fields.clone(), var.symbol_id()),
-                //         _ => todo!(),
-                //     },
-                //     None => {
-                //         let current_module = self.current_module();
-                //         let diagnostic = predefined_diagnostics::use_of_undeclared_variable(
-                //             current_module,
-                //             name.span().clone(),
-                //         );
-                //         return Err(Box::new(diagnostic));
-                //     }
-                // };
-                //
-                // let mut initialized_fields = HashSet::new();
-                // for (name, expr, field_id) in inits.iter_mut() {
-                //     self.resolve_expression(expr)?;
-                //
-                //     if !fields.contains_key(name.lexeme()) {
-                //         let current_module = self.current_module();
-                //         let symbol_name = self.ctx.symbol_by_id(id).name();
-                //         let diagnostic = TolDiagnostic::err(
-                //             current_module.source_arc(),
-                //             current_module.filename(),
-                //             format!(
-                //                 "walang miyembro na `{}` ang `{}`",
-                //                 name.lexeme(),
-                //                 symbol_name,
-                //             ),
-                //         )
-                //         .label(Label::new(name.span().clone()).message("hindi kilalang miyembro"));
-                //         return Err(Box::new(diagnostic));
-                //     }
-                //
-                //     let id = fields.get(name.lexeme()).unwrap().1;
-                //     *field_id = id;
-                //     initialized_fields.insert(name.lexeme().to_string());
-                // }
-                //
-                // let span = expression.span().clone();
-                // for (name, _) in fields.iter() {
-                //     if !initialized_fields.contains(name) {
-                //         let current_module = self.current_module();
-                //         let diagnostic = TolDiagnostic::err(
-                //             current_module.source_arc(),
-                //             current_module.filename(),
-                //             "hindi na \"initialize\" na pangalan",
-                //         )
-                //         .label(
-                //             Label::new(span)
-                //                 .message(format!("hindi na-\"initialize\" ang `{}`", name)),
-                //         );
-                //
-                //         return Err(Box::new(diagnostic));
-                //     }
-                // }
-                //
-                // expression.set_resolved_var(id);
-                //
-                Ok(())
-            }
             ExprKind::FieldAccess { object, field } => {
                 self.resolve_expression(object)?;
                 // let id = object.symbol_id();

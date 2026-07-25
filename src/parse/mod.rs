@@ -428,10 +428,6 @@ impl<'c> Parser<'c> {
                 Ok(Expr::new(span, ExprKind::Float(x)))
             }
             TokenKind::Identifier(s) => {
-                if self.peek_next().kind() == &TokenKind::LBrace {
-                    return self.parse_class_literal();
-                }
-
                 let s = s.clone();
                 let span = self.advance().span().clone();
                 Ok(Expr::new(span, ExprKind::Identifier(s)))
@@ -546,35 +542,6 @@ impl<'c> Parser<'c> {
             }
             _ => unreachable!(),
         }
-    }
-
-    fn parse_class_literal(&mut self) -> DiagResult<Expr> {
-        let name = self.consume_ident("umaasa ako ng pangalan dito")?.clone();
-        self.consume(TokenKind::LBrace, "umaasa ako ng `{` dito")?;
-
-        let mut inits = Vec::new();
-        while !self.at_end() && self.peek().kind() != &TokenKind::RBrace {
-            let field_name = self.consume_ident("umaasa ako ng pangalan dito")?.clone();
-
-            // TODO: Make this optional later on
-            self.consume(TokenKind::Equal, "umaasa ako ng `=` dito")?;
-
-            let field_expr = self.parse_expression(0)?;
-
-            if self.peek().kind() == &TokenKind::Comma {
-                self.advance();
-            }
-
-            inits.push((field_name, field_expr, 0))
-        }
-
-        let end = self
-            .consume(TokenKind::RBrace, "umaasa ako ng `}` dito")?
-            .span()
-            .end;
-        let span = name.span().start..end;
-
-        Ok(Expr::new(span, ExprKind::ClassInit { name, inits }))
     }
 
     fn parse_args(&mut self) -> DiagResult<Vec<Expr>> {

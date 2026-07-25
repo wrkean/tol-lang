@@ -75,10 +75,6 @@ pub enum ExprKind {
         left: Box<Expr>,
         args: Vec<Expr>,
     },
-    ClassInit {
-        name: Token,
-        inits: Vec<(Token, Expr, usize)>,
-    },
     FieldAccess {
         object: Box<Expr>,
         field: Token,
@@ -97,7 +93,6 @@ impl fmt::Display for Expr {
             }
             ExprKind::AnonymousFn { .. } => unimplemented!(),
             ExprKind::Call { .. } => unimplemented!(),
-            ExprKind::ClassInit { .. } => unimplemented!(),
             ExprKind::FieldAccess { .. } => unimplemented!(),
         }
     }
