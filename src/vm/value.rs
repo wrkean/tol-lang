@@ -4,7 +4,6 @@ pub enum Value {
     Float(f64),
     Bool(bool),
     Str(usize),
-    UninternedStr(Rc<str>),
     Function(Rc<Function>),
     Closure(Rc<Closure>),
     NativeFunction(Rc<NativeFunction>),
@@ -150,7 +149,6 @@ impl fmt::Display for Value {
             NativeFunction(func) => write!(f, "<native_paraan '{}'>", func.name),
             Str(s) => write!(f, "<string id={s}>"),
             ClassDef(def) => write!(f, "<klase_def '{}'>", def.name),
-            UninternedStr(s) => write!(f, "<uninterned_str '{}'>", s),
             ClassInstance(inst) => write!(f, "<klase_inst '{}'>", inst.borrow().def.name),
         }
     }

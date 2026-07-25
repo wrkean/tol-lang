@@ -32,12 +32,12 @@ pub struct VM<'gctx> {
     stack: Vec<Value>,
     frames: Vec<Frame>,
     globals: Vec<Value>,
-    ctx: &'gctx mut GlobalContext,
+    ctx: &'gctx GlobalContext,
     open_upvalues: Vec<Upvalue>,
 }
 
 impl<'gctx> VM<'gctx> {
-    pub fn new(chunk: Chunk, ctx: &'gctx mut GlobalContext, module_id: ModuleId) -> Self {
+    pub fn new(chunk: Chunk, ctx: &'gctx GlobalContext, module_id: ModuleId) -> Self {
         let closure = Rc::new(Closure {
             func: Rc::new(Function::new("__paraan_na_una__".to_string(), chunk, 0, 0)),
             upvalues: Vec::new(),
@@ -169,9 +169,10 @@ impl<'gctx> VM<'gctx> {
                     self.current_frame_mut().ip -= offset;
                 }
                 op if op == OpCode::GetField as u8 => {
-                    let Value::UninternedStr(field_name) = self.pop() else {
+                    let Value::Str(field_name_id) = self.pop() else {
                         panic!("Should be struct")
                     };
+                    let field_name = self.ctx.get_interned_string(field_name_id);
 
                     let Value::ClassInstance(instance) = self.pop() else {
                         self.runtime_error("hindi ito klase", self.current_ip());
@@ -196,9 +197,10 @@ impl<'gctx> VM<'gctx> {
                     }
                 }
                 op if op == OpCode::SetField as u8 => {
-                    let Value::UninternedStr(field_name) = self.pop() else {
+                    let Value::Str(field_name_id) = self.pop() else {
                         panic!("str")
                     };
+                    let field_name = self.ctx.get_interned_string(field_name_id);
 
                     let Value::ClassInstance(instance) = self.pop() else {
                         unreachable!()
@@ -260,16 +262,18 @@ impl<'gctx> VM<'gctx> {
                 }
                 op if op == OpCode::DefineClass as u8 => {
                     eprintln!("{}", self.stack.len());
-                    let Value::UninternedStr(class_name) = self.pop() else {
+                    let Value::Str(class_name_id) = self.pop() else {
                         unreachable!()
                     };
+                    let class_name = self.ctx.get_interned_string(class_name_id);
                     let methods_count = self.read_byte() as usize;
                     let mut methods: HashMap<String, Value> = (0..methods_count)
                         .map(|_| {
                             let method = self.pop();
-                            let Value::UninternedStr(name) = self.pop() else {
+                            let Value::Str(name_id) = self.pop() else {
                                 unreachable!()
                             };
+                            let name = self.ctx.get_interned_string(name_id);
 
                             (name.to_string(), method)
                         })
@@ -320,9 +324,8 @@ impl<'gctx> VM<'gctx> {
 
         match (lhs, rhs) {
             (Value::Str(id1), Value::Str(id2)) => {
-                let interner = self.ctx.string_interner();
-                let str1 = interner.get(id1);
-                let str2 = interner.get(id2);
+                let str1 = self.ctx.get_interned_string(id1);
+                let str2 = self.ctx.get_interned_string(id2);
                 let format = format!("{}{}", str1, str2);
 
                 let id = self.intern_string(&format);
@@ -514,7 +517,7 @@ impl<'gctx> VM<'gctx> {
     fn print_value(&self, value: &Value) {
         match value {
             Value::Str(id) => {
-                print!("{}", self.ctx.string_interner().get(*id));
+                print!("{}", self.ctx.get_interned_string(*id));
             }
 
             val => print!("{val}"),
@@ -523,10 +526,6 @@ impl<'gctx> VM<'gctx> {
 
     fn current_module(&self) -> &Module {
         self.ctx.module_by_id(self.current_frame().module_id)
-    }
-
-    fn current_module_mut(&mut self) -> &mut Module {
-        self.ctx.module_by_id_mut(self.current_frame().module_id)
     }
 
     fn current_ip(&self) -> usize {

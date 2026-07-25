@@ -256,10 +256,9 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             self.compile_method(method);
         }
 
-        self.chunk.add_and_emit_constant(
-            Value::UninternedStr(Rc::from(name.lexeme())),
-            name.span().clone(),
-        );
+        let name_id = self.ctx.intern(name.lexeme());
+        self.chunk
+            .add_and_emit_constant(Value::Str(name_id), name.span().clone());
         self.chunk
             .emit_opcode(OpCode::DefineClass, name.span().clone());
         self.chunk
@@ -273,10 +272,9 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         let StmtKind::Paraan { name, .. } = method.kind() else {
             unreachable!()
         };
-        self.chunk.add_and_emit_constant(
-            Value::UninternedStr(Rc::from(name.lexeme())),
-            name.span().clone(),
-        );
+        let name_id = self.ctx.intern(name.lexeme());
+        self.chunk
+            .add_and_emit_constant(Value::Str(name_id), name.span().clone());
         self.load_var(method.resolved_var(), name.span().clone()); // Pushes the method into the stack
     }
 
@@ -408,10 +406,9 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             ExprKind::FieldAccess { object, field } => {
                 self.compile_expression(object);
 
-                self.chunk.add_and_emit_constant(
-                    Value::UninternedStr(Rc::from(field.lexeme())),
-                    field.span().clone(),
-                );
+                let field_name_id = self.ctx.intern(field.lexeme());
+                self.chunk
+                    .add_and_emit_constant(Value::Str(field_name_id), field.span().clone());
                 self.chunk
                     .emit_opcode(OpCode::GetField, field.span().clone());
             }
@@ -428,10 +425,9 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         match left.kind() {
             ExprKind::FieldAccess { object, field } => {
                 self.compile_expression(object);
-                self.chunk.add_and_emit_constant(
-                    Value::UninternedStr(Rc::from(field.lexeme())),
-                    field.span().clone(),
-                );
+                let field_name_id = self.ctx.intern(field.lexeme());
+                self.chunk
+                    .add_and_emit_constant(Value::Str(field_name_id), field.span().clone());
                 self.chunk
                     .emit_opcode(OpCode::SetField, field.span().clone());
             }

@@ -67,7 +67,7 @@ pub struct GlobalContext {
     symbols: Vec<Symbol>,
 
     // Used to intern strings at compile time
-    string_interner: StringInterner,
+    string_interner: RefCell<StringInterner>,
 
     native_functions: HashMap<String, usize>,
 }
@@ -80,7 +80,7 @@ impl GlobalContext {
             modules: Vec::new(),
             module_registry: HashMap::new(),
             symbols: Vec::new(),
-            string_interner: StringInterner::new(),
+            string_interner: RefCell::new(StringInterner::new()),
             native_functions: HashMap::new(),
         }
     }
@@ -136,16 +136,12 @@ impl GlobalContext {
         &self.modules
     }
 
-    pub fn intern(&mut self, s: &str) -> usize {
-        self.string_interner.intern(s)
+    pub fn intern(&self, s: &str) -> usize {
+        self.string_interner.borrow_mut().intern(s)
     }
 
-    pub fn string_interner(&self) -> &StringInterner {
-        &self.string_interner
-    }
-
-    pub fn string_interner_mut(&mut self) -> &mut StringInterner {
-        &mut self.string_interner
+    pub fn get_interned_string(&self, id: usize) -> Rc<str> {
+        self.string_interner.borrow().get(id).clone()
     }
 
     pub fn new_native_fn(&mut self, name: String, id: usize) {
