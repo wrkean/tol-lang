@@ -267,6 +267,68 @@ impl<'gctx> VM<'gctx> {
                     let def = ClassDef::new(class_name.to_string(), methods);
                     self.push(Value::ClassDef(Rc::new(def)));
                 }
+                op if op == OpCode::Invoke as u8 => {
+                    let const_index = self.read_byte() as usize;
+                    let arg_count = self.read_byte() as usize;
+                    let Value::Str(method_name_id) = self.current_chunk().get_constant(const_index)
+                    else {
+                        unreachable!()
+                    };
+                    let method_name = self.ctx.get_interned_string(method_name_id);
+
+                    let receiver = self.peek(arg_count - 1);
+                    match receiver {
+                        Value::ClassInstance(inst) => {
+                            let inst = inst.clone();
+                            match inst.borrow().def.methods.get(method_name.as_ref()) {
+                                Some(method) => {
+                                    self.call_value(
+                                        method,
+                                        arg_count as u8,
+                                        self.current_frame().module_id,
+                                    );
+                                }
+                                None => {
+                                    self.runtime_error(
+                                        &format!(
+                                            "hindi \"method\" ng {} ang {}",
+                                            inst.borrow().def.name,
+                                            method_name
+                                        ),
+                                        self.current_ip(),
+                                    );
+                                    return;
+                                }
+                            }
+                        }
+                        Value::ClassDef(def) => {
+                            let def = def.clone();
+                            let Some(method) = def.methods.get(method_name.as_ref()) else {
+                                self.runtime_error(
+                                    &format!(
+                                        "hindi \"method\" ng {} ang {}",
+                                        def.name, method_name
+                                    ),
+                                    self.current_ip(),
+                                );
+                                return;
+                            };
+                            self.call_value(
+                                method,
+                                arg_count as u8 - 1,
+                                self.current_frame().module_id,
+                            );
+                            self.pop(); // Pops the class def
+                        }
+                        val => {
+                            dbg!(val);
+                            self.runtime_error(
+                                "hindi ito isang instance o klase",
+                                self.current_ip(),
+                            )
+                        }
+                    }
+                }
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }
         }
@@ -381,7 +443,7 @@ impl<'gctx> VM<'gctx> {
         };
         if func_arity != arity {
             let current_module = self.current_module();
-            self.runtime_error("hindi tugmang bilang ng parametro at argumento: `{}` na bilang ng parametro at `{}` na bilang ng argumento", self.current_ip());
+            self.runtime_error(&format!("hindi tugmang bilang ng parametro at argumento: ({func_arity}) na bilang ng parametro at ({arity}) na bilang ng argumento"), self.current_ip());
             return;
         }
 
@@ -392,6 +454,56 @@ impl<'gctx> VM<'gctx> {
             }
             Value::NativeFunction(func) => {
                 let base = callee_index + 1; // + 1 to skip the callee itself
+                let args = self.stack[base..arity as usize + base].to_vec();
+
+                match ((func.func)(self, &args)) {
+                    Ok(v) => self.push(v),
+                    Err(r) => {
+                        self.runtime_error(&r.message, self.current_ip());
+                    }
+                };
+            }
+            Value::ClassDef(c) => {
+                let new_instance = ClassInstance {
+                    def: Rc::clone(c),
+                    fields: HashMap::new(),
+                };
+                self.push(Value::ClassInstance(Rc::new(RefCell::new(new_instance))));
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn call_value(&mut self, value: &Value, arity: u8, module_id: ModuleId) {
+        let is_function = matches!(
+            &value,
+            Value::NativeFunction(_) | Value::Closure(_) | Value::ClassDef(_)
+        );
+        if !is_function {
+            let current_module = self.current_module();
+            self.runtime_error("hindi paraan ang tinawag dito", self.current_ip());
+            return;
+        }
+        let func_arity = match value {
+            Value::Closure(f) => f.func.arity,
+            Value::NativeFunction(f) => f.arity as u8,
+            Value::ClassDef(c) => 0,
+            _ => unreachable!(),
+        };
+        if func_arity != arity {
+            let current_module = self.current_module();
+            self.runtime_error(&format!("hindi tugmang bilang ng parametro at argumento: ({func_arity}) na bilang ng parametro at ({arity}) na bilang ng argumento"), self.current_ip());
+            return;
+        }
+
+        match value {
+            Value::Closure(cl) => {
+                let locals_base = self.stack.len() - arity as usize - 1;
+                cl.func.chunk.disassemble(&cl.func.name);
+                self.new_frame(Rc::clone(cl), locals_base, cl.func.frame_size, module_id);
+            }
+            Value::NativeFunction(func) => {
+                let base = self.stack.len() - arity as usize;
                 let args = self.stack[base..arity as usize + base].to_vec();
 
                 match ((func.func)(self, &args)) {

@@ -1,7 +1,10 @@
 klase Tao:
-    paraan wala():
-        print 0
+    paraan bago(pangalan, edad):
+        ang tao = Tao()
+        tao.pangalan = pangalan
+        tao.edad = edad
 
-ang tao = Tao()
-tao.pangalan = "Keanne"
+        ibalik tao
+
+ang tao = Tao.bago("Keanne", 20)
 print tao.pangalan

@@ -357,15 +357,33 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 }
             }
             ExprKind::Call { left, args } => {
-                self.compile_expression(left);
+                if let ExprKind::FieldAccess { object, field } = left.kind() {
+                    // Compile the receiver
+                    self.compile_expression(object);
 
-                for arg in args {
-                    self.compile_expression(arg);
+                    for arg in args {
+                        self.compile_expression(arg);
+                    }
+
+                    let field_name_id = self.ctx.intern(field.lexeme());
+                    let name_span = field.span().clone();
+                    let const_index = self.chunk.add_constant(Value::Str(field_name_id));
+
+                    self.chunk.emit_opcode(OpCode::Invoke, span.clone());
+                    self.chunk.emit_byte(const_index, name_span);
+                    self.chunk
+                        .emit_byte(args.len() as u8 + 1 /* includes the receiver */, span)
+                } else {
+                    self.compile_expression(left);
+
+                    for arg in args {
+                        self.compile_expression(arg);
+                    }
+
+                    let line = self.current_module().line_of(left.span().start);
+                    self.chunk.emit_opcode(OpCode::Call, span.clone());
+                    self.chunk.emit_byte(args.len() as u8, span);
                 }
-
-                let line = self.current_module().line_of(left.span().start);
-                self.chunk.emit_opcode(OpCode::Call, span.clone());
-                self.chunk.emit_byte(args.len() as u8, span);
             }
             ExprKind::AnonymousFn { params, body } => {
                 let symbol = self.ctx.symbol_by_id(expression.resolved_var().symbol_id());

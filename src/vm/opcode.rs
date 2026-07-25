@@ -17,6 +17,7 @@ pub enum OpCode {
     DefineClass,
     LoadUpvalue,
     StoreUpvalue,
+    Invoke,
 
     Pop,
     Halt,
