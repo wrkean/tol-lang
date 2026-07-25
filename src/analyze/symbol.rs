@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::{
     analyze::UpvalueDesc,
@@ -83,7 +83,7 @@ pub enum SymbolKind {
     },
     NativeFunction,
     Klase {
-        fields: HashMap<String, (TolType, usize)>,
+        methods: HashSet<String>,
     },
 }
 

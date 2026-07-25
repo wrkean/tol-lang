@@ -80,7 +80,7 @@ pub enum StmtKind {
     },
     Klase {
         name: Token,
-        fields: Vec<Field>,
+        methods: Vec<Stmt>,
     },
 
     // Expression statement

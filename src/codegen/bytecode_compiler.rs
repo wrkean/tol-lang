@@ -68,7 +68,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             StmtKind::Biyakin => self.compile_biyakin(statement),
             StmtKind::Ituloy => self.compile_ituloy(statement),
             StmtKind::Ibalik { .. } => self.compile_ibalik(statement),
-            StmtKind::Klase { name, fields } => self.compile_klase(statement),
+            StmtKind::Klase { .. } => self.compile_klase(statement),
             StmtKind::Expr { .. } => self.compile_expression_statement(statement),
             StmtKind::Block { statements } => {
                 for statement in statements {

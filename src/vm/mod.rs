@@ -370,7 +370,7 @@ impl<'gctx> VM<'gctx> {
 
         let is_function = matches!(
             self.stack[callee_index],
-            Value::NativeFunction(_) | Value::Closure(_)
+            Value::NativeFunction(_) | Value::Closure(_) | Value::ClassDef(_)
         );
         if !is_function {
             let current_module = self.current_module();
@@ -380,6 +380,7 @@ impl<'gctx> VM<'gctx> {
         let func_arity = match &self.stack[callee_index] {
             Value::Closure(f) => f.func.arity,
             Value::NativeFunction(f) => f.arity as u8,
+            Value::ClassDef(c) => 0,
             _ => unreachable!(),
         };
         if func_arity != arity {
@@ -403,6 +404,14 @@ impl<'gctx> VM<'gctx> {
                         self.runtime_error(&r.message, self.current_ip());
                     }
                 };
+            }
+            Value::ClassDef(c) => {
+                let new_instance = ClassInstance {
+                    def: Rc::clone(c),
+                    fields: HashMap::new(),
+                };
+                self.pop(); // Pop the class definition
+                self.push(Value::ClassInstance(Rc::new(RefCell::new(new_instance))));
             }
             _ => unreachable!(),
         }

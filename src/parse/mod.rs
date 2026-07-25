@@ -251,13 +251,21 @@ impl<'c> Parser<'c> {
             .consume_ident("umaasa ng pangalan ng klase dito")?
             .clone();
         self.consume(TokenKind::Colon, "umaasa ng `:` dito")?;
-        let fields = self.parse_fields()?;
-        let end = match fields.last() {
-            Some(p) => p.span.end,
-            None => self.peek().span().end,
-        };
+        self.consume(TokenKind::Indent, "umaasa ng \"indent\" dito")?;
+        let mut methods = Vec::new();
+        while !self.at_end() && self.peek().kind() != &TokenKind::Dedent {
+            match self.parse_paraan() {
+                Ok(s) => methods.push(s),
+                Err(diag) => self.current_module_mut().add_diagnostic(*diag),
+            }
+        }
 
-        Ok(Stmt::new(start..end, StmtKind::Klase { name, fields }))
+        let end = self
+            .consume(TokenKind::Dedent, "umaasa ng \"dedent\" dito")?
+            .span()
+            .end;
+
+        Ok(Stmt::new(start..end, StmtKind::Klase { name, methods }))
     }
 
     fn parse_fields(&mut self) -> DiagResult<Vec<Field>> {

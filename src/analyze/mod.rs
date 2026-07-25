@@ -369,48 +369,41 @@ impl<'gctx> Analyzer<'gctx> {
     }
 
     fn resolve_klase(&mut self, klase: &mut Stmt) -> DiagResult<()> {
-        let StmtKind::Klase { name, fields } = klase.kind_mut() else {
+        let StmtKind::Klase { name, methods } = klase.kind_mut() else {
             unreachable!()
         };
-
-        let TokenKind::Identifier(klase_name) = name.kind() else {
-            unreachable!()
-        };
-        let mut seen_fields = HashSet::new();
-        for field in fields.iter_mut() {
-            let TokenKind::Identifier(field_name) = field.name.kind() else {
-                unreachable!()
-            };
-            match seen_fields.get(field_name) {
-                Some(f) => {
-                    let current_module = self.current_module();
-                    let diagnostic = TolDiagnostic::err(
-                        current_module.source_arc(),
-                        current_module.filename(),
-                        format!("duplikadong pangalan sa `{}`", klase_name),
-                    )
-                    .label(Label::new(field.span.clone()).message("duplikado ito"));
-                    return Err(Box::new(diagnostic));
-                }
-                None => seen_fields.insert(field_name),
-            };
-        }
 
         let storage = self.assign_storage();
-        let fields_map = fields
+        let klase_name = name.lexeme();
+        let methods_set = methods
             .iter()
-            .enumerate()
-            .map(|(id, param)| (param.name.lexeme().to_string(), (param.ty.clone(), id)))
-            .collect();
+            .map(|s| {
+                let StmtKind::Paraan { name, .. } = s.kind() else {
+                    unreachable!()
+                };
+
+                name.lexeme().to_string()
+            })
+            .collect::<HashSet<_>>();
         let symbol = Symbol::new(
-            klase_name.clone(),
+            klase_name.to_string(),
             name.span().clone(),
             storage,
-            SymbolKind::Klase { fields: fields_map },
+            SymbolKind::Klase {
+                methods: methods_set,
+            },
         );
         let resolved_var = self.declare_symbol(symbol)?;
-        klase.set_resolved_var(resolved_var);
+        self.enter_scope(false);
 
+        for method in methods.iter_mut() {
+            if let Err(diag) = self.resolve_paraan(method) {
+                self.current_module_mut().add_diagnostic(*diag);
+            }
+        }
+
+        self.exit_scope();
+        klase.set_resolved_var(resolved_var);
         Ok(())
     }
 
@@ -443,8 +436,6 @@ impl<'gctx> Analyzer<'gctx> {
             ExprKind::Binary { left, right, op } => {
                 if let Err(diag) = self.resolve_expression(left) {
                     self.current_module_mut().add_diagnostic(*diag);
-                    // dbg!(&self.scopes);
-                    println!("it errored: {left}")
                 }
 
                 if op.kind() == &TokenKind::Equal {
