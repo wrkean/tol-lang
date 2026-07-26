@@ -7,7 +7,7 @@ use crate::{
     vm::{
         chunk::Chunk,
         class::{ClassDef, ClassInstance},
-        function::{Closure, Function, Upvalue, UpvalueState},
+        function::{BoundMethod, Closure, Function, Upvalue, UpvalueState},
         native_functions::NativeFunction,
         opcode::OpCode,
         value::{Value, ValueError},
@@ -172,28 +172,47 @@ impl<'gctx> VM<'gctx> {
                     let Value::Str(field_name_id) = self.pop() else {
                         panic!("Should be struct")
                     };
+                    let base = self.pop();
                     let field_name = self.ctx.get_interned_string(field_name_id);
 
-                    let Value::ClassInstance(instance) = self.pop() else {
-                        self.runtime_error("hindi ito klase", self.current_ip());
-                        return;
-                    };
-
-                    let inst = instance.borrow();
-                    match inst.fields.get(field_name.as_ref()) {
-                        Some(v) => self.push(v.clone()),
-                        None => match inst.def.methods.get(field_name.as_ref()) {
-                            Some(v) => self.push(v.clone()),
-                            None => {
+                    match &base {
+                        Value::ClassInstance(instance) => {
+                            if let Some(field) = instance.borrow().fields.get(field_name.as_ref()) {
+                                self.push(field.clone());
+                            } else if let Some(method) =
+                                instance.borrow().def.methods.get(field_name.as_ref())
+                            {
+                                let Value::Closure(closure) = method else {
+                                    unreachable!()
+                                };
+                                let bound = BoundMethod {
+                                    receiver: base.clone(),
+                                    method: closure.clone(),
+                                };
+                                self.push(Value::BoundMethod(Rc::new(bound)));
+                            } else {
                                 self.runtime_error(
-                                    &format!(
-                                        "hindi miyembro ng `{}` ang `{}`",
-                                        inst.def.name, field_name
-                                    ),
+                                    &format!("hindi mahanap na miyembro: `{}`", field_name),
                                     self.current_ip(),
                                 );
+                                return;
                             }
+                        }
+                        Value::ClassDef(def) => match def.methods.get(field_name.as_ref()) {
+                            Some(method) => {
+                                self.push(method.clone());
+                            }
+                            None => self.runtime_error(
+                                &format!(
+                                    "walang \"method\" na `{}` ang `{}`",
+                                    field_name, def.name
+                                ),
+                                self.current_ip(),
+                            ),
                         },
+                        // TODO: Support all values soon, we need to support calls like
+                        // `1.maging_string()`
+                        val => todo!("hindi pa naka support ang method na ang base ay {}", val),
                     }
                 }
                 op if op == OpCode::SetField as u8 => {
@@ -433,7 +452,10 @@ impl<'gctx> VM<'gctx> {
 
         let is_function = matches!(
             self.stack[callee_index],
-            Value::NativeFunction(_) | Value::Closure(_) | Value::ClassDef(_)
+            Value::NativeFunction(_)
+                | Value::Closure(_)
+                | Value::ClassDef(_)
+                | Value::BoundMethod(_)
         );
         if !is_function {
             let current_module = self.current_module();
@@ -444,6 +466,7 @@ impl<'gctx> VM<'gctx> {
             Value::Closure(f) => f.func.arity,
             Value::NativeFunction(f) => f.arity as u8,
             Value::ClassDef(c) => 0,
+            Value::BoundMethod(method) => method.method.func.arity - 1,
             _ => unreachable!(),
         };
         if func_arity != arity {
@@ -475,6 +498,20 @@ impl<'gctx> VM<'gctx> {
                 };
                 self.push(Value::ClassInstance(Rc::new(RefCell::new(new_instance))));
             }
+            Value::BoundMethod(bound) => {
+                let bound = Rc::clone(bound);
+                // Put receiver at Slot 1 (1st argument position for `ako`)
+                self.stack.insert(callee_index + 1, bound.receiver.clone());
+                // Put method closure at Slot 0 (the callee position)
+                self.stack[callee_index] = Value::Closure(Rc::clone(&bound.method));
+
+                self.new_frame(
+                    Rc::clone(&bound.method),
+                    callee_index,
+                    bound.method.func.frame_size,
+                    module_id,
+                );
+            }
             _ => unreachable!(),
         }
     }
@@ -482,7 +519,10 @@ impl<'gctx> VM<'gctx> {
     fn call_value(&mut self, value: &Value, arity: u8, module_id: ModuleId) {
         let is_function = matches!(
             &value,
-            Value::NativeFunction(_) | Value::Closure(_) | Value::ClassDef(_)
+            Value::NativeFunction(_)
+                | Value::Closure(_)
+                | Value::ClassDef(_)
+                | Value::BoundMethod(_)
         );
         if !is_function {
             let current_module = self.current_module();
@@ -493,6 +533,7 @@ impl<'gctx> VM<'gctx> {
             Value::Closure(f) => f.func.arity,
             Value::NativeFunction(f) => f.arity as u8,
             Value::ClassDef(c) => 0,
+            Value::BoundMethod(method) => method.method.func.arity - 1,
             _ => unreachable!(),
         };
         if func_arity != arity {
@@ -524,6 +565,12 @@ impl<'gctx> VM<'gctx> {
                     fields: HashMap::new(),
                 };
                 self.push(Value::ClassInstance(Rc::new(RefCell::new(new_instance))));
+            }
+            Value::BoundMethod(bound) => {
+                let insert_at = self.stack.len() - arity as usize;
+                self.stack.insert(insert_at, bound.receiver.clone());
+                let closure_val = Value::Closure(Rc::clone(&bound.method));
+                self.call_value(&closure_val, arity + 1, module_id);
             }
             _ => unreachable!(),
         }

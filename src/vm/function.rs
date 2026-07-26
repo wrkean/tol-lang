@@ -5,6 +5,12 @@ use std::{
 
 use crate::vm::{chunk::Chunk, value::Value};
 
+#[derive(Debug, Clone)]
+pub struct BoundMethod {
+    pub receiver: Value,
+    pub method: Rc<Closure>,
+}
+
 #[derive(Debug)]
 pub enum UpvalueState {
     Open(usize),  // Points to the stack

@@ -15,3 +15,4 @@ klase Tao:
 ang tao = Tao.bago("Keanne", 20)
 print tao.pangalan
 tao.say()
+ang isa = tao.say

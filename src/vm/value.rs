@@ -9,6 +9,7 @@ pub enum Value {
     NativeFunction(Rc<NativeFunction>),
     ClassDef(Rc<ClassDef>),
     ClassInstance(Rc<RefCell<ClassInstance>>),
+    BoundMethod(Rc<BoundMethod>),
     Null,
 }
 
@@ -20,7 +21,7 @@ use crate::{
     tol::diagnostic::runtime::RuntimeError,
     vm::{
         class::{ClassDef, ClassInstance},
-        function::{Closure, Function},
+        function::{BoundMethod, Closure, Function},
         native_functions::NativeFunction,
     },
 };
@@ -150,6 +151,7 @@ impl fmt::Display for Value {
             Str(s) => write!(f, "<string id={s}>"),
             ClassDef(def) => write!(f, "<klase_def '{}'>", def.name),
             ClassInstance(inst) => write!(f, "<klase_inst '{}'>", inst.borrow().def.name),
+            BoundMethod(method) => write!(f, "<method '{}'>", method.method.func.name),
         }
     }
 }
