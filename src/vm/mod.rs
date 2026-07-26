@@ -282,6 +282,9 @@ impl<'gctx> VM<'gctx> {
                             let inst = inst.clone();
                             match inst.borrow().def.methods.get(method_name.as_ref()) {
                                 Some(method) => {
+                                    // Insert at the beginning of the locals the callee itself
+                                    let callee_idx = self.stack.len() - arg_count - 1;
+                                    self.stack[callee_idx] = method.clone();
                                     self.call_value(
                                         method,
                                         arg_count as u8,
@@ -313,12 +316,14 @@ impl<'gctx> VM<'gctx> {
                                 );
                                 return;
                             };
+                            // Replace class def with the callee
+                            let callee_idx = self.stack.len() - arg_count;
+                            self.stack[callee_idx] = method.clone();
                             self.call_value(
                                 method,
                                 arg_count as u8 - 1,
                                 self.current_frame().module_id,
                             );
-                            self.pop(); // Pops the class def
                         }
                         val => {
                             dbg!(val);

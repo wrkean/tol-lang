@@ -268,13 +268,13 @@ impl<'gctx> BytecodeCompiler<'gctx> {
     }
 
     fn compile_method(&mut self, method: &Stmt) {
-        self.compile_paraan(method);
         let StmtKind::Paraan { name, .. } = method.kind() else {
             unreachable!()
         };
         let name_id = self.ctx.intern(name.lexeme());
         self.chunk
             .add_and_emit_constant(Value::Str(name_id), name.span().clone());
+        self.compile_paraan(method);
         self.load_var(method.resolved_var(), name.span().clone()); // Pushes the method into the stack
     }
 
@@ -358,6 +358,9 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             }
             ExprKind::Call { left, args } => {
                 if let ExprKind::FieldAccess { object, field } = left.kind() {
+                    // Will be replaced later by the instance or the class def
+                    self.chunk.emit_opcode(OpCode::Null, span.clone());
+
                     // Compile the receiver
                     self.compile_expression(object);
 
@@ -423,6 +426,8 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             }
             ExprKind::FieldAccess { object, field } => {
                 self.compile_expression(object);
+                println!("{}", object);
+                dbg!(object.resolved_var(), field.lexeme());
 
                 let field_name_id = self.ctx.intern(field.lexeme());
                 self.chunk

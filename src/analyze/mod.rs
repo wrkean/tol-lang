@@ -19,7 +19,7 @@ use crate::{
 
 pub mod symbol;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum ResolvedVar {
     Local(SymbolId),
     Global(SymbolId),
@@ -395,16 +395,88 @@ impl<'gctx> Analyzer<'gctx> {
         );
         let resolved_var = self.declare_symbol(symbol)?;
 
-        self.enter_scope(false);
-
         for method in methods.iter_mut() {
-            if let Err(diag) = self.resolve_paraan(method) {
+            if let Err(diag) = self.resolve_method(method) {
                 self.current_module_mut().add_diagnostic(*diag);
             }
         }
 
-        self.exit_scope();
         klase.set_resolved_var(resolved_var);
+        Ok(())
+    }
+
+    fn resolve_method(&mut self, method: &mut Stmt) -> DiagResult<()> {
+        let StmtKind::Paraan {
+            name,
+            params,
+            ret_ty,
+            block,
+        } = method.kind_mut()
+        else {
+            unreachable!()
+        };
+
+        let storage = self.assign_storage();
+        let TokenKind::Identifier(symbol_name) = name.kind() else {
+            unreachable!()
+        };
+        let symbol = Symbol::new(
+            symbol_name.clone(),
+            name.span().clone(),
+            storage,
+            SymbolKind::Function {
+                param_types: params.spanned_types(),
+                ret_ty: ret_ty.clone(),
+                frame_size: 0,
+                upvalues: Vec::new(),
+            },
+        );
+
+        // 1. Add symbol to GlobalContext WITHOUT inserting into current_scope map
+        let id = self.ctx.add_symbol(symbol);
+        let resolved_var = if self.is_in_global_scope() {
+            ResolvedVar::Global(id)
+        } else {
+            ResolvedVar::Local(id)
+        };
+
+        // 2. Resolve parameters & body inside the method function context
+        self.enter_function();
+        self.enter_scope(true);
+
+        for param in params.params.iter() {
+            let TokenKind::Identifier(param_name) = param.name.kind() else {
+                unreachable!()
+            };
+            let symbol = Symbol::new(
+                param_name.clone(),
+                param.span.clone(),
+                self.assign_storage(),
+                SymbolKind::Name {
+                    is_mutable: param.is_mutable,
+                    ty: param.ty.clone(),
+                },
+            );
+
+            if let Err(diag) = self.declare_symbol(symbol) {
+                self.current_module_mut().add_diagnostic(*diag);
+            }
+        }
+
+        self.resolve_statement(block)?;
+
+        self.exit_scope();
+        let (frame_size, upvalues) = self.exit_function();
+
+        let symbol = self.ctx.symbol_by_id_mut(id);
+        symbol.set_frame_size(frame_size);
+        let SymbolKind::Function { upvalues: uvs, .. } = symbol.kind_mut() else {
+            unreachable!()
+        };
+        *uvs = upvalues;
+
+        method.set_resolved_var(resolved_var);
+
         Ok(())
     }
 

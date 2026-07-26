@@ -6,5 +6,12 @@ klase Tao:
 
         ibalik tao
 
+    paraan say(ako):
+        print "Hello, ako si " ++ ako.pangalan
+
+    paraan isa_pa():
+        print "isa pa!"
+
 ang tao = Tao.bago("Keanne", 20)
 print tao.pangalan
+tao.say()
