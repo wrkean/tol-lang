@@ -537,8 +537,9 @@ impl<'gctx> VM<'gctx> {
 
         // For 1 argument, the integer itself
         match method_name.as_ref() {
-            "maging_string" => builtin::numero::maging_string(self, &args),
+            "bilang_string" => builtin::numero::bilang_string(self, &args),
             "abs" => builtin::numero::abs(self, &args),
+            "bilang_ascii" => builtin::numero::bilang_ascii(self, &args),
             _ => Err(Box::new(self.new_runtime_error(
                 &format!("walang \"method\" na `{}` ang numero na ito", method_name),
                 self.current_ip(),
