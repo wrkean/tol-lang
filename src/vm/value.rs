@@ -10,6 +10,7 @@ pub enum Value {
     ClassDef(Rc<ClassDef>),
     ClassInstance(Rc<RefCell<ClassInstance>>),
     BoundMethod(Rc<BoundMethod>),
+    List(Rc<List>),
     Null,
 }
 
@@ -22,6 +23,7 @@ use crate::{
     vm::{
         class::{ClassDef, ClassInstance},
         function::{BoundMethod, Closure, Function},
+        list::List,
         native_functions::NativeFunction,
     },
 };
@@ -152,6 +154,17 @@ impl fmt::Display for Value {
             ClassDef(def) => write!(f, "<klase_def '{}'>", def.name),
             ClassInstance(inst) => write!(f, "<klase_inst '{}'>", inst.borrow().def.name),
             BoundMethod(method) => write!(f, "<method '{}'>", method.method.func.name),
+            List(list) => {
+                write!(
+                    f,
+                    "[{}]",
+                    list.elements
+                        .iter()
+                        .map(|val| val.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
         }
     }
 }

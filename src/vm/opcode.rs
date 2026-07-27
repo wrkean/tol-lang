@@ -18,6 +18,7 @@ pub enum OpCode {
     LoadUpvalue,
     StoreUpvalue,
     Invoke,
+    List,
 
     Pop,
     Halt,

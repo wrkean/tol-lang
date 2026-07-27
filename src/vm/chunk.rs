@@ -35,6 +35,12 @@ impl Chunk {
         self.write(byte, span);
     }
 
+    /// Emits and stores an unsigned 16-bit integer into the bytecode list
+    pub fn emit_u16(&mut self, u16_: u16, span: Span) {
+        self.write((u16_ >> 8) as u8, span.clone());
+        self.write((u16_ & 0xFF) as u8, span);
+    }
+
     pub fn add_constant(&mut self, constant: Value) -> u8 {
         self.constants.push(constant);
 

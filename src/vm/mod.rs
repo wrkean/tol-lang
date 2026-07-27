@@ -8,6 +8,7 @@ use crate::{
         chunk::Chunk,
         class::{ClassDef, ClassInstance},
         function::{BoundMethod, Closure, Function, Upvalue, UpvalueState},
+        list::List,
         native_functions::NativeFunction,
         opcode::OpCode,
         value::{Value, ValueError},
@@ -17,6 +18,7 @@ use crate::{
 pub mod chunk;
 pub mod class;
 pub mod function;
+pub mod list;
 pub mod native_functions;
 pub mod opcode;
 pub mod value;
@@ -352,6 +354,17 @@ impl<'gctx> VM<'gctx> {
                             )
                         }
                     }
+                }
+                op if op == OpCode::List as u8 => {
+                    let element_count = self.read_u16();
+
+                    let mut elements = Vec::new();
+                    for _ in (0..element_count) {
+                        elements.push(self.pop());
+                    }
+
+                    let list = Value::List(Rc::new(List { elements }));
+                    self.push(list);
                 }
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }

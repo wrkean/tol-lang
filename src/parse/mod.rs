@@ -475,6 +475,17 @@ impl<'c> Parser<'c> {
                     },
                 ))
             }
+            TokenKind::LSquare => {
+                let start = self.peek().span().start;
+                self.consume(TokenKind::LSquare, "umaasa ako ng `[` dito")?;
+                let elements = self.parse_many_expressions(TokenKind::RSquare)?;
+                let span = start..(match elements.last() {
+                    Some(last) => last.span().end,
+                    None => self.peek().span().end,
+                });
+
+                Ok(Expr::new(span, ExprKind::List { elements }))
+            }
             _ => {
                 let current_module = self.current_module();
                 let span = self.peek().span().clone();
@@ -522,7 +533,7 @@ impl<'c> Parser<'c> {
                 ))
             }
             TokenKind::LParen => {
-                let args = self.parse_args()?;
+                let args = self.parse_many_expressions(TokenKind::RParen)?;
                 let end = self.consume(TokenKind::RParen, ")")?.span().end;
                 let span = left.span().start..end;
 
@@ -552,17 +563,20 @@ impl<'c> Parser<'c> {
         }
     }
 
-    fn parse_args(&mut self) -> DiagResult<Vec<Expr>> {
-        let mut args = Vec::new();
-        while !self.at_end() && self.peek().kind() != &TokenKind::RParen {
-            args.push(self.parse_expression(0)?);
+    // Parse multiple expressions until a given delimiter
+    fn parse_many_expressions(&mut self, end_delim: TokenKind) -> DiagResult<Vec<Expr>> {
+        let mut exprs = Vec::new();
+        while !self.at_end() && self.peek().kind() != &end_delim {
+            exprs.push(self.parse_expression(0)?);
 
             if self.peek().kind() == &TokenKind::Comma {
                 self.advance();
             }
         }
 
-        Ok(args)
+        self.consume(end_delim, "hindi ito naisarado ng tama");
+
+        Ok(exprs)
     }
 
     fn synchonize(&mut self) {

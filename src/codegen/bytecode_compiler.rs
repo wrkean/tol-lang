@@ -435,6 +435,14 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 self.chunk
                     .emit_opcode(OpCode::GetField, field.span().clone());
             }
+            ExprKind::List { elements } => {
+                for element in elements.iter().rev() {
+                    self.compile_expression(element);
+                }
+
+                self.chunk.emit_opcode(OpCode::List, span.clone());
+                self.chunk.emit_u16(elements.len() as u16, span);
+            }
         }
     }
 

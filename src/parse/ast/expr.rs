@@ -79,6 +79,9 @@ pub enum ExprKind {
         object: Box<Expr>,
         field: Token,
     },
+    List {
+        elements: Vec<Expr>,
+    },
 }
 
 impl fmt::Display for Expr {
@@ -94,6 +97,7 @@ impl fmt::Display for Expr {
             ExprKind::AnonymousFn { .. } => unimplemented!(),
             ExprKind::Call { .. } => unimplemented!(),
             ExprKind::FieldAccess { .. } => unimplemented!(),
+            ExprKind::List { .. } => unimplemented!(),
         }
     }
 }
