@@ -448,13 +448,27 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 self.chunk
                     .emit_opcode(OpCode::GetField, field.span().clone());
             }
-            ExprKind::List { elements } => {
+            ExprKind::List { elements, init } => {
                 for element in elements.iter().rev() {
                     self.compile_expression(element);
                 }
 
-                self.chunk.emit_opcode(OpCode::List, span.clone());
-                self.chunk.emit_u16(elements.len() as u16, span);
+                match init {
+                    Some(list_init) => {
+                        let TokenKind::IntLiteral(capacity) = list_init.init_capacity.kind() else {
+                            unreachable!()
+                        };
+
+                        self.chunk
+                            .add_and_emit_constant(Value::Int(*capacity), span.clone());
+                        self.compile_expression(&list_init.expr);
+                        self.chunk.emit_opcode(OpCode::ListWithCapacity, span);
+                    }
+                    None => {
+                        self.chunk.emit_opcode(OpCode::List, span.clone());
+                        self.chunk.emit_u16(elements.len() as u16, span);
+                    }
+                }
             }
             ExprKind::IndexAccess { left, index } => {
                 self.compile_expression(left);

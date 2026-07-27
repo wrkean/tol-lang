@@ -108,6 +108,7 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
             ';' => self.add_token(TokenKind::SemiColon, self.current_span()),
             '|' => self.add_token(TokenKind::Pipe, self.current_span()),
             '.' => self.add_token(TokenKind::Dot, self.current_span()),
+            '@' => self.add_token(TokenKind::At, self.current_span()),
             '!' => {
                 if self.match_ch('=') {
                     self.add_token(TokenKind::NotEq, self.current_span())

@@ -1,0 +1,18 @@
+klase BrainfuckInterpreter:
+    paraan bago(code):
+        ang interpreter = BrainfuckInterpreter()
+        interpreter.ip = 0
+        interpreter.tape = []
+        interpreter.code = code
+
+        ibalik interpreter
+
+    paraan takbuhinCmd(ako, cmd):
+        kung cmd == ">":
+            ako.ip += 1
+        kung cmd == "<":
+            ako.ip -= 1
+        kung cmd == 
+
+ang hello_world = ">++++++++[<+++++++++>-]<.>++++[<+++++++>-]<+.+++++++..+++.>>++++++[<+++++++>-]<++.------------.>++++++[<+++++++++>-]<+.<.+++.------.--------.>>>++++[<++++++++>-]<+."
+ang interpreter = BrainfuckInterpreter.bago(hello_world)

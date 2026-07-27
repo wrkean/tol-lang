@@ -83,6 +83,7 @@ pub enum TokenKind {
     ThinArrow,
     ThickArrow,
     Pipe,
+    At,
 
     Indent,
     Dedent,

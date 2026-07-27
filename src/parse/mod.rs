@@ -4,7 +4,7 @@ use crate::{
     global_ctx::GlobalContext,
     module::{Module, ModuleId},
     parse::ast::{
-        expr::{Expr, ExprKind},
+        expr::{Expr, ExprKind, ListInit},
         stmt::{Branch, Field, Param, ParamList, Stmt, StmtKind},
     },
     prelude::DiagResult,
@@ -502,6 +502,34 @@ impl<'c> Parser<'c> {
                     },
                 ))
             }
+            TokenKind::At => {
+                let start = self.advance().span().start;
+                self.consume(TokenKind::LSquare, "umaasa ako ng `[` dito")?;
+                let init_expression = self.parse_expression(0)?;
+                self.consume(
+                    TokenKind::SemiColon,
+                    "umaasa ako ng `;` para ihiwalay ang expresyon sa kaliwa at kapasidad sa kanan",
+                )?;
+                let init_capacity = self
+                    .consume_int("umaasa ako ng pangunahing kapasidad na numero")?
+                    .clone();
+                let end = self
+                    .consume(TokenKind::RSquare, "umaasa ako ng `]` dito")?
+                    .span()
+                    .end;
+                let span = start..end;
+
+                Ok(Expr::new(
+                    span,
+                    ExprKind::List {
+                        elements: Vec::new(),
+                        init: Some(ListInit {
+                            expr: Box::new(init_expression),
+                            init_capacity,
+                        }),
+                    },
+                ))
+            }
             TokenKind::LSquare => {
                 let start = self.peek().span().start;
                 self.consume(TokenKind::LSquare, "umaasa ako ng `[` dito")?;
@@ -512,7 +540,13 @@ impl<'c> Parser<'c> {
                     .end;
                 let span = start..end;
 
-                Ok(Expr::new(span, ExprKind::List { elements }))
+                Ok(Expr::new(
+                    span,
+                    ExprKind::List {
+                        elements,
+                        init: None,
+                    },
+                ))
             }
             _ => {
                 let current_module = self.current_module();

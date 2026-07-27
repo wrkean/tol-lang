@@ -398,6 +398,24 @@ impl<'gctx> VM<'gctx> {
                     let list = Value::List(Rc::new(RefCell::new(List { elements })));
                     self.push(list);
                 }
+                op if op == OpCode::ListWithCapacity as u8 => {
+                    let init_value = self.pop();
+                    let Value::Int(capacity) = self.pop() else {
+                        unreachable!()
+                    };
+
+                    if capacity < 1 {
+                        self.runtime_error(
+                            "dapat ang kapasidad ay mas mahigit pa sa 0",
+                            self.current_ip(),
+                        );
+                        return;
+                    }
+
+                    let mut elements = vec![init_value; capacity as usize];
+                    let list = Value::List(Rc::new(RefCell::new(List { elements })));
+                    self.push(list);
+                }
                 op if op == OpCode::IndexGet as u8 => {
                     let target = self.pop();
                     let constant_index = self.read_byte() as usize;

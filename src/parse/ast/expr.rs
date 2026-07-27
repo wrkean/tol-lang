@@ -81,11 +81,17 @@ pub enum ExprKind {
     },
     List {
         elements: Vec<Expr>,
+        init: Option<ListInit>,
     },
     IndexAccess {
         left: Box<Expr>,
         index: Token,
     },
+}
+
+pub struct ListInit {
+    pub expr: Box<Expr>,
+    pub init_capacity: Token,
 }
 
 impl fmt::Display for Expr {

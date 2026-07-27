@@ -618,7 +618,7 @@ impl<'gctx> Analyzer<'gctx> {
 
                 Ok(())
             }
-            ExprKind::List { elements } => {
+            ExprKind::List { elements, .. } => {
                 for element in elements.iter_mut() {
                     if let Err(diag) = self.resolve_expression(element) {
                         self.current_module_mut().add_diagnostic(*diag);
