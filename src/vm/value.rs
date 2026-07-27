@@ -71,6 +71,19 @@ impl Value {
         }
     }
 
+    pub fn modulo(self, right: Self) -> Result<Self, ValueError> {
+        match (self, right) {
+            (_, Float(0.0)) | (_, Int(0)) => {
+                Err(ValueError::new("bawal mag-\"modulo\" gamit ang zero (0)"))
+            }
+            (Int(a), Int(b)) => Ok(Int(a % b)),
+            (Float(a), Float(b)) => Ok(Float(a % b)),
+            (l, r) => Err(ValueError::new(format!(
+                "hindi pwede ang `/` sa {l} at {r}"
+            ))),
+        }
+    }
+
     pub fn eqeq(self, right: Self) -> Result<Self, ValueError> {
         match (self, right) {
             (Int(a), Int(b)) => Ok(Bool(a == b)),

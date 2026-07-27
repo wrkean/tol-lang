@@ -154,6 +154,7 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
             }
             '*' => self.add_token(TokenKind::Star, self.current_span()),
             '/' => self.add_token(TokenKind::Slash, self.current_span()),
+            '%' => self.add_token(TokenKind::Percent, self.current_span()),
             ',' => self.add_token(TokenKind::Comma, self.current_span()),
             '\n' => {
                 if self.bracket_depth == 0

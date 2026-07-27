@@ -75,6 +75,7 @@ impl Chunk {
             TokenKind::GreatEq => OpCode::GreatEq,
             TokenKind::Lesser => OpCode::Lesser,
             TokenKind::LessEq => OpCode::LessEq,
+            TokenKind::Percent => OpCode::Modulo,
             _ => unimplemented!(),
         };
         self.emit_opcode(opcode, span);

@@ -29,6 +29,7 @@ pub enum OpCode {
     Sub,
     Mult,
     Div,
+    Modulo,
     EqualEq,
     NotEq,
     Greater,

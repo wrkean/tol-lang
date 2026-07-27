@@ -81,6 +81,7 @@ impl<'gctx> VM<'gctx> {
                 op if op == OpCode::Sub as u8 => self.binary_op(Value::sub),
                 op if op == OpCode::Mult as u8 => self.binary_op(Value::mult),
                 op if op == OpCode::Div as u8 => self.binary_op(Value::div),
+                op if op == OpCode::Modulo as u8 => self.binary_op(Value::modulo),
                 op if op == OpCode::EqualEq as u8 => self.binary_op(Value::eqeq),
                 op if op == OpCode::NotEq as u8 => self.binary_op(Value::neq),
                 op if op == OpCode::Greater as u8 => self.binary_op(Value::gt),

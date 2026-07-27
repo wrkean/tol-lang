@@ -541,6 +541,7 @@ impl<'c> Parser<'c> {
             | TokenKind::Minus
             | TokenKind::Star
             | TokenKind::Slash
+            | TokenKind::Percent
             | TokenKind::Equal
             | TokenKind::EqualEq
             | TokenKind::NotEq
