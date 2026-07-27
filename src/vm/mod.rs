@@ -385,15 +385,38 @@ impl<'gctx> VM<'gctx> {
 
                     match target {
                         Value::List(list) => {
-                            if index < 0 {
-                                index = list.borrow().elements.len() as i64 - i64::abs(index);
+                            let len = list.borrow().elements.len();
+                            match self.resolve_index(len, index) {
+                                Some(i) => {
+                                    let val = list.borrow().elements[i].clone();
+                                    self.push(val);
+                                }
+                                None => {
+                                    self.runtime_error(
+                                        &format!("mas malaki o kaparehas ang \"index\" na naibigay ({}) kesa sa bilang ng mga elemento ({})", index, len),
+                                        self.current_ip(),
+                                    );
+                                    return;
+                                }
                             }
-                            if index >= list.borrow().elements.len() as i64 {
-                                self.runtime_error(&format!("mas malaki o kaparehas ang \"index\" na naibigay ({}) kesa sa bilang ng mga elemento ({})", index, list.borrow().elements.len()) ,  self.current_ip());
-                                return;
+                        }
+                        Value::Str(id) => {
+                            let string = self.ctx.get_interned_string(id);
+                            let bytes = string.as_bytes();
+                            match self.resolve_index(bytes.len(), index) {
+                                Some(i) => {
+                                    let character = bytes[i] as char;
+                                    let id = self.intern_string(&character.to_string());
+                                    self.push(Value::Str(id));
+                                }
+                                None => {
+                                    self.runtime_error(
+                                        &format!("mas malaki o kaparehas ang \"index\" na naibigay ({}) kesa sa bilang ng mga elemento ({})", index, bytes.len()),
+                                        self.current_ip(),
+                                    );
+                                    return;
+                                }
                             }
-                            let val = list.borrow().elements[index as usize].clone();
-                            self.push(val);
                         }
                         _ => todo!(),
                     }
@@ -402,23 +425,42 @@ impl<'gctx> VM<'gctx> {
                     let target = self.pop();
                     let set_val = self.pop();
                     let constant_index = self.read_byte() as usize;
-                    let Value::Int(mut index) = self.current_chunk().get_constant(constant_index)
+                    let Value::Int(index) = self.current_chunk().get_constant(constant_index)
                     else {
                         unreachable!()
                     };
 
                     match target {
                         Value::List(list) => {
-                            if index < 0 {
-                                index = list.borrow().elements.len() as i64 - i64::abs(index);
+                            let len = list.borrow().elements.len();
+                            match self.resolve_index(len, index) {
+                                Some(i) => {
+                                    list.borrow_mut().elements[i] = set_val;
+                                }
+                                None => {
+                                    self.runtime_error(
+                                        &format!("mas malaki o kaparehas ang \"index\" na naibigay ({}) kesa sa bilang ng mga elemento ({})", index, len),
+                                        self.current_ip(),
+                                    );
+                                    return;
+                                }
                             }
-                            list.borrow_mut().elements[index as usize] = set_val;
                         }
                         _ => todo!(),
                     }
                 }
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }
+        }
+    }
+
+    // Resolves a possibly-negative index into a bounds-checked usize, or None if out of range.
+    fn resolve_index(&self, len: usize, index: i64) -> Option<usize> {
+        let resolved = if index < 0 { index + len as i64 } else { index };
+        if resolved < 0 || resolved >= len as i64 {
+            None
+        } else {
+            Some(resolved as usize)
         }
     }
 
