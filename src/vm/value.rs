@@ -30,7 +30,7 @@ use crate::{
 impl Value {
     pub fn add(self, right: Self) -> Result<Self, ValueError> {
         match (self, right) {
-            (Int(a), Int(b)) => Ok(Int(a + b)),
+            (Int(a), Int(b)) => Ok(Int(a.wrapping_add(b))),
             (Float(a), Float(b)) => Ok(Float(a + b)),
             (l, r) => Err(ValueError::new(format!(
                 "hindi pwede ang `+` sa {l} at {r}"
@@ -40,7 +40,7 @@ impl Value {
 
     pub fn sub(self, right: Self) -> Result<Self, ValueError> {
         match (self, right) {
-            (Int(a), Int(b)) => Ok(Int(a - b)),
+            (Int(a), Int(b)) => Ok(Int(a.wrapping_sub(b))),
             (Float(a), Float(b)) => Ok(Float(a - b)),
             (l, r) => Err(ValueError::new(format!(
                 "hindi pwede ang `-` sa {l} at {r}"
@@ -50,7 +50,7 @@ impl Value {
 
     pub fn mult(self, right: Self) -> Result<Self, ValueError> {
         match (self, right) {
-            (Int(a), Int(b)) => Ok(Int(a * b)),
+            (Int(a), Int(b)) => Ok(Int(a.wrapping_mul(b))),
             (Float(a), Float(b)) => Ok(Float(a * b)),
             (l, r) => Err(ValueError::new(format!(
                 "hindi pwede ang `*` sa {l} at {r}"
@@ -63,7 +63,7 @@ impl Value {
             (_, Float(0.0)) | (_, Int(0)) => {
                 Err(ValueError::new("bawal mag-\"divide\" gamit ang zero (0)"))
             }
-            (Int(a), Int(b)) => Ok(Int(a / b)),
+            (Int(a), Int(b)) => Ok(Int(a.wrapping_div(b))),
             (Float(a), Float(b)) => Ok(Float(a / b)),
             (l, r) => Err(ValueError::new(format!(
                 "hindi pwede ang `/` sa {l} at {r}"

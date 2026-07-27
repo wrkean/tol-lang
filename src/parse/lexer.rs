@@ -388,7 +388,7 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
                     return;
                 }
                 '\'' => {
-                    if starting_char == '\"' {
+                    if starting_char == '"' {
                         string_builder.push(ch);
                         return;
                     }
