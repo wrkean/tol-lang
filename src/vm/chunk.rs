@@ -64,17 +64,12 @@ impl Chunk {
 
     pub fn emit_operator(&mut self, op_kind: &TokenKind, span: Span) {
         let opcode = match op_kind {
-            TokenKind::Plus => OpCode::Add,
-            TokenKind::PlusEq => OpCode::AddEq,
+            TokenKind::Plus | TokenKind::PlusEq => OpCode::Add,
             TokenKind::PlusPlus => OpCode::Concat,
-            TokenKind::Minus => OpCode::Sub,
-            TokenKind::MinusEq => OpCode::SubEq,
-            TokenKind::Star => OpCode::Mult,
-            TokenKind::StarEq => OpCode::MultEq,
-            TokenKind::Slash => OpCode::Div,
-            TokenKind::SlashEq => OpCode::DivEq,
-            TokenKind::Percent => OpCode::Modulo,
-            TokenKind::PercentEq => OpCode::ModuloEq,
+            TokenKind::Minus | TokenKind::MinusEq => OpCode::Sub,
+            TokenKind::Star | TokenKind::StarEq => OpCode::Mult,
+            TokenKind::Slash | TokenKind::Slash => OpCode::Div,
+            TokenKind::Percent | TokenKind::Percent => OpCode::Modulo,
             TokenKind::EqualEq => OpCode::EqualEq,
             TokenKind::NotEq => OpCode::NotEq,
             TokenKind::Greater => OpCode::Greater,
@@ -122,12 +117,12 @@ impl Chunk {
 
     /// Disassemble this chunk, prints each bytecode with its corresponding information
     pub fn disassemble(&self, name: &str) {
-        // println!("=== {name} ===");
-        //
-        // let mut offset = 0;
-        // while offset < self.code.len() {
-        //     offset = self.disassemble_instruction(offset);
-        // }
+        println!("=== {name} ===");
+
+        let mut offset = 0;
+        while offset < self.code.len() {
+            offset = self.disassemble_instruction(offset);
+        }
     }
 
     pub fn get_byte(&self, index: usize) -> u8 {

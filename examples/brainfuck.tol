@@ -5,7 +5,7 @@ klase BrainfuckInterpreter:
             interpreter.pc = 0
             interpreter.tape = @[0; 30000]
             interpreter.code = code
-            interpreter.true = interpreter.pc
+
             ibalik interpreter
 
         paraan takbo(ako):
@@ -16,13 +16,13 @@ klase BrainfuckInterpreter:
 
         paraan takbuhinCmd(ako, cmd):
             kung cmd == '>':
-                ako.ip = ako.ip + 1
+                ako.ip += 1
             kung cmd == '<':
-                ako.ip = ako.ip - 1
+                ako.ip -= 1
             kung cmd == '+':
-                ako.tape[ako.ip] = ako.tape[ako.ip] + 1
+                ako.tape[ako.ip] += 1
             kung cmd == '-':
-                ako.tape[ako.ip] = ako.tape[ako.ip] - 1
+                ako.tape[ako.ip] -= 1
             kung cmd == '.':
                 print ako.tape[ako.ip].bilang_ascii()
             kung cmd == ',':
@@ -31,11 +31,11 @@ klase BrainfuckInterpreter:
             kung cmd == '[':
                 kung ako.tape[ako.ip] == 0:
                     habang ako.code[ako.pc] != ']':
-                        ako.pc = ako.pc + 1
+                        ako.pc += 1
             kung cmd == ']':
                 kung ako.tape[ako.ip] != 0:
                     habang ako.code[ako.pc] != '[':
-                        ako.pc = ako.pc - 1
+                        ako.pc -= 1
 
 ang hello_world = ">++++++++[<+++++++++>-]<.>++++[<+++++++>-]<+.+++++++..+++.>>++++++[<+++++++>-]<++.------------.>++++++[<+++++++++>-]<+.<.+++.------.--------.>>>++++[<++++++++>-]<+."
 ang interpreter = BrainfuckInterpreter.bago(hello_world)

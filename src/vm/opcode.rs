@@ -22,6 +22,7 @@ pub enum OpCode {
     ListWithCapacity,
     IndexGet,
     IndexSet,
+    Dup,
 
     Pop,
     Push,

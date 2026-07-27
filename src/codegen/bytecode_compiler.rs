@@ -348,7 +348,15 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             ExprKind::Binary { left, right, op } => {
                 let line = self.current_module().line_of(op.span().start);
 
-                if op.kind() == &TokenKind::Equal {
+                if matches!(
+                    op.kind(),
+                    TokenKind::Equal
+                        | TokenKind::PlusEq
+                        | TokenKind::MinusEq
+                        | TokenKind::StarEq
+                        | TokenKind::SlashEq
+                        | TokenKind::PercentEq
+                ) {
                     self.compile_assignment(expression);
                 } else {
                     self.compile_expression(left);
@@ -472,14 +480,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
 
         match left.kind() {
             ExprKind::FieldAccess { object, field } => {
-                if matches!(
-                    op.kind(),
-                    TokenKind::PlusEq
-                        | TokenKind::MinusEq
-                        | TokenKind::StarEq
-                        | TokenKind::SlashEq
-                        | TokenKind::PercentEq
-                ) {
+                if op.kind() != &TokenKind::Equal {
                     self.compile_expression(left);
                     self.compile_expression(right);
                     self.chunk.emit_operator(op.kind(), op.span().clone());
@@ -497,9 +498,18 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                     .emit_opcode(OpCode::SetField, field.span().clone());
             }
             ExprKind::IndexAccess { left, index } => {
-                self.compile_expression(right);
-                self.compile_expression(left);
-                self.compile_expression(index);
+                if op.kind() != &TokenKind::Equal {
+                    self.compile_expression(left);
+                    self.compile_expression(index);
+                    self.chunk.emit_opcode(OpCode::IndexGet, op.span().clone());
+
+                    self.compile_expression(right);
+                    self.chunk.emit_operator(op.kind(), op.span().clone());
+                } else {
+                    self.compile_expression(right);
+                }
+                self.compile_expression(left); // Target
+                self.compile_expression(index); // Index
 
                 self.chunk
                     .emit_opcode(OpCode::IndexSet, index.span().clone());

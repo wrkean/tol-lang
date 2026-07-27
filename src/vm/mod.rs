@@ -76,6 +76,10 @@ impl<'gctx> VM<'gctx> {
                 op if op == OpCode::Pop as u8 => {
                     self.pop();
                 }
+                op if op == OpCode::Dup as u8 => {
+                    let val = self.peek(0).clone();
+                    self.push(val);
+                }
                 op if op == OpCode::Add as u8 || op == OpCode::AddEq as u8 => {
                     self.binary_op(Value::add)
                 }
@@ -144,7 +148,6 @@ impl<'gctx> VM<'gctx> {
                 op if op == OpCode::Print as u8 => {
                     let value = self.pop();
                     self.print_value(&value);
-                    println!();
                 }
                 op if op == OpCode::Halt as u8 => {
                     break;
@@ -184,7 +187,7 @@ impl<'gctx> VM<'gctx> {
                 }
                 op if op == OpCode::GetField as u8 => {
                     let Value::Str(field_name_id) = self.pop() else {
-                        panic!("Should be struct")
+                        panic!("Should be string")
                     };
                     let base = self.pop();
                     let field_name = self.ctx.get_interned_string(field_name_id);
@@ -695,7 +698,6 @@ impl<'gctx> VM<'gctx> {
 
         match self.peek(arity as usize) {
             Value::Closure(cl) => {
-                cl.func.chunk.disassemble(&cl.func.name);
                 self.new_frame(Rc::clone(cl), callee_index, cl.func.frame_size, module_id);
             }
             Value::NativeFunction(func) => {
@@ -763,7 +765,6 @@ impl<'gctx> VM<'gctx> {
         match value {
             Value::Closure(cl) => {
                 let locals_base = self.stack.len() - arity as usize - 1;
-                cl.func.chunk.disassemble(&cl.func.name);
                 self.new_frame(Rc::clone(cl), locals_base, cl.func.frame_size, module_id);
             }
             Value::NativeFunction(func) => {
