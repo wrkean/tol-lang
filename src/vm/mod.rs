@@ -363,8 +363,50 @@ impl<'gctx> VM<'gctx> {
                         elements.push(self.pop());
                     }
 
-                    let list = Value::List(Rc::new(List { elements }));
+                    let list = Value::List(Rc::new(RefCell::new(List { elements })));
                     self.push(list);
+                }
+                op if op == OpCode::IndexGet as u8 => {
+                    let target = self.pop();
+                    let constant_index = self.read_byte() as usize;
+                    let Value::Int(mut index) = self.current_chunk().get_constant(constant_index)
+                    else {
+                        unreachable!()
+                    };
+
+                    match target {
+                        Value::List(list) => {
+                            if index < 0 {
+                                index = list.borrow().elements.len() as i64 - i64::abs(index);
+                            }
+                            if index >= list.borrow().elements.len() as i64 {
+                                self.runtime_error(&format!("mas malaki o kaparehas ang \"index\" na naibigay ({}) kesa sa bilang ng mga elemento ({})", index, list.borrow().elements.len()) ,  self.current_ip());
+                                return;
+                            }
+                            let val = list.borrow().elements[index as usize].clone();
+                            self.push(val);
+                        }
+                        _ => todo!(),
+                    }
+                }
+                op if op == OpCode::IndexSet as u8 => {
+                    let target = self.pop();
+                    let set_val = self.pop();
+                    let constant_index = self.read_byte() as usize;
+                    let Value::Int(mut index) = self.current_chunk().get_constant(constant_index)
+                    else {
+                        unreachable!()
+                    };
+
+                    match target {
+                        Value::List(list) => {
+                            if index < 0 {
+                                index = list.borrow().elements.len() as i64 - i64::abs(index);
+                            }
+                            list.borrow_mut().elements[index as usize] = set_val;
+                        }
+                        _ => todo!(),
+                    }
                 }
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }

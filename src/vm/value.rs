@@ -10,7 +10,7 @@ pub enum Value {
     ClassDef(Rc<ClassDef>),
     ClassInstance(Rc<RefCell<ClassInstance>>),
     BoundMethod(Rc<BoundMethod>),
-    List(Rc<List>),
+    List(Rc<RefCell<List>>),
     Null,
 }
 
@@ -158,7 +158,8 @@ impl fmt::Display for Value {
                 write!(
                     f,
                     "[{}]",
-                    list.elements
+                    list.borrow()
+                        .elements
                         .iter()
                         .map(|val| val.to_string())
                         .collect::<Vec<_>>()

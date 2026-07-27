@@ -1,1 +1,6 @@
-ang lista = [1, 2, 3, 4]
+klase Tao:
+    paraan bago():
+        ibalik Tao()
+
+ang tao = Tao()
+ang lista = [1, 2, 3, tao]

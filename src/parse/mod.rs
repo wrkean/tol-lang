@@ -479,10 +479,11 @@ impl<'c> Parser<'c> {
                 let start = self.peek().span().start;
                 self.consume(TokenKind::LSquare, "umaasa ako ng `[` dito")?;
                 let elements = self.parse_many_expressions(TokenKind::RSquare)?;
-                let span = start..(match elements.last() {
-                    Some(last) => last.span().end,
-                    None => self.peek().span().end,
-                });
+                let end = self
+                    .consume(TokenKind::RSquare, "umaasa ako ng `]` dito")?
+                    .span()
+                    .end;
+                let span = start..end;
 
                 Ok(Expr::new(span, ExprKind::List { elements }))
             }
@@ -559,6 +560,22 @@ impl<'c> Parser<'c> {
                     },
                 ))
             }
+            TokenKind::LSquare => {
+                let index = self.consume_int("umaasa ako ng \"integer\" dito")?.clone();
+                let end = self
+                    .consume(TokenKind::RSquare, "umaasa ako ng `]` dito")?
+                    .span()
+                    .end;
+                let span = left.span().start..end;
+
+                Ok(Expr::new(
+                    span,
+                    ExprKind::IndexAccess {
+                        left: Box::new(left),
+                        index,
+                    },
+                ))
+            }
             _ => unreachable!(),
         }
     }
@@ -573,8 +590,6 @@ impl<'c> Parser<'c> {
                 self.advance();
             }
         }
-
-        self.consume(end_delim, "hindi ito naisarado ng tama");
 
         Ok(exprs)
     }
@@ -636,6 +651,20 @@ impl<'c> Parser<'c> {
 
     fn consume_ident(&mut self, message: impl Into<String>) -> DiagResult<&Token> {
         if matches!(self.peek().kind(), TokenKind::Identifier(_)) {
+            return Ok(self.advance());
+        }
+
+        let current_module = self.current_module();
+        let span = self.peek().span().clone();
+
+        let diagnostic =
+            predefined_diagnostics::unexpected_token(current_module, message.into(), span);
+
+        Err(Box::new(diagnostic))
+    }
+
+    fn consume_int(&mut self, message: impl Into<String>) -> DiagResult<&Token> {
+        if matches!(self.peek().kind(), TokenKind::IntLiteral(_)) {
             return Ok(self.advance());
         }
 

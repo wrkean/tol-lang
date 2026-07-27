@@ -620,6 +620,11 @@ impl<'gctx> Analyzer<'gctx> {
 
                 Ok(())
             }
+            ExprKind::IndexAccess { left, .. } => {
+                self.resolve_expression(left)?;
+
+                Ok(())
+            }
         }
     }
 

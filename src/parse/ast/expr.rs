@@ -48,7 +48,7 @@ impl Expr {
         use ExprKind::*;
         matches!(
             self.kind(),
-            Identifier(_) | AnonymousFn { .. } | FieldAccess { .. }
+            Identifier(_) | AnonymousFn { .. } | FieldAccess { .. } | IndexAccess { .. }
         )
     }
 }
@@ -82,6 +82,10 @@ pub enum ExprKind {
     List {
         elements: Vec<Expr>,
     },
+    IndexAccess {
+        left: Box<Expr>,
+        index: Token,
+    },
 }
 
 impl fmt::Display for Expr {
@@ -98,6 +102,7 @@ impl fmt::Display for Expr {
             ExprKind::Call { .. } => unimplemented!(),
             ExprKind::FieldAccess { .. } => unimplemented!(),
             ExprKind::List { .. } => unimplemented!(),
+            ExprKind::IndexAccess { .. } => unimplemented!(),
         }
     }
 }

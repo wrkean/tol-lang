@@ -19,6 +19,8 @@ pub enum OpCode {
     StoreUpvalue,
     Invoke,
     List,
+    IndexGet,
+    IndexSet,
 
     Pop,
     Halt,

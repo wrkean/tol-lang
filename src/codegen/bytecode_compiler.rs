@@ -443,6 +443,17 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 self.chunk.emit_opcode(OpCode::List, span.clone());
                 self.chunk.emit_u16(elements.len() as u16, span);
             }
+            ExprKind::IndexAccess { left, index } => {
+                self.compile_expression(left);
+
+                let TokenKind::IntLiteral(idx) = index.kind() else {
+                    unreachable!()
+                };
+
+                let constant_index = self.chunk.add_constant(Value::Int(*idx));
+                self.chunk.emit_opcode(OpCode::IndexGet, span.clone());
+                self.chunk.emit_byte(constant_index, span);
+            }
         }
     }
 
@@ -461,6 +472,18 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                     .add_and_emit_constant(Value::Str(field_name_id), field.span().clone());
                 self.chunk
                     .emit_opcode(OpCode::SetField, field.span().clone());
+            }
+            ExprKind::IndexAccess { left, index } => {
+                self.compile_expression(left);
+
+                let TokenKind::IntLiteral(idx) = index.kind() else {
+                    unreachable!()
+                };
+
+                let span = assignment.span().clone();
+                let constant_index = self.chunk.add_constant(Value::Int(*idx));
+                self.chunk.emit_opcode(OpCode::IndexSet, span.clone());
+                self.chunk.emit_byte(constant_index, span);
             }
             _ => {
                 let span = left.span().clone();
