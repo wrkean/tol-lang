@@ -259,6 +259,7 @@ impl<'gctx> Analyzer<'gctx> {
 
         self.resolve_statement(block)?;
 
+        dbg!(&self.functions.last().unwrap().scopes);
         self.exit_scope();
         let (frame_size, upvalues) = self.exit_function();
 
@@ -585,8 +586,8 @@ impl<'gctx> Analyzer<'gctx> {
 
                 self.resolve_expression(body)?;
 
-                let (frame_size, upvalues) = self.exit_function();
                 self.exit_scope();
+                let (frame_size, upvalues) = self.exit_function();
 
                 self.ctx
                     .symbol_by_id_mut(resolved_var.symbol_id())

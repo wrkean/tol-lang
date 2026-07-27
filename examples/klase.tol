@@ -1,1 +1,10 @@
-ang x = [1, 2, 3]
+paraan isabi_ngunit(kondisyon, pangalan):
+    kung kondisyon():
+        print pangalan
+
+paraan def():
+    ang x = "Keanne"
+
+    isabi_ngunit(|| x == "Keanne", "Keanne")
+
+def()
