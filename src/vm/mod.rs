@@ -1,6 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, iter::Filter, rc::Rc};
 
 use crate::{
+    builtin,
     global_ctx::{GlobalContext, StringInterner},
     module::{Module, ModuleId},
     tol::diagnostic::{Label, miette_diagnostic::MietteDiagnostic, runtime::RuntimeError},
@@ -346,13 +347,21 @@ impl<'gctx> VM<'gctx> {
                                 self.current_frame().module_id,
                             );
                         }
-                        val => {
-                            dbg!(val);
-                            self.runtime_error(
-                                "hindi ito isang instance o klase",
-                                self.current_ip(),
-                            )
+                        Value::Int(_) => {
+                            let mut args = vec![Value::Null; arg_count];
+                            for i in (0..arg_count).rev() {
+                                args[i] = self.pop();
+                            }
+                            match self.invoke_builtin_int_method(method_name.clone(), args) {
+                                Ok(v) => self.push(v),
+                                Err(err) => {
+                                    self.runtime_error(&err.message, self.current_ip());
+                                    return;
+                                }
+                            }
                         }
+                        val => self
+                            .runtime_error("hindi ito isang instance o klase", self.current_ip()),
                     }
                 }
                 op if op == OpCode::List as u8 => {
@@ -410,6 +419,24 @@ impl<'gctx> VM<'gctx> {
                 }
                 _ => println!("bug: unknown opcode {:#X}", opcode),
             }
+        }
+    }
+
+    fn invoke_builtin_int_method(
+        &mut self,
+        method_name: Rc<str>,
+        args: Vec<Value>,
+    ) -> Result<Value, Box<RuntimeError>> {
+        let arg_count = args.len();
+
+        // For 1 argument, the integer itself
+        match method_name.as_ref() {
+            "maging_string" => builtin::numero::maging_string(self, &args),
+            "abs" => builtin::numero::abs(self, &args),
+            _ => Err(Box::new(self.new_runtime_error(
+                &format!("walang \"method\" na `{}` ang numero na ito", method_name),
+                self.current_ip(),
+            ))),
         }
     }
 
@@ -712,7 +739,7 @@ impl<'gctx> VM<'gctx> {
         self.frames.last().unwrap()
     }
 
-    fn current_chunk(&self) -> &Chunk {
+    pub fn current_chunk(&self) -> &Chunk {
         &self.current_frame().closure.func.chunk
     }
 
@@ -729,28 +756,33 @@ impl<'gctx> VM<'gctx> {
         }
     }
 
-    fn current_module(&self) -> &Module {
+    pub fn current_module(&self) -> &Module {
         self.ctx.module_by_id(self.current_frame().module_id)
     }
 
-    fn current_ip(&self) -> usize {
+    pub fn current_ip(&self) -> usize {
         self.current_frame().ip - 1
     }
 
-    fn runtime_error(&mut self, message: &str, instruction: usize) {
-        let span = self.current_chunk().span_of(instruction);
-        let current_module = self.current_module();
-        let runtime_err = RuntimeError::new(
-            current_module.source_arc(),
-            current_module.filename(),
-            message,
-            Label::new(span),
-        );
+    pub fn runtime_error(&mut self, message: &str, instruction: usize) {
+        let runtime_err = self.new_runtime_error(message, instruction);
         eprintln!(
             "{:?}",
             miette::Report::new(MietteDiagnostic::from(runtime_err))
         );
         self.force_stop_vm();
+    }
+
+    pub fn new_runtime_error(&mut self, message: &str, instruction: usize) -> RuntimeError {
+        let span = self.current_chunk().span_of(instruction);
+        let current_module = self.current_module();
+
+        RuntimeError::new(
+            current_module.source_arc(),
+            current_module.filename(),
+            message,
+            Label::new(span),
+        )
     }
 
     fn force_stop_vm(&mut self) {

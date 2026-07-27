@@ -606,8 +606,6 @@ impl<'gctx> Analyzer<'gctx> {
             }
             ExprKind::FieldAccess { object, field } => {
                 self.resolve_expression(object)?;
-                // let id = object.symbol_id();
-                // expression.set_symbol_id(id);
 
                 Ok(())
             }

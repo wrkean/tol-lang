@@ -7,6 +7,7 @@ use clap::Parser;
 use crate::global_ctx::GlobalContext;
 
 mod analyze;
+mod builtin;
 mod codegen;
 mod driver;
 mod global_ctx;
