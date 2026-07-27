@@ -537,11 +537,16 @@ impl<'c> Parser<'c> {
 
         match op_kind {
             TokenKind::Plus
+            | TokenKind::PlusEq
             | TokenKind::PlusPlus
             | TokenKind::Minus
+            | TokenKind::MinusEq
             | TokenKind::Star
+            | TokenKind::StarEq
             | TokenKind::Slash
+            | TokenKind::SlashEq
             | TokenKind::Percent
+            | TokenKind::PercentEq
             | TokenKind::Equal
             | TokenKind::EqualEq
             | TokenKind::NotEq

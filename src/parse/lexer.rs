@@ -141,6 +141,8 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
             '+' => {
                 if self.match_ch('+') {
                     self.add_token(TokenKind::PlusPlus, self.current_span());
+                } else if self.match_ch('=') {
+                    self.add_token(TokenKind::PlusEq, self.current_span());
                 } else {
                     self.add_token(TokenKind::Plus, self.current_span())
                 }
@@ -148,13 +150,33 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
             '-' => {
                 if self.match_ch('>') {
                     self.add_token(TokenKind::ThinArrow, self.current_span());
+                } else if self.match_ch('=') {
+                    self.add_token(TokenKind::MinusEq, self.current_span());
                 } else {
                     self.add_token(TokenKind::Minus, self.current_span())
                 }
             }
-            '*' => self.add_token(TokenKind::Star, self.current_span()),
-            '/' => self.add_token(TokenKind::Slash, self.current_span()),
-            '%' => self.add_token(TokenKind::Percent, self.current_span()),
+            '*' => {
+                if self.match_ch('=') {
+                    self.add_token(TokenKind::StarEq, self.current_span());
+                } else {
+                    self.add_token(TokenKind::Star, self.current_span())
+                }
+            }
+            '/' => {
+                if self.match_ch('=') {
+                    self.add_token(TokenKind::SlashEq, self.current_span());
+                } else {
+                    self.add_token(TokenKind::Slash, self.current_span())
+                }
+            }
+            '%' => {
+                if self.match_ch('=') {
+                    self.add_token(TokenKind::PercentEq, self.current_span());
+                } else {
+                    self.add_token(TokenKind::Percent, self.current_span())
+                }
+            }
             ',' => self.add_token(TokenKind::Comma, self.current_span()),
             '\n' => {
                 if self.bracket_depth == 0

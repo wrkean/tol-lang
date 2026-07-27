@@ -3,7 +3,12 @@ use crate::tol::token::TokenKind;
 /// Determines the precedence of the given token kind
 pub fn precedence(kind: &TokenKind) -> u8 {
     match kind {
-        TokenKind::Equal => 1,
+        TokenKind::Equal
+        | TokenKind::PlusEq
+        | TokenKind::MinusEq
+        | TokenKind::StarEq
+        | TokenKind::SlashEq
+        | TokenKind::PercentEq => 1,
         TokenKind::EqualEq | TokenKind::NotEq => 2,
         TokenKind::Greater | TokenKind::GreatEq | TokenKind::Lesser | TokenKind::LessEq => 3,
         TokenKind::Plus | TokenKind::PlusPlus | TokenKind::Minus => 4,

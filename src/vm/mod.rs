@@ -76,12 +76,22 @@ impl<'gctx> VM<'gctx> {
                 op if op == OpCode::Pop as u8 => {
                     self.pop();
                 }
-                op if op == OpCode::Add as u8 => self.binary_op(Value::add),
+                op if op == OpCode::Add as u8 || op == OpCode::AddEq as u8 => {
+                    self.binary_op(Value::add)
+                }
                 op if op == OpCode::Concat as u8 => self.concat(),
-                op if op == OpCode::Sub as u8 => self.binary_op(Value::sub),
-                op if op == OpCode::Mult as u8 => self.binary_op(Value::mult),
-                op if op == OpCode::Div as u8 => self.binary_op(Value::div),
-                op if op == OpCode::Modulo as u8 => self.binary_op(Value::modulo),
+                op if op == OpCode::Sub as u8 || op == OpCode::SubEq as u8 => {
+                    self.binary_op(Value::sub)
+                }
+                op if op == OpCode::Mult as u8 || op == OpCode::MultEq as u8 => {
+                    self.binary_op(Value::mult)
+                }
+                op if op == OpCode::Div as u8 || op == OpCode::DivEq as u8 => {
+                    self.binary_op(Value::div)
+                }
+                op if op == OpCode::Modulo as u8 || op == OpCode::ModuloEq as u8 => {
+                    self.binary_op(Value::modulo)
+                }
                 op if op == OpCode::EqualEq as u8 => self.binary_op(Value::eqeq),
                 op if op == OpCode::NotEq as u8 => self.binary_op(Value::neq),
                 op if op == OpCode::Greater as u8 => self.binary_op(Value::gt),

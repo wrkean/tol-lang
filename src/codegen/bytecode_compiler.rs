@@ -353,7 +353,20 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 } else {
                     self.compile_expression(left);
                     self.compile_expression(right);
-                    self.chunk.emit_operator(op.kind(), span);
+                    self.chunk.emit_operator(op.kind(), span.clone());
+                    // Store the variable if it is one of these operators here
+                    if matches!(
+                        op.kind(),
+                        TokenKind::PlusEq
+                            | TokenKind::MinusEq
+                            | TokenKind::StarEq
+                            | TokenKind::SlashEq
+                            | TokenKind::PercentEq
+                    ) {
+                        self.store_var(left.resolved_var(), span.clone());
+                        // The operation returns null
+                        self.chunk.add_and_emit_constant(Value::Null, span);
+                    }
                 }
             }
             ExprKind::Call { left, args } => {
@@ -463,7 +476,6 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         };
 
         self.compile_expression(right);
-
         match left.kind() {
             ExprKind::FieldAccess { object, field } => {
                 self.compile_expression(object);

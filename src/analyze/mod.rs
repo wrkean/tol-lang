@@ -512,7 +512,15 @@ impl<'gctx> Analyzer<'gctx> {
                     self.current_module_mut().add_diagnostic(*diag);
                 }
 
-                if op.kind() == &TokenKind::Equal {
+                if matches!(
+                    op.kind(),
+                    TokenKind::Equal
+                        | TokenKind::PlusEq
+                        | TokenKind::MinusEq
+                        | TokenKind::StarEq
+                        | TokenKind::SlashEq
+                        | TokenKind::PercentEq
+                ) {
                     self.ensure_valid_assignment(left, op)?;
                 }
 
