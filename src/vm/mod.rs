@@ -360,8 +360,20 @@ impl<'gctx> VM<'gctx> {
                                 }
                             }
                         }
-                        val => self
-                            .runtime_error("hindi ito isang instance o klase", self.current_ip()),
+                        Value::List(_) => {
+                            let mut args = vec![Value::Null; arg_count];
+                            for i in (0..arg_count).rev() {
+                                args[i] = self.pop();
+                            }
+                            match self.invoke_builtin_list_method(method_name, args) {
+                                Ok(v) => self.push(v),
+                                Err(err) => {
+                                    self.runtime_error(&err.message, self.current_ip());
+                                    return;
+                                }
+                            }
+                        }
+                        val => self.runtime_error("wala itong \"method\"", self.current_ip()),
                     }
                 }
                 op if op == OpCode::List as u8 => {
@@ -475,6 +487,20 @@ impl<'gctx> VM<'gctx> {
         match method_name.as_ref() {
             "maging_string" => builtin::numero::maging_string(self, &args),
             "abs" => builtin::numero::abs(self, &args),
+            _ => Err(Box::new(self.new_runtime_error(
+                &format!("walang \"method\" na `{}` ang numero na ito", method_name),
+                self.current_ip(),
+            ))),
+        }
+    }
+
+    fn invoke_builtin_list_method(
+        &mut self,
+        method_name: Rc<str>,
+        args: Vec<Value>,
+    ) -> Result<Value, Box<RuntimeError>> {
+        match method_name.as_ref() {
+            "dagdag" => builtin::lista::dagdag(self, &args),
             _ => Err(Box::new(self.new_runtime_error(
                 &format!("walang \"method\" na `{}` ang numero na ito", method_name),
                 self.current_ip(),

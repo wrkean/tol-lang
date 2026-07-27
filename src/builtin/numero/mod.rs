@@ -17,7 +17,8 @@ pub fn abs(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
     }
 
     let Value::Int(int) = args.first().unwrap() else {
-        unreachable!()
+        let err = vm.new_runtime_error("umaasa ako ng numero na argumento", vm.current_ip());
+        return Err(Box::new(err));
     };
 
     print!("{}", i64::MIN);
@@ -46,7 +47,7 @@ pub fn maging_string(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeEr
     }
 
     let Value::Int(int) = args.first().unwrap() else {
-        let err = vm.new_runtime_error("umaasa ako ng numero dito", vm.current_ip());
+        let err = vm.new_runtime_error("umaasa ako ng numero na argumento", vm.current_ip());
         return Err(Box::new(err));
     };
 
