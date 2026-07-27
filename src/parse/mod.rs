@@ -250,7 +250,34 @@ impl<'c> Parser<'c> {
         let name = self
             .consume_ident("umaasa ng pangalan ng klase dito")?
             .clone();
-        self.consume(TokenKind::Colon, "umaasa ng `:` dito")?;
+        match self.peek().kind() {
+            TokenKind::Colon => {
+                self.advance();
+            }
+            TokenKind::SemiColon => {
+                let end = self.advance().span().end;
+                return Ok(Stmt::new(
+                    start..end,
+                    StmtKind::Klase {
+                        name,
+                        methods: Vec::new(),
+                    },
+                ));
+            }
+            _ => {
+                let current_module = self.current_module();
+                let diagnostic = TolDiagnostic::err(
+                    current_module.source_arc(),
+                    current_module.filename(),
+                    "hindi inaasahang token",
+                )
+                .label(
+                    Label::new(self.peek().span().clone()).message("umaasa ako ng `:` o `;` dito"),
+                );
+
+                return Err(Box::new(diagnostic));
+            }
+        }
         self.consume(TokenKind::Indent, "umaasa ng \"indent\" dito")?;
         let mut methods = Vec::new();
         while !self.at_end() && self.peek().kind() != &TokenKind::Dedent {
