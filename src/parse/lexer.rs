@@ -190,7 +190,8 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
                 }
                 self.at_line_start = true;
             }
-            '"' => self.lex_string(),
+            '"' => self.lex_string('"'),
+            '\'' => self.lex_string('\''),
             ' ' | '\t' | '\r' => { /* skip irrelevant whitespace */ }
             ch if ch.is_ascii_alphabetic() || ch == '_' => self.lex_identifier(),
             ch if ch.is_ascii_digit() => self.lex_number(),
@@ -328,7 +329,7 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
         self.add_token(kind, self.current_span());
     }
 
-    fn lex_string(&mut self) {
+    fn lex_string(&mut self, starting_char: char) {
         let mut string_builder = String::new();
         while let Some(ch) = self.advance()
             && ch != '\n'
@@ -386,7 +387,24 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
                     self.current_module_mut().add_diagnostic(diagnostic);
                     return;
                 }
+                '\'' => {
+                    if starting_char == '\"' {
+                        string_builder.push(ch);
+                        return;
+                    }
+
+                    self.add_token(
+                        TokenKind::StringLiteral(string_builder),
+                        self.current_span(),
+                    );
+                    return;
+                }
                 '"' => {
+                    if starting_char == '\'' {
+                        string_builder.push(ch);
+                        return;
+                    }
+
                     self.add_token(
                         TokenKind::StringLiteral(string_builder),
                         self.current_span(),
