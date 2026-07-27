@@ -85,7 +85,7 @@ pub enum ExprKind {
     },
     IndexAccess {
         left: Box<Expr>,
-        index: Token,
+        index: Box<Expr>,
     },
 }
 

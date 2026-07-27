@@ -628,7 +628,7 @@ impl<'c> Parser<'c> {
                 ))
             }
             TokenKind::LSquare => {
-                let index = self.consume_int("umaasa ako ng \"integer\" dito")?.clone();
+                let index = self.parse_expression(0)?;
                 let end = self
                     .consume(TokenKind::RSquare, "umaasa ako ng `]` dito")?
                     .span()
@@ -639,7 +639,7 @@ impl<'c> Parser<'c> {
                     span,
                     ExprKind::IndexAccess {
                         left: Box::new(left),
-                        index,
+                        index: Box::new(index),
                     },
                 ))
             }

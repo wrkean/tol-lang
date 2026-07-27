@@ -354,19 +354,6 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                     self.compile_expression(left);
                     self.compile_expression(right);
                     self.chunk.emit_operator(op.kind(), span.clone());
-                    // Store the variable if it is one of these operators here
-                    if matches!(
-                        op.kind(),
-                        TokenKind::PlusEq
-                            | TokenKind::MinusEq
-                            | TokenKind::StarEq
-                            | TokenKind::SlashEq
-                            | TokenKind::PercentEq
-                    ) {
-                        self.store_var(left.resolved_var(), span.clone());
-                        // The operation returns null
-                        self.chunk.add_and_emit_constant(Value::Null, span);
-                    }
                 }
             }
             ExprKind::Call { left, args } => {
@@ -439,8 +426,6 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             }
             ExprKind::FieldAccess { object, field } => {
                 self.compile_expression(object);
-                println!("{}", object);
-                dbg!(object.resolved_var(), field.lexeme());
 
                 let field_name_id = self.ctx.intern(field.lexeme());
                 self.chunk
@@ -472,14 +457,10 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             }
             ExprKind::IndexAccess { left, index } => {
                 self.compile_expression(left);
+                self.compile_expression(index);
 
-                let TokenKind::IntLiteral(idx) = index.kind() else {
-                    unreachable!()
-                };
-
-                let constant_index = self.chunk.add_constant(Value::Int(*idx));
-                self.chunk.emit_opcode(OpCode::IndexGet, span.clone());
-                self.chunk.emit_byte(constant_index, span);
+                self.chunk
+                    .emit_opcode(OpCode::IndexGet, index.span().clone());
             }
         }
     }
@@ -489,10 +470,26 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             unreachable!()
         };
 
-        self.compile_expression(right);
         match left.kind() {
             ExprKind::FieldAccess { object, field } => {
-                self.compile_expression(object);
+                if matches!(
+                    op.kind(),
+                    TokenKind::PlusEq
+                        | TokenKind::MinusEq
+                        | TokenKind::StarEq
+                        | TokenKind::SlashEq
+                        | TokenKind::PercentEq
+                ) {
+                    self.compile_expression(left);
+                    self.compile_expression(right);
+                    self.chunk.emit_operator(op.kind(), op.span().clone());
+
+                    self.compile_expression(object);
+                } else {
+                    self.compile_expression(right);
+                    self.compile_expression(object);
+                }
+
                 let field_name_id = self.ctx.intern(field.lexeme());
                 self.chunk
                     .add_and_emit_constant(Value::Str(field_name_id), field.span().clone());
@@ -500,16 +497,12 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                     .emit_opcode(OpCode::SetField, field.span().clone());
             }
             ExprKind::IndexAccess { left, index } => {
+                self.compile_expression(right);
                 self.compile_expression(left);
+                self.compile_expression(index);
 
-                let TokenKind::IntLiteral(idx) = index.kind() else {
-                    unreachable!()
-                };
-
-                let span = assignment.span().clone();
-                let constant_index = self.chunk.add_constant(Value::Int(*idx));
-                self.chunk.emit_opcode(OpCode::IndexSet, span.clone());
-                self.chunk.emit_byte(constant_index, span);
+                self.chunk
+                    .emit_opcode(OpCode::IndexSet, index.span().clone());
             }
             _ => {
                 let span = left.span().clone();

@@ -122,12 +122,12 @@ impl Chunk {
 
     /// Disassemble this chunk, prints each bytecode with its corresponding information
     pub fn disassemble(&self, name: &str) {
-        println!("=== {name} ===");
-
-        let mut offset = 0;
-        while offset < self.code.len() {
-            offset = self.disassemble_instruction(offset);
-        }
+        // println!("=== {name} ===");
+        //
+        // let mut offset = 0;
+        // while offset < self.code.len() {
+        //     offset = self.disassemble_instruction(offset);
+        // }
     }
 
     pub fn get_byte(&self, index: usize) -> u8 {

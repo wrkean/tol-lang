@@ -349,9 +349,15 @@ impl<'gctx> VM<'gctx> {
                                 );
                                 return;
                             };
-                            // Replace class def with the callee
-                            let callee_idx = self.stack.len() - arg_count;
+
+                            // Replace the 'Null' slot at index (len - arg_count - 1) with the method
+                            let callee_idx = self.stack.len() - arg_count - 1;
                             self.stack[callee_idx] = method.clone();
+
+                            // Remove the ClassDef receiver from the stack
+                            self.stack.remove(self.stack.len() - arg_count);
+
+                            // Call the method with only the actual arguments (arg_count - 1)
                             self.call_value(
                                 method,
                                 arg_count as u8 - 1,
@@ -363,6 +369,7 @@ impl<'gctx> VM<'gctx> {
                             for i in (0..arg_count).rev() {
                                 args[i] = self.pop();
                             }
+                            self.pop(); // Pops the null value
                             match self.invoke_builtin_int_method(method_name.clone(), args) {
                                 Ok(v) => self.push(v),
                                 Err(err) => {
@@ -376,7 +383,22 @@ impl<'gctx> VM<'gctx> {
                             for i in (0..arg_count).rev() {
                                 args[i] = self.pop();
                             }
+                            self.pop(); // Pops the null value
                             match self.invoke_builtin_list_method(method_name, args) {
+                                Ok(v) => self.push(v),
+                                Err(err) => {
+                                    self.runtime_error(&err.message, self.current_ip());
+                                    return;
+                                }
+                            }
+                        }
+                        Value::Str(_) => {
+                            let mut args = vec![Value::Null; arg_count];
+                            for i in (0..arg_count).rev() {
+                                args[i] = self.pop();
+                            }
+                            self.pop(); // Pops the null value
+                            match self.invoke_builtin_string_method(method_name, args) {
                                 Ok(v) => self.push(v),
                                 Err(err) => {
                                     self.runtime_error(&err.message, self.current_ip());
@@ -417,12 +439,13 @@ impl<'gctx> VM<'gctx> {
                     self.push(list);
                 }
                 op if op == OpCode::IndexGet as u8 => {
-                    let target = self.pop();
-                    let constant_index = self.read_byte() as usize;
-                    let Value::Int(mut index) = self.current_chunk().get_constant(constant_index)
-                    else {
-                        unreachable!()
+                    let index = self.pop();
+                    let Value::Int(index) = index else {
+                        self.runtime_error("umaasa ng numero dito", self.current_ip());
+                        return;
                     };
+
+                    let target = self.pop();
 
                     match target {
                         Value::List(list) => {
@@ -463,12 +486,12 @@ impl<'gctx> VM<'gctx> {
                     }
                 }
                 op if op == OpCode::IndexSet as u8 => {
+                    let index = self.pop();
                     let target = self.pop();
                     let set_val = self.pop();
-                    let constant_index = self.read_byte() as usize;
-                    let Value::Int(index) = self.current_chunk().get_constant(constant_index)
-                    else {
-                        unreachable!()
+                    let Value::Int(index) = index else {
+                        self.runtime_error("umaasa ng numero dito", self.current_ip());
+                        return;
                     };
 
                     match target {
@@ -530,8 +553,23 @@ impl<'gctx> VM<'gctx> {
     ) -> Result<Value, Box<RuntimeError>> {
         match method_name.as_ref() {
             "dagdag" => builtin::lista::dagdag(self, &args),
+            "haba" => builtin::lista::haba(self, &args),
             _ => Err(Box::new(self.new_runtime_error(
-                &format!("walang \"method\" na `{}` ang numero na ito", method_name),
+                &format!("walang \"method\" na `{}` ang lista", method_name),
+                self.current_ip(),
+            ))),
+        }
+    }
+
+    fn invoke_builtin_string_method(
+        &mut self,
+        method_name: Rc<str>,
+        args: Vec<Value>,
+    ) -> Result<Value, Box<RuntimeError>> {
+        match method_name.as_ref() {
+            "haba" => builtin::string::haba(self, &args),
+            _ => Err(Box::new(self.new_runtime_error(
+                &format!("walang \"method\" na `{}` ang string", method_name),
                 self.current_ip(),
             ))),
         }
@@ -870,7 +908,7 @@ impl<'gctx> VM<'gctx> {
         self.force_stop_vm();
     }
 
-    pub fn new_runtime_error(&mut self, message: &str, instruction: usize) -> RuntimeError {
+    pub fn new_runtime_error(&self, message: &str, instruction: usize) -> RuntimeError {
         let span = self.current_chunk().span_of(instruction);
         let current_module = self.current_module();
 
@@ -889,5 +927,9 @@ impl<'gctx> VM<'gctx> {
 
     pub fn intern_string(&mut self, s: &str) -> usize {
         self.ctx.intern(s)
+    }
+
+    pub fn get_interned_string(&mut self, id: usize) -> Rc<str> {
+        self.ctx.get_interned_string(id)
     }
 }
