@@ -515,6 +515,13 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                     .emit_opcode(OpCode::IndexSet, index.span().clone());
             }
             _ => {
+                if op.kind() != &TokenKind::Equal {
+                    self.compile_expression(left);
+                    self.compile_expression(right);
+                    self.chunk.emit_operator(op.kind(), op.span().clone());
+                } else {
+                    self.compile_expression(right);
+                }
                 let span = left.span().clone();
                 self.store_var(left.resolved_var(), span.clone());
             }

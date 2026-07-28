@@ -1,41 +1,41 @@
 klase BrainfuckInterpreter:
-        paraan bago(code):
-            ang interpreter = BrainfuckInterpreter()
-            interpreter.ip = 0
-            interpreter.pc = 0
-            interpreter.tape = @[0; 30000]
-            interpreter.code = code
+    paraan bago(code):
+        ang interpreter = BrainfuckInterpreter()
+        interpreter.ip = 0
+        interpreter.pc = 0
+        interpreter.tape = @[0; 30000]
+        interpreter.code = code
 
-            ibalik interpreter
+        ibalik interpreter
 
-        paraan takbo(ako):
-            habang ako.pc < ako.code.haba():
-                ang cmd = ako.code[ako.pc]
-                ako.takbuhinCmd(cmd)
-                ako.pc = ako.pc + 1
+    paraan takbo(ako):
+        habang ako.pc < ako.code.haba():
+            ang cmd = ako.code[ako.pc]
+            ako.takbuhinCmd(cmd)
+            ako.pc = ako.pc + 1
 
-        paraan takbuhinCmd(ako, cmd):
-            kung cmd == '>':
-                ako.ip += 1
-            kung cmd == '<':
-                ako.ip -= 1
-            kung cmd == '+':
-                ako.tape[ako.ip] += 1
-            kung cmd == '-':
-                ako.tape[ako.ip] -= 1
-            kung cmd == '.':
-                print ako.tape[ako.ip].bilang_ascii()
-            kung cmd == ',':
-                ang in = input("")
-                ako.tape[ako.ip] = in[0]
-            kung cmd == '[':
-                kung ako.tape[ako.ip] == 0:
-                    habang ako.code[ako.pc] != ']':
-                        ako.pc += 1
-            kung cmd == ']':
-                kung ako.tape[ako.ip] != 0:
-                    habang ako.code[ako.pc] != '[':
-                        ako.pc -= 1
+    paraan takbuhinCmd(ako, cmd):
+        kung cmd == '>':
+            ako.ip += 1
+        kung cmd == '<':
+            ako.ip -= 1
+        kung cmd == '+':
+            ako.tape[ako.ip] += 1
+        kung cmd == '-':
+            ako.tape[ako.ip] -= 1
+        kung cmd == '.':
+            print ako.tape[ako.ip].bilang_ascii()
+        kung cmd == ',':
+            ang in = input("")
+            ako.tape[ako.ip] = in[0]
+        kung cmd == '[':
+            kung ako.tape[ako.ip] == 0:
+                habang ako.code[ako.pc] != ']':
+                    ako.pc += 1
+        kung cmd == ']':
+            kung ako.tape[ako.ip] != 0:
+                habang ako.code[ako.pc] != '[':
+                    ako.pc -= 1
 
 ang hello_world = ">++++++++[<+++++++++>-]<.>++++[<+++++++>-]<+.+++++++..+++.>>++++++[<+++++++>-]<++.------------.>++++++[<+++++++++>-]<+.<.+++.------.--------.>>>++++[<++++++++>-]<+."
 ang interpreter = BrainfuckInterpreter.bago(hello_world)

@@ -42,7 +42,6 @@ pub fn compile_module(module_id: ModuleId, ctx: &mut GlobalContext) {
 
     let mut compiler = BytecodeCompiler::new(ctx, module_id);
     let chunk = compiler.compile();
-    chunk.disassemble("main");
 
     let mut vm = VM::new(chunk, ctx, module_id);
     vm.run();
@@ -56,9 +55,6 @@ fn parse_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     let source = module.source_arc();
 
     let tokens = Lexer::new(&source, ctx, module_id).lex();
-    for token in tokens.iter() {
-        println!("{:?}", token.kind());
-    }
     Parser::new(tokens, ctx, module_id).parse();
 }
 

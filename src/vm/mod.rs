@@ -283,7 +283,6 @@ impl<'gctx> VM<'gctx> {
                     };
                 }
                 op if op == OpCode::DefineClass as u8 => {
-                    eprintln!("{}", self.stack.len());
                     let Value::Str(class_name_id) = self.pop() else {
                         unreachable!()
                     };
