@@ -22,6 +22,7 @@ fn main() {
 
     let mut global_context = GlobalContext::new(args);
     driver::compile_entry_point(&mut global_context);
+    driver::run(0, global_context);
 }
 
 #[derive(Parser)]

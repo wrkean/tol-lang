@@ -31,39 +31,44 @@ struct Frame {
     module_id: ModuleId,
 }
 
-pub struct VM<'gctx> {
+pub struct VM {
     stack: Vec<Value>,
     frames: Vec<Frame>,
-    globals: Vec<Value>,
-    ctx: &'gctx GlobalContext,
+    string_interner: StringInterner,
     open_upvalues: Vec<Upvalue>,
+    modules: Vec<Module>,
+    natives: HashMap<String, usize>,
 }
 
-impl<'gctx> VM<'gctx> {
-    pub fn new(chunk: Chunk, ctx: &'gctx GlobalContext, module_id: ModuleId) -> Self {
+impl VM {
+    pub fn new(
+        chunk: Chunk,
+        string_interner: StringInterner,
+        entry_module_id: ModuleId,
+        modules: Vec<Module>,
+        natives: HashMap<String, usize>,
+    ) -> Self {
         let closure = Rc::new(Closure {
-            func: Rc::new(Function::new("__paraan_na_una__".to_string(), chunk, 0, 0)),
+            func: Rc::new(Function::new("__paraan_una__".to_string(), chunk, 0, 0)),
             upvalues: Vec::new(),
         });
 
         Self {
             stack: Vec::new(),
-            globals: Vec::new(),
-            ctx,
+            string_interner,
             open_upvalues: Vec::new(),
+            modules,
+            natives,
             frames: vec![Frame {
                 closure,
                 ip: 0,
                 locals_base: 1,
-                module_id,
+                module_id: entry_module_id,
             }],
         }
     }
 
     pub fn run(&mut self) {
-        self.assign_native("input".to_string(), 1, native_functions::native_input);
-        self.assign_native("alis".to_string(), 1, native_functions::native_alis);
-
         while self.frames.last().is_some() {
             let opcode = self.read_byte();
 
@@ -114,7 +119,8 @@ impl<'gctx> VM<'gctx> {
                 }
                 op if op == OpCode::LoadGlobal as u8 => {
                     let index = self.read_byte() as usize;
-                    let value = self.globals.get(index).unwrap().clone();
+                    let globals = self.current_module().globals();
+                    let value = globals.get(index).unwrap().clone();
                     self.push(value);
                 }
                 op if op == OpCode::LoadLocal as u8 => {
@@ -190,7 +196,7 @@ impl<'gctx> VM<'gctx> {
                         panic!("Should be string")
                     };
                     let base = self.pop();
-                    let field_name = self.ctx.get_interned_string(field_name_id);
+                    let field_name = self.get_interned_string(field_name_id);
 
                     match &base {
                         Value::ClassInstance(instance) => {
@@ -236,7 +242,7 @@ impl<'gctx> VM<'gctx> {
                     let Value::Str(field_name_id) = self.pop() else {
                         panic!("str")
                     };
-                    let field_name = self.ctx.get_interned_string(field_name_id);
+                    let field_name = self.get_interned_string(field_name_id);
 
                     let Value::ClassInstance(instance) = self.pop() else {
                         unreachable!()
@@ -286,7 +292,7 @@ impl<'gctx> VM<'gctx> {
                     let Value::Str(class_name_id) = self.pop() else {
                         unreachable!()
                     };
-                    let class_name = self.ctx.get_interned_string(class_name_id);
+                    let class_name = self.get_interned_string(class_name_id);
                     let methods_count = self.read_byte() as usize;
                     let mut methods: HashMap<String, Value> = (0..methods_count)
                         .map(|_| {
@@ -294,7 +300,7 @@ impl<'gctx> VM<'gctx> {
                             let Value::Str(name_id) = self.pop() else {
                                 unreachable!()
                             };
-                            let name = self.ctx.get_interned_string(name_id);
+                            let name = self.get_interned_string(name_id);
 
                             (name.to_string(), method)
                         })
@@ -309,7 +315,7 @@ impl<'gctx> VM<'gctx> {
                     else {
                         unreachable!()
                     };
-                    let method_name = self.ctx.get_interned_string(method_name_id);
+                    let method_name = self.get_interned_string(method_name_id);
 
                     let receiver = self.peek(arg_count - 1);
                     match receiver {
@@ -467,7 +473,7 @@ impl<'gctx> VM<'gctx> {
                             }
                         }
                         Value::Str(id) => {
-                            let string = self.ctx.get_interned_string(id);
+                            let string = self.get_interned_string(id);
                             let bytes = string.as_bytes();
                             match self.resolve_index(bytes.len(), index) {
                                 Some(i) => {
@@ -598,26 +604,14 @@ impl<'gctx> VM<'gctx> {
         }
     }
 
-    fn assign_native(
-        &mut self,
-        name: String,
-        arity: usize,
-        func: fn(&mut VM, &[Value]) -> Result<Value, Box<RuntimeError>>,
-    ) {
-        let id = self.ctx.get_native(&name);
-        let native = Value::NativeFunction(Rc::new(NativeFunction { name, arity, func }));
-
-        self.store_global(id, native);
-    }
-
     fn concat(&mut self) {
         let rhs = self.pop();
         let lhs = self.pop();
 
         match (lhs, rhs) {
             (Value::Str(id1), Value::Str(id2)) => {
-                let str1 = self.ctx.get_interned_string(id1);
-                let str2 = self.ctx.get_interned_string(id2);
+                let str1 = self.get_interned_string(id1);
+                let str2 = self.get_interned_string(id2);
                 let format = format!("{}{}", str1, str2);
 
                 let id = self.intern_string(&format);
@@ -795,10 +789,12 @@ impl<'gctx> VM<'gctx> {
     }
 
     fn store_global(&mut self, index: usize, value: Value) {
-        if index >= self.globals.len() {
-            self.globals.resize(index + 1, Value::Null);
+        let globals = self.current_module_mut().globals_mut();
+        if index >= globals.len() {
+            globals.resize(index + 1, Value::Null);
         }
-        self.globals[index] = value;
+
+        globals[index] = value;
     }
 
     fn store_local(&mut self, index: usize, value: Value) {
@@ -885,7 +881,7 @@ impl<'gctx> VM<'gctx> {
     fn print_value(&self, value: &Value) {
         match value {
             Value::Str(id) => {
-                print!("{}", self.ctx.get_interned_string(*id));
+                print!("{}", self.get_interned_string(*id));
             }
 
             val => print!("{val}"),
@@ -893,7 +889,12 @@ impl<'gctx> VM<'gctx> {
     }
 
     pub fn current_module(&self) -> &Module {
-        self.ctx.module_by_id(self.current_frame().module_id)
+        &self.modules[self.current_frame().module_id]
+    }
+
+    pub fn current_module_mut(&mut self) -> &mut Module {
+        let module_id = self.current_frame().module_id;
+        &mut self.modules[module_id]
     }
 
     pub fn current_ip(&self) -> usize {
@@ -927,10 +928,14 @@ impl<'gctx> VM<'gctx> {
     }
 
     pub fn intern_string(&mut self, s: &str) -> usize {
-        self.ctx.intern(s)
+        self.string_interner.intern(s)
     }
 
-    pub fn get_interned_string(&mut self, id: usize) -> Rc<str> {
-        self.ctx.get_interned_string(id)
+    pub fn get_interned_string(&self, id: usize) -> Rc<str> {
+        self.string_interner.get(id).clone()
+    }
+
+    pub fn get_native(&self, native_name: &str) -> usize {
+        self.natives[native_name]
     }
 }

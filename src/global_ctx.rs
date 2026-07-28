@@ -17,6 +17,7 @@ use crate::{
         lexer::Lexer,
     },
     tol::diagnostic::{Severity, TolDiagnostic, miette_diagnostic::MietteDiagnostic},
+    vm::VM,
 };
 
 #[derive(Default)]
@@ -154,5 +155,18 @@ impl GlobalContext {
 
     pub fn native_functions(&self) -> &HashMap<String, usize> {
         &self.native_functions
+    }
+
+    pub fn into_vm(mut self) -> VM {
+        let mut entry_module = &mut self.modules[0];
+        let chunk = entry_module.take_chunk();
+
+        VM::new(
+            chunk,
+            self.string_interner.take(),
+            0,
+            self.modules,
+            self.native_functions,
+        )
     }
 }

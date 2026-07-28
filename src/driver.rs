@@ -42,12 +42,16 @@ pub fn compile_module(module_id: ModuleId, ctx: &mut GlobalContext) {
 
     let mut compiler = BytecodeCompiler::new(ctx, module_id);
     let chunk = compiler.compile();
-
-    let mut vm = VM::new(chunk, ctx, module_id);
-    vm.run();
-
     let module = ctx.module_by_id_mut(module_id);
+    module.set_chunk(chunk);
+    module.set_compile_state(ModuleCompileState::Compiled);
     module.report_diagnostics();
+}
+
+/// Main function to run the whole thing
+pub fn run(entry_module: ModuleId, ctx: GlobalContext) {
+    let mut vm = ctx.into_vm();
+    vm.run();
 }
 
 fn parse_module(module_id: ModuleId, ctx: &mut GlobalContext) {
