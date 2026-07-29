@@ -68,10 +68,6 @@ pub enum StmtKind {
         rhs: Expr,
     },
 
-    Print {
-        expr: Expr,
-    },
-
     /// Function declaration statement
     ///
     /// e.g.:
@@ -87,9 +83,7 @@ pub enum StmtKind {
     },
 
     /// A block statement, contains zero or more statements
-    Block {
-        statements: Vec<Stmt>,
-    },
+    Block { statements: Vec<Stmt> },
 
     /// If-statement
     ///
@@ -114,17 +108,12 @@ pub enum StmtKind {
     /// habang condition1:
     ///     x += 1
     /// ```
-    Habang {
-        condition: Expr,
-        block: Box<Stmt>,
-    },
+    Habang { condition: Expr, block: Box<Stmt> },
 
     /// Return statement
     ///
     /// e.g.: `ibalik 0`
-    Ibalik {
-        expr: Option<Expr>,
-    },
+    Ibalik { expr: Option<Expr> },
 
     /// Class declaration statement
     ///
@@ -134,15 +123,10 @@ pub enum StmtKind {
     ///     paraan bago():
     ///         ibalik Class1()
     /// ```
-    Klase {
-        name: Token,
-        methods: Vec<Stmt>,
-    },
+    Klase { name: Token, methods: Vec<Stmt> },
 
     /// Expression statement. An expression with a semicolon at the end. Boring.
-    Expr {
-        expr: Expr,
-    },
+    Expr { expr: Expr },
 
     /// Break statement
     Biyakin,

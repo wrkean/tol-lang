@@ -62,7 +62,6 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         match statement.kind() {
             StmtKind::Ang { .. } => self.compile_ang(statement),
             StmtKind::Paraan { .. } => self.compile_paraan(statement),
-            StmtKind::Print { .. } => self.compile_print(statement),
             StmtKind::Kung { .. } => self.compile_kung(statement),
             StmtKind::Habang { .. } => self.compile_habang(statement),
             StmtKind::Biyakin => self.compile_biyakin(statement),
@@ -145,16 +144,6 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             self.chunk.emit_byte(upvalue.index as u8, span.clone());
         }
         self.store_var(paraan.resolved_var(), span);
-    }
-
-    fn compile_print(&mut self, print: &Stmt) {
-        let StmtKind::Print { expr } = print.kind() else {
-            unreachable!()
-        };
-
-        let span = print.span().clone();
-        self.compile_expression(expr);
-        self.chunk.emit_opcode(OpCode::Print, span);
     }
 
     fn compile_kung(&mut self, kung: &Stmt) {

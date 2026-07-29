@@ -151,7 +151,6 @@ impl<'gctx> Analyzer<'gctx> {
         match statement.kind_mut() {
             StmtKind::Ang { .. } => self.resolve_ang(statement),
             StmtKind::Paraan { .. } => self.resolve_paraan(statement),
-            StmtKind::Print { expr } => self.resolve_expression(expr),
             StmtKind::Expr { expr } => self.resolve_expression(expr),
             StmtKind::Kung { .. } => self.resolve_kung(statement),
             StmtKind::Habang { .. } => self.resolve_habang(statement),

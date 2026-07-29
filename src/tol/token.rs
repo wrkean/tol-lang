@@ -34,7 +34,6 @@ impl Token {
 #[derive(Clone, Debug, PartialEq)]
 pub enum TokenKind {
     Ang,
-    Print,
     Iiba,
     Paraan,
     Kung,
@@ -111,6 +110,6 @@ impl TokenKind {
 
     pub fn is_synchronization_point(&self) -> bool {
         use TokenKind::*;
-        matches!(self, Ang | Print | Paraan | Biyakin | Ituloy | Ibalik)
+        matches!(self, Ang | Paraan | Biyakin | Ituloy | Ibalik)
     }
 }

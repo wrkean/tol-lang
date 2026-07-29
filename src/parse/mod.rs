@@ -67,7 +67,6 @@ impl<'c> Parser<'c> {
     fn parse_statement(&mut self) -> DiagResult<Stmt> {
         match self.peek().kind() {
             TokenKind::Ang => self.parse_ang(),
-            TokenKind::Print => self.parse_print(),
             TokenKind::Paraan => self.parse_paraan(),
             TokenKind::Kung => self.parse_kung(),
             TokenKind::Habang => self.parse_habang(),
@@ -139,20 +138,6 @@ impl<'c> Parser<'c> {
                 rhs,
             },
         ))
-    }
-
-    fn parse_print(&mut self) -> DiagResult<Stmt> {
-        let start = self.advance().span().start;
-        let expr = self.parse_expression(0)?;
-        let end = self
-            .consume(
-                TokenKind::SemiColon,
-                "umaasa ng `;` pagkatapos ng expresyon dito",
-            )?
-            .span()
-            .end;
-
-        Ok(Stmt::new(start..end, StmtKind::Print { expr }))
     }
 
     fn parse_paraan(&mut self) -> DiagResult<Stmt> {
