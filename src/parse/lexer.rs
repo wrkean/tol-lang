@@ -10,17 +10,37 @@ use crate::{
     },
 };
 
-/// Responsible for turning source to a vector of tokens
+/// Responsible for turning source into a series of tokens
 pub struct Lexer<'src, 'gctx> {
+    /// The source code to be processed/lexed
     source: &'src str,
+
+    /// Iterator over the source
     source_iter: Peekable<Chars<'src>>,
+
+    /// Offset on the source pointing to the start of a potential token
     start: usize,
+
+    /// Offset on the source currently pointing to where the iterator is currently pointing
     current: usize,
+
+    /// Opening brackets like '(', `[`, `{` adds `bracket_depth`, while their closing counterparts
+    /// subtracts it
     bracket_depth: u8,
+
+    /// Storage for lexed tokens
     tokens: Vec<Token>,
+
+    /// Used for lexing indent and dedent tokens
     indent_stack: Vec<u8>,
+
+    /// Is true when is currently at the beginning of a line, used for determining when to handle indentions
     at_line_start: bool,
+
+    /// ID pointing to the current module being lexed in the global context
     module_id: ModuleId,
+
+    /// The global context
     ctx: &'gctx mut GlobalContext,
 }
 
@@ -41,8 +61,8 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
         }
     }
 
-    /// Lexes the given source string and returns a list of tokens
-    pub fn lex(&mut self) -> Vec<Token> {
+    /// Takes the lexer and lexes the source string and returns a series of tokens
+    pub fn lex(mut self) -> Vec<Token> {
         while let Some(current_char) = self.peek() {
             self.start = self.current;
 
@@ -67,7 +87,7 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
 
         self.add_token(TokenKind::Eof, self.current_span());
 
-        mem::take(&mut self.tokens)
+        self.tokens
     }
 
     fn lex_token(&mut self, current_char: char) {
