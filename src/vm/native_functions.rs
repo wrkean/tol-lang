@@ -165,7 +165,7 @@ fn format_template(
                 ), vm.current_ip()))
             })?;
 
-            result.push_str(&value.to_string());
+            result.push_str(&value.to_printed_string(vm));
             arg_index += 1;
         } else {
             result.push(c);

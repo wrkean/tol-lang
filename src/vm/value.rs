@@ -21,6 +21,7 @@ use Value::*;
 use crate::{
     tol::diagnostic::runtime::RuntimeError,
     vm::{
+        VM,
         class::{ClassDef, ClassInstance},
         function::{BoundMethod, Closure, Function},
         list::List,
@@ -145,6 +146,23 @@ impl Value {
             (l, r) => Err(ValueError::new(format!(
                 "hindi pwede ang `<=` sa {l} at {r}"
             ))),
+        }
+    }
+
+    pub fn to_printed_string(&self, vm: &VM) -> String {
+        match self {
+            Int(_)
+            | Float(_)
+            | Bool(_)
+            | Value::Function(_)
+            | Value::NativeFunction(_)
+            | Value::ClassDef(_)
+            | Value::ClassInstance(_)
+            | Value::BoundMethod(_)
+            | Value::List(_)
+            | Value::Closure(_)
+            | Null => self.to_string(),
+            Value::Str(id) => vm.get_interned_string(*id).to_string(),
         }
     }
 }

@@ -24,7 +24,7 @@ klase BrainfuckInterpreter:
         kung cmd == '-':
             ako.tape[ako.ip] -= 1
         kung cmd == '.':
-            print ako.tape[ako.ip].bilang_ascii()
+            print("{}", ako.tape[ako.ip].bilang_ascii())
         kung cmd == ',':
             ang in = input("")
             ako.tape[ako.ip] = in[0]
