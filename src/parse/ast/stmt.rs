@@ -61,12 +61,7 @@ pub enum StmtKind {
     /// Name declaration statement.
     ///
     /// e.g.: `ang x = 5`
-    Ang {
-        name: Token,
-        is_mutable: bool,
-        ty: TolType,
-        rhs: Expr,
-    },
+    Ang { name: Token, ty: TolType, rhs: Expr },
 
     /// Function declaration statement
     ///
@@ -169,7 +164,6 @@ pub struct Param {
 
     /// Span of the parameter, from its name, to its type (if given)
     pub span: Span,
-    pub is_mutable: bool,
 }
 
 pub type Field = Param;

@@ -78,13 +78,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
     }
 
     fn compile_ang(&mut self, ang: &Stmt) {
-        let StmtKind::Ang {
-            name,
-            is_mutable,
-            ty,
-            rhs,
-        } = ang.kind()
-        else {
+        let StmtKind::Ang { name, ty, rhs } = ang.kind() else {
             unreachable!()
         };
 

@@ -4,7 +4,6 @@ use crate::tol::token::TokenKind;
 
 pub static KEYWORDS: phf::Map<&'static str, TokenKind> = phf_map! {
     "ang" => TokenKind::Ang,
-    "iiba" => TokenKind::Iiba,
     "paraan" => TokenKind::Paraan,
     "kung" => TokenKind::Kung,
     "kundi" => TokenKind::Kundi,

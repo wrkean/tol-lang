@@ -72,7 +72,6 @@ impl Symbol {
 
 pub enum SymbolKind {
     Name {
-        is_mutable: bool,
         ty: TolType,
     },
     Function {

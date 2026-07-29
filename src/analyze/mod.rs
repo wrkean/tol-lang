@@ -174,13 +174,7 @@ impl<'gctx> Analyzer<'gctx> {
     }
 
     fn resolve_ang(&mut self, ang: &mut Stmt) -> DiagResult<()> {
-        let StmtKind::Ang {
-            name,
-            is_mutable,
-            ty,
-            rhs,
-        } = ang.kind_mut()
-        else {
+        let StmtKind::Ang { name, ty, rhs } = ang.kind_mut() else {
             unreachable!()
         };
 
@@ -195,10 +189,7 @@ impl<'gctx> Analyzer<'gctx> {
             symbol_name.clone(),
             name.span().clone(),
             storage,
-            SymbolKind::Name {
-                is_mutable: *is_mutable,
-                ty: ty.clone(),
-            },
+            SymbolKind::Name { ty: ty.clone() },
         );
 
         let var = self.declare_symbol(symbol)?;
@@ -249,7 +240,6 @@ impl<'gctx> Analyzer<'gctx> {
                 param.span.clone(),
                 self.assign_storage(),
                 SymbolKind::Name {
-                    is_mutable: param.is_mutable,
                     ty: param.ty.clone(),
                 },
             );
@@ -455,7 +445,6 @@ impl<'gctx> Analyzer<'gctx> {
                 param.span.clone(),
                 self.assign_storage(),
                 SymbolKind::Name {
-                    is_mutable: param.is_mutable,
                     ty: param.ty.clone(),
                 },
             );
@@ -583,7 +572,6 @@ impl<'gctx> Analyzer<'gctx> {
                         param.span.clone(),
                         self.assign_storage(),
                         SymbolKind::Name {
-                            is_mutable: param.is_mutable,
                             ty: param.ty.clone(),
                         },
                     );

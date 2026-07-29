@@ -34,7 +34,6 @@ impl Token {
 #[derive(Clone, Debug, PartialEq)]
 pub enum TokenKind {
     Ang,
-    Iiba,
     Paraan,
     Kung,
     Kundi,

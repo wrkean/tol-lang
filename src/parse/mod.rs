@@ -104,11 +104,6 @@ impl<'c> Parser<'c> {
 
     fn parse_ang(&mut self) -> DiagResult<Stmt> {
         let start = self.advance().span().start;
-        let mut is_mutable = false;
-        if self.peek().kind() == &TokenKind::Iiba {
-            self.advance();
-            is_mutable = true;
-        }
         let name = self
             .consume_ident("umaasa ako ng pangalan dito para sa pag-deklara")?
             .clone();
@@ -129,15 +124,7 @@ impl<'c> Parser<'c> {
             .span()
             .end;
 
-        Ok(Stmt::new(
-            start..end,
-            StmtKind::Ang {
-                name,
-                is_mutable,
-                ty,
-                rhs,
-            },
-        ))
+        Ok(Stmt::new(start..end, StmtKind::Ang { name, ty, rhs }))
     }
 
     fn parse_paraan(&mut self) -> DiagResult<Stmt> {
@@ -292,12 +279,6 @@ impl<'c> Parser<'c> {
         let mut fields = Vec::new();
         while !self.at_end() && self.peek().kind() != &TokenKind::Dedent {
             let start = self.peek().span().start;
-            let is_mutable = if self.peek().kind() == &TokenKind::Iiba {
-                self.advance();
-                true
-            } else {
-                false
-            };
             let name = self.consume_ident("umaasa ako ng pangalan dito")?.clone();
             let ty = if self.peek().kind() == &TokenKind::Comma {
                 self.advance();
@@ -314,7 +295,6 @@ impl<'c> Parser<'c> {
                 name,
                 ty,
                 span: start..end,
-                is_mutable,
             });
         }
 
@@ -364,11 +344,6 @@ impl<'c> Parser<'c> {
         let mut params = Vec::new();
         while !self.at_end() && self.peek().kind() != &end_delim {
             let start = self.peek().span().start;
-            let mut is_mutable = false;
-            if self.peek().kind() == &TokenKind::Iiba {
-                self.advance();
-                is_mutable = true;
-            }
             let name = self.consume_ident("umaasa ako ng pangalan dito")?.clone();
             let ty = if self.peek().kind() == &TokenKind::Colon {
                 self.advance();
@@ -386,7 +361,6 @@ impl<'c> Parser<'c> {
                 name,
                 ty,
                 span: start..end,
-                is_mutable,
             });
         }
 
