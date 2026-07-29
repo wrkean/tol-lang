@@ -1,11 +1,12 @@
 klase BrainfuckInterpreter:
-    paraan bago(code):
+    paraan bago(code, in):
         ang interpreter = BrainfuckInterpreter()
-        interpreter.ip = 0
+        interpreter.dp = 0
         interpreter.pc = 0
+        interpreter.input_pc = 0
         interpreter.tape = @[0; 30000]
         interpreter.code = code
-
+        interpreter.input = in
         ibalik interpreter
 
     paraan takbo(ako):
@@ -16,20 +17,23 @@ klase BrainfuckInterpreter:
 
     paraan takbuhinCmd(ako, cmd):
         kung cmd == '>':
-            ako.ip += 1
+            ako.dp += 1
         kung cmd == '<':
-            ako.ip -= 1
+            ako.dp -= 1
         kung cmd == '+':
-            ako.tape[ako.ip] += 1
+            ako.tape[ako.dp] = (ako.tape[ako.dp] + 1) % 256
         kung cmd == '-':
-            ako.tape[ako.ip] -= 1
+            ako.tape[ako.dp] = (ako.tape[ako.dp] - 1) % 256
         kung cmd == '.':
-            print("{}", ako.tape[ako.ip].bilang_ascii())
+            print("{}", ako.tape[ako.dp].bilangKarakter())
         kung cmd == ',':
-            ang in = input("")
-            ako.tape[ako.ip] = in[0]
+            kung ako.input_pc < ako.input.haba():
+                ako.tape[ako.dp] = ako.input[ako.input_pc].titik()
+                ako.input_pc += 1
+            kungwala:
+                ako.tape[ako.dp] = 0
         kung cmd == '[':
-            kung ako.tape[ako.ip] == 0:
+            kung ako.tape[ako.dp] == 0:
                 ang lalim = 1
                 habang lalim > 0:
                     ako.pc += 1
@@ -38,7 +42,7 @@ klase BrainfuckInterpreter:
                     kundi ako.code[ako.pc] == ']':
                         lalim -= 1
         kung cmd == ']':
-            kung ako.tape[ako.ip] != 0:
+            kung ako.tape[ako.dp] != 0:
                 ang lalim = 1
                 habang lalim > 0:
                     ako.pc -= 1
@@ -47,6 +51,6 @@ klase BrainfuckInterpreter:
                     kung ako.code[ako.pc] == ']':
                         lalim += 1
 
-ang hello_world = ">++++++++[<+++++++++>-]<.>++++[<+++++++>-]<+.+++++++..+++.>>++++++[<+++++++>-]<++.------------.>++++++[<+++++++++>-]<+.<.+++.------.--------.>>>++++[<++++++++>-]<+."
-ang interpreter = BrainfuckInterpreter.bago(hello_world)
+ang code = "-[->+++++++++>+++>->>>>->>->>>>->>->>>>->+++->+>++>>+>->++>>+>->++>>+>->++>++++++++++>[>>>]<[>------->-------->->-->>]>>-[<-]<++[[[>>]+++<[>]++[<]<-]>-<<++]>+>[+>]<<[++++[>++++<-]<<]<<<[[>->>>++++++++++<<<<+]<[>->>>>+<<<<<+]<]>>[>]>[<+>>+>>+<<<-][-[>>+<<-]>>]<[<+>-]<[>++<-]<[<<]<<[>->>[>]+[<]<<-]->>>[>]<+[<-<]>+[.>+++++++++[-[>>+<<-]>.>]++++++++++.[-]>]+[<<]<[,->>>---[<<<--->>>-],<-<<[<++>>>++<<---[<++[>-----<-]>>+>-<<[--<----[>+<[-]]]]]>[<+>>++++++++++<-][-[>>+<<-]>>]++++[>--------<-]>[-[[<<]<[-]<[-]>>>>[-]]]+[>>]+[[-]<<]<<<<[[>>[<<->>-]>>+<<<<[+<<]>>>>]>>[<<]<<<<[+>>]>>>>[<<]>>[<<<<<<->>->>>>-]<<<]-[+<-]-<]]>>-----[>+++<-]>-.----------.++++++.>---.[<<+>-->----]<-.+++++.----.<++."
+ang interpreter = BrainfuckInterpreter.bago(code, input(""))
 interpreter.takbo()

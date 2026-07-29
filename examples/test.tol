@@ -1,0 +1,5 @@
+klase Tao:
+    paraan tanungin(tanong):
+        println("Tinanong ako ng {}", tanong)
+
+ang tao = Tao.tanungin(input(""))

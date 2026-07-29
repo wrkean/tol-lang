@@ -35,7 +35,8 @@ pub fn native_input(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeErr
                 )));
             }
 
-            let id = vm.intern_string(&input);
+            let input = input.trim_end();
+            let id = vm.intern_string(input);
 
             Ok(Value::Str(id))
         }

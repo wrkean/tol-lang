@@ -419,7 +419,10 @@ impl VM {
                                 }
                             }
                         }
-                        val => self.runtime_error("wala itong \"method\"", self.current_ip()),
+                        val => self.runtime_error(
+                            &format!("walang method ang {val} na {method_name}"),
+                            self.current_ip(),
+                        ),
                     }
                 }
                 op if op == OpCode::List as u8 => {
@@ -567,7 +570,7 @@ impl VM {
         match method_name.as_ref() {
             "bilangString" => builtin::numero::bilang_string(self, &args),
             "abs" => builtin::numero::abs(self, &args),
-            "bilangAscii" => builtin::numero::bilang_karakter(self, &args),
+            "bilangKarakter" => builtin::numero::bilang_karakter(self, &args),
             _ => Err(Box::new(self.new_runtime_error(
                 &format!("walang \"method\" na `{}` ang numero na ito", method_name),
                 self.current_ip(),
@@ -597,6 +600,8 @@ impl VM {
     ) -> Result<Value, Box<RuntimeError>> {
         match method_name.as_ref() {
             "haba" => builtin::string::haba(self, &args),
+            "bilangNumero" => builtin::string::bilang_numero(self, &args),
+            "titik" => builtin::string::titik(self, &args),
             _ => Err(Box::new(self.new_runtime_error(
                 &format!("walang \"method\" na `{}` ang string", method_name),
                 self.current_ip(),
@@ -717,8 +722,12 @@ impl VM {
                 self.new_frame(Rc::clone(cl), callee_index, cl.func.frame_size, module_id);
             }
             Value::NativeFunction(func) => {
-                let base = callee_index + 1; // + 1 to skip the callee itself
-                let args = self.stack[base..arity as usize + base].to_vec();
+                let func = func.clone();
+                let mut args = vec![Value::Null; arity as usize];
+                for i in (0..arity).rev() {
+                    args[i as usize] = self.pop();
+                }
+                self.pop(); // Pop the native function itself
 
                 match ((func.func)(self, &args)) {
                     Ok(v) => self.push(v),
