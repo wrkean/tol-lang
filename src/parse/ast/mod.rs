@@ -1,3 +1,5 @@
+//! Module representing the Abstract Syntax Tree of the grammar
+
 use crate::parse::ast::stmt::Stmt;
 
 pub mod expr;
