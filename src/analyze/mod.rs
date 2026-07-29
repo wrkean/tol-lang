@@ -1,3 +1,5 @@
+//! Module responsible for Abstract Syntax Tree analysis
+
 use std::collections::{HashMap, HashSet};
 
 use crate::{
@@ -19,14 +21,26 @@ use crate::{
 
 pub mod symbol;
 
+/// Represents the resolved variable upon declaration of a variable, only those with names can have
+/// this. This enum is used to index into the the symbol table in which the symbol itself can index
+/// into the module globals or function locals, or the vm upvalues if it is resolved as an upvalue
 #[derive(Debug, Clone)]
 pub enum ResolvedVar {
+    /// Local variable, with index pointing to its symbol
     Local(SymbolId),
+
+    /// Global variable, with index pointing to its symbol
     Global(SymbolId),
+
+    /// An upvalue, with index pointing to the vm upvalues
     Upvalue(usize),
 }
 
 impl ResolvedVar {
+    /// If it is a local or global, return the symbol it is pointing to. The upvalue variant is
+    /// unimplemented for ease of use (like having to unwrap or handle the Option enum everytime we
+    /// want the symbol id which — all the time, I know if its either a local or a global and not an
+    /// upvalue).
     pub fn symbol_id(&self) -> SymbolId {
         let (ResolvedVar::Local(id) | ResolvedVar::Global(id)) = self else {
             unimplemented!()
@@ -36,12 +50,17 @@ impl ResolvedVar {
     }
 }
 
+/// Contains the context for the function definition
 pub struct FunctionCtx {
+    /// Scopes enclosed by this function
     scopes: Vec<Scope>,
+
+    /// List of upvalue descriptions
     upvalues: Vec<UpvalueDesc>,
 }
 
 impl FunctionCtx {
+    /// Creates a new function context
     pub fn new() -> Self {
         Self {
             scopes: Vec::new(),
@@ -50,8 +69,12 @@ impl FunctionCtx {
     }
 }
 
+/// Description of an upvalue, to be used later in the compiler
 pub struct UpvalueDesc {
+    /// True if this upvalue is local to the immediate enclosing function, otherwise false.
     pub is_local: bool,
+
+    /// Index pointing to the list of upvalues in the vm
     pub index: usize,
 }
 
@@ -82,15 +105,33 @@ impl Scope {
 
 /// Analyzes the target module's ast
 pub struct Analyzer<'gctx> {
+    /// Function context stack
     functions: Vec<FunctionCtx>,
+
+    /// The global context
     ctx: &'gctx mut GlobalContext,
+
+    /// ID pointing to the current module being analyzed in the global context
     module_id: ModuleId,
+
+    /// How deep is the analyzer inside a loop. Used for determining whether a continue or break
+    /// statement is valid at compile time
     loop_depth: u8,
 
+    /// The next global slot
     next_global_slot: usize,
+
+    /// The next local slot
     next_local_slot: usize,
+
+    /// The maximum amount of locals the current function has had. Used to determine the frame size
+    /// of a function at compile time
     max_local_slot: usize,
+
+    /// The next local slot stack
     next_local_slot_stack: Vec<usize>,
+
+    /// The max local slot stack
     max_local_slot_stack: Vec<usize>,
 }
 
