@@ -69,6 +69,11 @@ impl VM {
     }
 
     pub fn run(&mut self) {
+        // Arity as None means variadic arguments
+        self.assign_native("input", Some(1), native_functions::native_input);
+        self.assign_native("alis", Some(1), native_functions::native_alis);
+        self.assign_native("print", None, native_functions::native_print);
+        self.assign_native("println", None, native_functions::native_println);
         while self.frames.last().is_some() {
             let opcode = self.read_byte();
 
@@ -526,6 +531,21 @@ impl VM {
         }
     }
 
+    fn assign_native(
+        &mut self,
+        name: &str,
+        arity: Option<u8>,
+        func: fn(&mut VM, &[Value]) -> Result<Value, Box<RuntimeError>>,
+    ) {
+        let id = self.natives[name];
+        let native_fn = Value::NativeFunction(Rc::new(NativeFunction {
+            name: name.to_string(),
+            arity: arity.map(|ar| ar as usize),
+            func,
+        }));
+        self.store_global(id, native_fn);
+    }
+
     // Resolves a possibly-negative index into a bounds-checked usize, or None if out of range.
     fn resolve_index(&self, len: usize, index: i64) -> Option<usize> {
         let resolved = if index < 0 { index + len as i64 } else { index };
@@ -677,15 +697,18 @@ impl VM {
             return;
         }
         let func_arity = match &self.stack[callee_index] {
-            Value::Closure(f) => f.func.arity,
-            Value::NativeFunction(f) => f.arity as u8,
-            Value::ClassDef(c) => 0,
-            Value::BoundMethod(method) => method.method.func.arity - 1,
+            Value::Closure(f) => Some(f.func.arity),
+            Value::NativeFunction(f) => f.arity.map(|arity| arity as u8),
+            Value::ClassDef(c) => Some(0),
+            Value::BoundMethod(method) => Some(method.method.func.arity - 1),
             _ => unreachable!(),
         };
-        if func_arity != arity {
+
+        if let Some(f_arity) = func_arity
+            && f_arity != arity
+        {
             let current_module = self.current_module();
-            self.runtime_error(&format!("hindi tugmang bilang ng parametro at argumento: ({func_arity}) na bilang ng parametro at ({arity}) na bilang ng argumento"), self.current_ip());
+            self.runtime_error(&format!("hindi tugmang bilang ng parametro at argumento: ({f_arity}) na bilang ng parametro at ({arity}) na bilang ng argumento"), self.current_ip());
             return;
         }
 
@@ -743,15 +766,18 @@ impl VM {
             return;
         }
         let func_arity = match value {
-            Value::Closure(f) => f.func.arity,
-            Value::NativeFunction(f) => f.arity as u8,
-            Value::ClassDef(c) => 0,
-            Value::BoundMethod(method) => method.method.func.arity - 1,
+            Value::Closure(f) => Some(f.func.arity),
+            Value::NativeFunction(f) => f.arity.map(|arity| arity as u8),
+            Value::ClassDef(c) => Some(0),
+            Value::BoundMethod(method) => Some(method.method.func.arity - 1),
             _ => unreachable!(),
         };
-        if func_arity != arity {
+
+        if let Some(f_arity) = func_arity
+            && f_arity != arity
+        {
             let current_module = self.current_module();
-            self.runtime_error(&format!("hindi tugmang bilang ng parametro at argumento: ({func_arity}) na bilang ng parametro at ({arity}) na bilang ng argumento"), self.current_ip());
+            self.runtime_error(&format!("hindi tugmang bilang ng parametro at argumento: ({f_arity}) na bilang ng parametro at ({arity}) na bilang ng argumento"), self.current_ip());
             return;
         }
 

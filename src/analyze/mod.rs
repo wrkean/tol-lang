@@ -116,6 +116,9 @@ impl<'gctx> Analyzer<'gctx> {
 
         self.define_native("input");
         self.define_native("alis");
+        self.define_native("print");
+        self.define_native("println");
+
         self.resolve_names();
 
         self.exit_scope();
@@ -259,7 +262,6 @@ impl<'gctx> Analyzer<'gctx> {
 
         self.resolve_statement(block)?;
 
-        dbg!(&self.functions.last().unwrap().scopes);
         self.exit_scope();
         let (frame_size, upvalues) = self.exit_function();
 

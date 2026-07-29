@@ -8,6 +8,4 @@ paraan gawa_counter(simula):
     ibalik dagdag;
 
 ang counter = gawa_counter(10);
-print counter();
-print counter();
-print counter();
+println("{}\n{}\n{}", counter(), counter(), counter());
