@@ -19,14 +19,19 @@ use crate::{
 pub mod ast;
 pub mod lexer;
 
-/// Handles turning a bunch of tokens into an Abstract Syntax Tree (AST) representing the language's
-/// grammar
-///
-/// see [eng_grammar.txt](./eng_grammar.txt)
+/// Handles the process of turning a bunch of tokens into an Abstract Syntax Tree (AST) representing the language's
+/// grammar. See [eng_grammar.txt](./eng_grammar.txt)
 pub struct Parser<'c> {
+    /// The tokens to be parsed
     tokens: Vec<Token>,
+
+    /// Offset on the vector of tokens pointing to the currently parsed token
     current: usize,
+
+    /// ID pointing to the current module being parsed in the global context
     module_id: usize,
+
+    /// The global context
     ctx: &'c mut GlobalContext,
 }
 
@@ -41,8 +46,9 @@ impl<'c> Parser<'c> {
         }
     }
 
-    /// Runs the parser from the initialized vector of tokens and generates an ast (a vector of `Stmt`s) for the target module
-    pub fn parse(&mut self) {
+    /// Takes the parser and turns the initialized vector of tokens into an ast (a vector of `Stmt`s)
+    /// The ast is stored into the module pointed to by the `module_id`
+    pub fn parse(mut self) {
         while !self.at_end() {
             match self.parse_statement() {
                 Ok(statement) => {
