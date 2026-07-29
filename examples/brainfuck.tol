@@ -12,7 +12,7 @@ klase BrainfuckInterpreter:
         habang ako.pc < ako.code.haba():
             ang cmd = ako.code[ako.pc]
             ako.takbuhinCmd(cmd)
-            ako.pc = ako.pc + 1
+            ako.pc += 1
 
     paraan takbuhinCmd(ako, cmd):
         kung cmd == '>':
@@ -30,12 +30,22 @@ klase BrainfuckInterpreter:
             ako.tape[ako.ip] = in[0]
         kung cmd == '[':
             kung ako.tape[ako.ip] == 0:
-                habang ako.code[ako.pc] != ']':
+                ang lalim = 1
+                habang lalim > 0:
                     ako.pc += 1
+                    kung ako.code[ako.pc] == '[':
+                        lalim += 1
+                    kundi ako.code[ako.pc] == ']':
+                        lalim -= 1
         kung cmd == ']':
             kung ako.tape[ako.ip] != 0:
-                habang ako.code[ako.pc] != '[':
+                ang lalim = 1
+                habang lalim > 0:
                     ako.pc -= 1
+                    kung ako.code[ako.pc] == '[':
+                        lalim -= 1
+                    kung ako.code[ako.pc] == ']':
+                        lalim += 1
 
 ang hello_world = ">++++++++[<+++++++++>-]<.>++++[<+++++++>-]<+.+++++++..+++.>>++++++[<+++++++>-]<++.------------.>++++++[<+++++++++>-]<+.<.+++.------.--------.>>>++++[<++++++++>-]<+."
 ang interpreter = BrainfuckInterpreter.bago(hello_world)
