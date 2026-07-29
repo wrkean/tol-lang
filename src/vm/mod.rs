@@ -565,9 +565,9 @@ impl VM {
 
         // For 1 argument, the integer itself
         match method_name.as_ref() {
-            "bilang_string" => builtin::numero::bilang_string(self, &args),
+            "bilangString" => builtin::numero::bilang_string(self, &args),
             "abs" => builtin::numero::abs(self, &args),
-            "bilang_ascii" => builtin::numero::bilang_ascii(self, &args),
+            "bilangAscii" => builtin::numero::bilang_karakter(self, &args),
             _ => Err(Box::new(self.new_runtime_error(
                 &format!("walang \"method\" na `{}` ang numero na ito", method_name),
                 self.current_ip(),

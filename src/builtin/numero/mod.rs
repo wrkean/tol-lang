@@ -36,7 +36,7 @@ pub fn bilang_string(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeEr
     Ok(Value::Str(id))
 }
 
-pub fn bilang_ascii(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
+pub fn bilang_karakter(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
     expected_args_count(vm, args.len(), 1)?;
     let int = expect_int_argument(vm, args)?;
 
