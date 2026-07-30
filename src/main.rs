@@ -21,7 +21,10 @@ fn main() {
     let args = Args::parse();
 
     let mut global_context = GlobalContext::new(args);
-    driver::compile_entry_point(&mut global_context);
+    if let Err(report) = driver::compile_entry_point(&mut global_context) {
+        eprintln!("{}", report);
+        return;
+    }
     driver::run(0, global_context);
 }
 

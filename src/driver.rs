@@ -6,6 +6,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use miette::miette;
+
 use crate::{
     Args,
     analyze::Analyzer,
@@ -13,16 +15,19 @@ use crate::{
     global_ctx::GlobalContext,
     module::{Module, ModuleCompileState, ModuleId},
     parse::{Parser, lexer::Lexer},
-    tol::diagnostic::miette_diagnostic::MietteDiagnostic,
+    prelude::DiagResult,
+    tol::diagnostic::{TolDiagnostic, miette_diagnostic::MietteDiagnostic},
     vm::VM,
 };
 
 /// Compiles the entry point derived from the initialized CLI arguments.
-pub fn compile_entry_point(ctx: &mut GlobalContext) {
-    let main_module = module_from_path(ctx.entry_point().clone());
+pub fn compile_entry_point(ctx: &mut GlobalContext) -> Result<(), miette::Report> {
+    let main_module = module_from_path(ctx.entry_point().clone())?;
     let id = ctx.register_module(main_module);
 
     compile_module(id, ctx);
+
+    Ok(())
 }
 
 /// Compiles the given module by module id
@@ -67,10 +72,19 @@ fn analyze_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     analyzer.analyze();
 }
 
-fn module_from_path(path: impl Into<PathBuf> + AsRef<Path>) -> Module {
+fn module_from_path(path: impl Into<PathBuf> + AsRef<Path>) -> Result<Module, miette::Report> {
     let path = path.into();
+    let path = path.canonicalize().map_err(|e| {
+        miette!(
+            severity = miette::Severity::Error,
+            help = "tiyakin na nag-eexist ang path",
+            "may error habang kina-canonicalize ang path na '{}': {}",
+            path.to_str().unwrap(),
+            e
+        )
+    })?;
     let name = path.file_stem().unwrap().to_str().unwrap().to_string();
     let source = fs::read_to_string(&path).unwrap();
 
-    Module::new(path, name, source)
+    Ok(Module::new(path, name, source))
 }
