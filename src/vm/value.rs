@@ -11,6 +11,7 @@ pub enum Value {
     ClassInstance(Rc<RefCell<ClassInstance>>),
     BoundMethod(Rc<BoundMethod>),
     List(Rc<RefCell<List>>),
+    ModuleObj(Rc<RefCell<ModuleObj>>),
     Null,
 }
 
@@ -25,6 +26,7 @@ use crate::{
         class::{ClassDef, ClassInstance},
         function::{BoundMethod, Closure, Function},
         list::List,
+        module_obj::ModuleObj,
         native_functions::NativeFunction,
     },
 };
@@ -161,7 +163,8 @@ impl Value {
             | Value::BoundMethod(_)
             | Value::List(_)
             | Value::Closure(_)
-            | Null => self.to_string(),
+            | Null
+            | Value::ModuleObj(_) => self.to_string(),
             Value::Str(id) => vm.get_interned_string(*id).to_string(),
         }
     }
@@ -197,6 +200,7 @@ impl fmt::Display for Value {
                         .join(", ")
                 )
             }
+            ModuleObj(module_obj) => write!(f, "<modyul '{}'>", module_obj.borrow().name),
         }
     }
 }

@@ -210,6 +210,10 @@ impl Module {
     pub fn add_dependency(&mut self, module_id: ModuleId) {
         self.dependencies.push(module_id);
     }
+
+    pub fn take_global_name_map(&mut self) -> HashMap<String, usize> {
+        mem::take(&mut self.global_name_map)
+    }
 }
 
 /// A module's compile state, composed of three states:

@@ -23,6 +23,7 @@ pub enum OpCode {
     IndexGet,
     IndexSet,
     Dup,
+    ImportModule,
 
     Pop,
     Push,
