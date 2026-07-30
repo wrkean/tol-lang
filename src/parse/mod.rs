@@ -5,7 +5,7 @@ use crate::{
     module::{Module, ModuleId},
     parse::ast::{
         expr::{Expr, ExprKind, ListInit},
-        stmt::{Branch, Field, Param, ParamList, Stmt, StmtKind},
+        stmt::{Branch, Field, ImportPathType, Param, ParamList, Stmt, StmtKind},
     },
     prelude::DiagResult,
     tol::{
@@ -72,6 +72,7 @@ impl<'c> Parser<'c> {
             TokenKind::Habang => self.parse_habang(),
             TokenKind::Ibalik => self.parse_ibalik(),
             TokenKind::Klase => self.parse_klase(),
+            TokenKind::Kunin => self.parse_kunin(),
             TokenKind::Biyakin => {
                 let span = self.advance().span().clone();
                 self.consume(
@@ -271,6 +272,66 @@ impl<'c> Parser<'c> {
             .end;
 
         Ok(Stmt::new(start..end, StmtKind::Klase { name, methods }))
+    }
+
+    fn parse_kunin(&mut self) -> DiagResult<Stmt> {
+        let start = self.advance().span().start;
+        let import_path_type = match self.peek().kind() {
+            TokenKind::Dot => {
+                self.advance();
+                self.consume(
+                    TokenKind::Slash,
+                    "ang tuldok dito ay dapat na may kasunod na `/`",
+                )?;
+                ImportPathType::Relative
+            }
+            TokenKind::Slash => {
+                self.advance();
+                ImportPathType::Std
+            }
+            TokenKind::Identifier(_) => ImportPathType::Root,
+            _ => {
+                let current_module = self.current_module();
+                let diagnostic = TolDiagnostic::err(
+                    current_module.source_arc(),
+                    current_module.filename(),
+                    "hindi inaasahang token",
+                )
+                .label(
+                    Label::new(self.peek().span().clone())
+                        .message("umaasa ako ng isa sa mga ito: (`.`, `/`, o pangalan)"),
+                );
+                return Err(Box::new(diagnostic));
+            }
+        };
+
+        let mut segments = Vec::new();
+        segments.push(
+            self.consume_ident("umaasa ako ng pangalan ng path dito")?
+                .clone(),
+        );
+        while !self.at_end() && self.peek().kind() == &TokenKind::Slash {
+            segments.push(
+                self.consume_ident("umaasa ako ng pangalan ng path dito")?
+                    .clone(),
+            );
+        }
+
+        let end = self
+            .consume(
+                TokenKind::SemiColon,
+                "umaasa ako ng `;` pagkatapos ng path dito",
+            )?
+            .span()
+            .end;
+
+        Ok(Stmt::new(
+            start..end,
+            StmtKind::Kunin {
+                segments,
+                import_path_type,
+            },
+        ))
     }
 
     fn parse_fields(&mut self) -> DiagResult<Vec<Field>> {
@@ -697,6 +758,20 @@ impl<'c> Parser<'c> {
 
     fn consume_int(&mut self, message: impl Into<String>) -> DiagResult<&Token> {
         if matches!(self.peek().kind(), TokenKind::IntLiteral(_)) {
+            return Ok(self.advance());
+        }
+
+        let current_module = self.current_module();
+        let span = self.peek().span().clone();
+
+        let diagnostic =
+            predefined_diagnostics::unexpected_token(current_module, message.into(), span);
+
+        Err(Box::new(diagnostic))
+    }
+
+    fn consume_str(&mut self, message: impl Into<String>) -> DiagResult<&Token> {
+        if matches!(self.peek().kind(), TokenKind::StringLiteral(_)) {
             return Ok(self.advance());
         }
 

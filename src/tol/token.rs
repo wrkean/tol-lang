@@ -43,6 +43,7 @@ pub enum TokenKind {
     Ituloy,
     Ibalik,
     Klase,
+    Kunin,
 
     SemiColon,
     Colon,

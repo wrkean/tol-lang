@@ -123,6 +123,14 @@ pub enum StmtKind {
     /// Expression statement. An expression with a semicolon at the end. Boring.
     Expr { expr: Expr },
 
+    /// Import statement
+    ///
+    /// e.g.: `kunin "/std/io"`
+    Kunin {
+        segments: Vec<Token>,
+        import_path_type: ImportPathType,
+    },
+
     /// Break statement
     Biyakin,
 
@@ -186,4 +194,22 @@ impl Branch {
     pub fn new(condition: Option<Expr>, block: Stmt) -> Self {
         Self { condition, block }
     }
+}
+
+/// The import path type determine where the analyzer starts to search for the path
+/// ```
+/// Std: "/std/io" -> searches $TOL_STD_PATH/io.tol
+/// Relative: "./file1" -> searches ./file1.tol
+/// Root: "folder1/file1" -> searches $TOL_PROJECT_ROOT/folder1/file1.tol
+pub enum ImportPathType {
+    /// Searches the std path
+    Std,
+
+    /// Searches the relative path
+    Relative,
+
+    /// Searches the package root path.
+    ///
+    /// TODO: Implement later
+    Root,
 }
