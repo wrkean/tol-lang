@@ -198,6 +198,10 @@ impl Module {
         // name conflicts may happen
         self.global_name_map.insert(name, slot);
     }
+
+    pub fn compile_state(&self) -> &ModuleCompileState {
+        &self.compile_state
+    }
 }
 
 /// A module's compile state, composed of three states:

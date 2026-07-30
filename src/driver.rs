@@ -25,14 +25,28 @@ pub fn compile_entry_point(ctx: &mut GlobalContext) -> Result<(), miette::Report
     let main_module = module_from_path(ctx.entry_point().clone())?;
     let id = ctx.register_module(main_module);
 
-    compile_module(id, ctx);
+    compile_module(id, ctx).map_err(|err| miette::Report::new(MietteDiagnostic::from(*err)))?;
 
     Ok(())
 }
 
 /// Compiles the given module by module id
-pub fn compile_module(module_id: ModuleId, ctx: &mut GlobalContext) {
+pub fn compile_module(module_id: ModuleId, ctx: &mut GlobalContext) -> DiagResult<()> {
     let module = ctx.module_by_id_mut(module_id);
+    match module.compile_state() {
+        ModuleCompileState::Compiling => return Err(Box::new(TolDiagnostic::err(
+            module.source_arc(),
+            module.filename(),
+            "kasalukuyang kino-compile ang module na ito",
+        ).help("maaaring nangyari ito dahil ang module na kinuha mo ay kinuha rin ang module na kumuha nito"))),
+
+        // Is already compiled, no need to compile again
+        ModuleCompileState::Compiled => return Ok(()),
+
+        // Do nothing, proceed
+        ModuleCompileState::Initialized => {}
+    }
+
     module.set_compile_state(ModuleCompileState::Compiling);
     parse_module(module_id, ctx);
     analyze_module(module_id, ctx);
@@ -42,7 +56,7 @@ pub fn compile_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     // Stop compilation
     if module.has_an_error() {
         module.report_diagnostics();
-        return;
+        return Ok(());
     }
 
     let mut compiler = BytecodeCompiler::new(ctx, module_id);
@@ -51,6 +65,8 @@ pub fn compile_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     module.set_chunk(chunk);
     module.set_compile_state(ModuleCompileState::Compiled);
     module.report_diagnostics();
+
+    Ok(())
 }
 
 /// Runs the whole thing
