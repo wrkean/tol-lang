@@ -74,13 +74,19 @@ fn analyze_module(module_id: ModuleId, ctx: &mut GlobalContext) {
 
 fn module_from_path(path: impl Into<PathBuf> + AsRef<Path>) -> Result<Module, miette::Report> {
     let path = path.into();
+    if !path.exists() {
+        return Err(miette!(
+            severity = miette::Severity::Error,
+            help = "tiyakin na nag-eexist ang path",
+            "hindi nag-eexist ang file '{}'",
+            path.to_str().unwrap(),
+        ));
+    }
     let path = path.canonicalize().map_err(|e| {
         miette!(
             severity = miette::Severity::Error,
-            help = "tiyakin na nag-eexist ang path",
-            "may error habang kina-canonicalize ang path na '{}': {}",
+            "nabigong i-canonicalize ang path '{}': {e}",
             path.to_str().unwrap(),
-            e
         )
     })?;
     let name = path.file_stem().unwrap().to_str().unwrap().to_string();
