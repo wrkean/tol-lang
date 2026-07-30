@@ -48,6 +48,9 @@ pub struct Module {
 
     /// Global name map. Maps the name -> index to the globals vector
     global_name_map: HashMap<String, usize>,
+
+    /// Modules imported in this module
+    dependencies: Vec<ModuleId>,
 }
 
 impl Module {
@@ -74,6 +77,7 @@ impl Module {
             chunk: Chunk::new(),
             globals: Vec::new(),
             global_name_map: HashMap::new(),
+            dependencies: Vec::new(),
         }
     }
 
@@ -201,6 +205,10 @@ impl Module {
 
     pub fn compile_state(&self) -> &ModuleCompileState {
         &self.compile_state
+    }
+
+    pub fn add_dependency(&mut self, module_id: ModuleId) {
+        self.dependencies.push(module_id);
     }
 }
 
