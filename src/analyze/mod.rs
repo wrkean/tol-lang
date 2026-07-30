@@ -707,9 +707,18 @@ impl<'gctx> Analyzer<'gctx> {
                 Err(Box::new(diagnostic))
             }
             None => {
+                let global_slot = if let Storage::Global(slot) = symbol.storage() {
+                    Some(*slot)
+                } else {
+                    None
+                };
                 let name = symbol.name().to_string();
                 let id = self.ctx.add_symbol(symbol);
-                current_scope.insert(name, id);
+                current_scope.insert(name.clone(), id);
+
+                if let Some(slot) = global_slot {
+                    self.current_module_mut().register_global(name, slot)
+                }
 
                 if self.is_in_global_scope() {
                     Ok(ResolvedVar::Global(id))
@@ -852,7 +861,7 @@ impl<'gctx> Analyzer<'gctx> {
 
     fn assign_storage(&mut self) -> Storage {
         if self.is_in_global_scope() {
-            Storage::Global(self.get_global_slot())
+            Storage::Global(self.get_local_slot())
         } else {
             Storage::Local(self.get_local_slot())
         }
