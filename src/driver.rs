@@ -53,7 +53,7 @@ pub fn compile_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     module.report_diagnostics();
 }
 
-/// Main function to run the whole thing
+/// Runs the whole thing
 pub fn run(entry_module: ModuleId, ctx: GlobalContext) {
     let mut vm = ctx.into_vm();
     vm.run();
