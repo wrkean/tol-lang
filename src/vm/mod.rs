@@ -39,7 +39,6 @@ pub struct VM {
     string_interner: StringInterner,
     open_upvalues: Vec<Upvalue>,
     modules: Vec<Module>,
-    natives: HashMap<String, usize>,
     loaded_modules: HashMap<ModuleId, Rc<RefCell<ModuleObj>>>,
     halt: bool,
 }
@@ -50,7 +49,6 @@ impl VM {
         string_interner: StringInterner,
         entry_module_id: ModuleId,
         modules: Vec<Module>,
-        natives: HashMap<String, usize>,
     ) -> Self {
         let closure = Rc::new(Closure {
             func: Rc::new(Function::new(
@@ -68,7 +66,6 @@ impl VM {
             string_interner,
             open_upvalues: Vec::new(),
             modules,
-            natives,
             loaded_modules: HashMap::new(),
             halt: false,
             frames: vec![Frame {
@@ -81,12 +78,6 @@ impl VM {
     }
 
     pub fn run(&mut self) {
-        // Arity as None means variadic arguments
-        self.assign_native("input", Some(1), native_functions::native_input);
-        self.assign_native("alis", Some(1), native_functions::native_alis);
-        self.assign_native("print", None, native_functions::native_print);
-        self.assign_native("println", None, native_functions::native_println);
-
         while self.frames.last().is_some() {
             self.step();
             if self.halt {
@@ -666,21 +657,6 @@ impl VM {
         module_obj
     }
 
-    fn assign_native(
-        &mut self,
-        name: &str,
-        arity: Option<u8>,
-        func: fn(&mut VM, &[Value]) -> Result<Value, Box<RuntimeError>>,
-    ) {
-        let id = self.natives[name];
-        let native_fn = Value::NativeFunction(Rc::new(NativeFunction {
-            name: name.to_string(),
-            arity: arity.map(|ar| ar as usize),
-            func,
-        }));
-        self.store_global(id, native_fn);
-    }
-
     // Resolves a possibly-negative index into a bounds-checked usize, or None if out of range.
     fn resolve_index(&self, len: usize, index: i64) -> Option<usize> {
         let resolved = if index < 0 { index + len as i64 } else { index };
@@ -1105,9 +1081,5 @@ impl VM {
 
     pub fn get_interned_string(&self, id: usize) -> Rc<str> {
         self.string_interner.get(id).clone()
-    }
-
-    pub fn get_native(&self, native_name: &str) -> usize {
-        self.natives[native_name]
     }
 }

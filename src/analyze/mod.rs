@@ -159,27 +159,9 @@ impl<'gctx> Analyzer<'gctx> {
     pub fn analyze(&mut self) {
         self.enter_scope(false);
 
-        self.define_native("input");
-        self.define_native("alis");
-        self.define_native("print");
-        self.define_native("println");
-
         self.resolve_names();
 
         self.exit_scope();
-    }
-
-    fn define_native(&mut self, name: impl Into<String>) -> DiagResult<()> {
-        let storage = self.assign_storage();
-        let Storage::Global(id) = storage else {
-            unreachable!()
-        };
-        let name = name.into();
-        let symbol = Symbol::new(name.clone(), 0..0, storage, SymbolKind::NativeFunction);
-        self.declare_symbol(symbol)?;
-        self.ctx.new_native_fn(name, id);
-
-        Ok(())
     }
 
     fn resolve_names(&mut self) {

@@ -161,12 +161,6 @@ impl GlobalContext {
         let mut entry_module = &mut self.modules[0];
         let chunk = entry_module.take_chunk();
 
-        VM::new(
-            chunk,
-            self.string_interner.take(),
-            0,
-            self.modules,
-            self.native_functions,
-        )
+        VM::new(chunk, self.string_interner.take(), 0, self.modules)
     }
 }
