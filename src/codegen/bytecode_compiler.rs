@@ -53,7 +53,8 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 0..0
             }
         };
-        self.chunk.emit_opcode(OpCode::Halt, span);
+        self.chunk.emit_opcode(OpCode::Null, 0..0);
+        self.chunk.emit_opcode(OpCode::Return, 0..0);
 
         mem::take(&mut self.chunk)
     }
@@ -68,6 +69,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             StmtKind::Ituloy => self.compile_ituloy(statement),
             StmtKind::Ibalik { .. } => self.compile_ibalik(statement),
             StmtKind::Klase { .. } => self.compile_klase(statement),
+            StmtKind::Kunin { .. } => self.compile_kunin(statement),
             StmtKind::Expr { .. } => self.compile_expression_statement(statement),
             StmtKind::Block { statements } => {
                 for statement in statements {
@@ -249,6 +251,27 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             .emit_byte(methods.len() as u8, klase.span().clone());
 
         self.store_var(klase.resolved_var(), klase.span().clone());
+    }
+
+    fn compile_kunin(&mut self, kunin: &Stmt) {
+        let StmtKind::Kunin {
+            segments,
+            import_path_type,
+        } = kunin.kind()
+        else {
+            unreachable!()
+        };
+
+        let symbol = self.ctx.symbol_by_id(kunin.resolved_var().symbol_id());
+        let SymbolKind::Module { module_id } = symbol.kind() else {
+            unreachable!()
+        };
+
+        let constant_index = self.chunk.add_constant(Value::Int(*module_id as i64));
+        self.chunk
+            .emit_opcode(OpCode::ImportModule, kunin.span().clone());
+        self.chunk.emit_byte(constant_index, kunin.span().clone());
+        self.store_var(kunin.resolved_var(), kunin.span().clone());
     }
 
     fn compile_method(&mut self, method: &Stmt) {

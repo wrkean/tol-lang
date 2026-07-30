@@ -56,7 +56,15 @@ pub fn compile_module(module_id: ModuleId, ctx: &mut GlobalContext) -> DiagResul
     // Stop compilation
     if module.has_an_error() {
         module.report_diagnostics();
-        return Ok(());
+        let diagnostic = TolDiagnostic::err(
+            module.source_arc(),
+            module.filename(),
+            format!(
+                "hindi ma-itakbo ang `{}` dahil sa mga error",
+                module.filename()
+            ),
+        );
+        return Err(Box::new(diagnostic));
     }
 
     let mut compiler = BytecodeCompiler::new(ctx, module_id);
@@ -88,7 +96,7 @@ fn analyze_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     analyzer.analyze();
 }
 
-fn module_from_path(path: impl Into<PathBuf> + AsRef<Path>) -> Result<Module, miette::Report> {
+pub fn module_from_path(path: impl Into<PathBuf> + AsRef<Path>) -> Result<Module, miette::Report> {
     let path = path.into();
     if !path.exists() {
         return Err(miette!(

@@ -41,6 +41,7 @@ pub struct VM {
     modules: Vec<Module>,
     natives: HashMap<String, usize>,
     loaded_modules: HashMap<ModuleId, Rc<RefCell<ModuleObj>>>,
+    halt: bool,
 }
 
 impl VM {
@@ -69,6 +70,7 @@ impl VM {
             modules,
             natives,
             loaded_modules: HashMap::new(),
+            halt: false,
             frames: vec![Frame {
                 closure,
                 ip: 0,
@@ -86,7 +88,8 @@ impl VM {
         self.assign_native("println", None, native_functions::native_println);
 
         while self.frames.last().is_some() {
-            if self.step() {
+            self.step();
+            if self.halt {
                 break;
             }
         }
@@ -94,7 +97,8 @@ impl VM {
 
     fn run_until_frame_depth(&mut self, target_depth: usize) {
         while self.frames.len() > target_depth {
-            if self.step() {
+            self.step();
+            if self.halt {
                 break;
             }
             if self.frames.is_empty() {
@@ -103,7 +107,7 @@ impl VM {
         }
     }
 
-    fn step(&mut self) -> bool {
+    fn step(&mut self) {
         let opcode = self.read_byte();
 
         match opcode {
@@ -190,7 +194,7 @@ impl VM {
                 self.print_value(&value);
             }
             op if op == OpCode::Halt as u8 => {
-                return true;
+                self.halt = true;
             }
             op if op == OpCode::Null as u8 => {
                 self.push(Value::Null);
@@ -258,22 +262,29 @@ impl VM {
                         Some(method) => {
                             self.push(method.clone());
                         }
-                        None => self.runtime_error(
-                            &format!("walang \"method\" na `{}` ang `{}`", field_name, def.name),
-                            self.current_ip(),
-                        ),
+                        None => {
+                            self.runtime_error(
+                                &format!(
+                                    "walang \"method\" na `{}` ang `{}`",
+                                    field_name, def.name
+                                ),
+                                self.current_ip(),
+                            );
+                        }
                     },
                     Value::ModuleObj(module_obj) => {
                         match module_obj.borrow().exports.get(field_name.as_ref()) {
                             Some(v) => self.push(v.clone()),
-                            None => self.runtime_error(
-                                &format!(
-                                    "walang \"method\" na `{}` ang module na `{}`",
-                                    field_name,
-                                    module_obj.borrow().name
-                                ),
-                                self.current_ip(),
-                            ),
+                            None => {
+                                self.runtime_error(
+                                    &format!(
+                                        "walang \"method\" na `{}` ang module na `{}`",
+                                        field_name,
+                                        module_obj.borrow().name
+                                    ),
+                                    self.current_ip(),
+                                );
+                            }
                         }
                     }
                     // TODO: Support all values soon, we need to support calls like
@@ -399,7 +410,7 @@ impl VM {
                                 &format!("hindi \"method\" ng {} ang {}", def.name, method_name),
                                 self.current_ip(),
                             );
-                            return true;
+                            return;
                         };
 
                         // Replace the 'Null' slot at index (len - arg_count - 1) with the method
@@ -427,7 +438,7 @@ impl VM {
                                 ),
                                 self.current_ip(),
                             );
-                            return true;
+                            return;
                         };
 
                         // Replace the 'Null' slot at index (len - arg_count - 1) with the method
@@ -479,10 +490,12 @@ impl VM {
                             }
                         }
                     }
-                    val => self.runtime_error(
-                        &format!("walang method ang {val} na {method_name}"),
-                        self.current_ip(),
-                    ),
+                    val => {
+                        self.runtime_error(
+                            &format!("walang method ang {val} na {method_name}"),
+                            self.current_ip(),
+                        );
+                    }
                 }
             }
             op if op == OpCode::List as u8 => {
@@ -507,7 +520,7 @@ impl VM {
                         "dapat ang kapasidad ay mas mahigit pa sa 0",
                         self.current_ip(),
                     );
-                    return true;
+                    return;
                 }
 
                 let mut elements = vec![init_value; capacity as usize];
@@ -518,7 +531,7 @@ impl VM {
                 let index = self.pop();
                 let Value::Int(index) = index else {
                     self.runtime_error("umaasa ng numero dito", self.current_ip());
-                    return true;
+                    return;
                 };
 
                 let target = self.pop();
@@ -565,7 +578,7 @@ impl VM {
                 let set_val = self.pop();
                 let Value::Int(index) = index else {
                     self.runtime_error("umaasa ng numero dito", self.current_ip());
-                    return true;
+                    return;
                 };
 
                 match target {
@@ -580,7 +593,6 @@ impl VM {
                                         &format!("mas malaki o kaparehas ang \"index\" na naibigay ({}) kesa sa bilang ng mga elemento ({})", index, len),
                                         self.current_ip(),
                                     );
-                                return true;
                             }
                         }
                     }
@@ -588,6 +600,7 @@ impl VM {
                 }
             }
             op if op == OpCode::ImportModule as u8 => {
+                println!("Reached");
                 let constant_index = self.read_byte() as usize;
                 let Value::Int(module_id) = self.current_chunk().get_constant(constant_index)
                 else {
@@ -599,8 +612,6 @@ impl VM {
             }
             _ => println!("bug: unknown opcode {:#X}", opcode),
         };
-
-        false
     }
 
     fn run_module(&mut self, module_id: ModuleId) {
@@ -1068,12 +1079,12 @@ impl VM {
     }
 
     pub fn runtime_error(&mut self, message: &str, instruction: usize) {
+        self.halt = true;
         let runtime_err = self.new_runtime_error(message, instruction);
         eprintln!(
             "{:?}",
             miette::Report::new(MietteDiagnostic::from(runtime_err))
         );
-        self.force_stop_vm();
     }
 
     pub fn new_runtime_error(&self, message: &str, instruction: usize) -> RuntimeError {
@@ -1086,11 +1097,6 @@ impl VM {
             message,
             Label::new(span),
         )
-    }
-
-    fn force_stop_vm(&mut self) {
-        // naively
-        self.frames.clear();
     }
 
     pub fn intern_string(&mut self, s: &str) -> usize {

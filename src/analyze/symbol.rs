@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::{
     analyze::UpvalueDesc,
+    module::ModuleId,
     parse::ast::stmt::Param,
     prelude::Spanned,
     tol::{token::Span, types::TolType},
@@ -83,6 +84,9 @@ pub enum SymbolKind {
     NativeFunction,
     Klase {
         methods: HashSet<String>,
+    },
+    Module {
+        module_id: ModuleId,
     },
 }
 

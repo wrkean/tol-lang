@@ -1,15 +1,19 @@
 //! Module responsible for Abstract Syntax Tree analysis
 
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+};
 
 use crate::{
     analyze::symbol::{Storage, Symbol, SymbolId, SymbolKind},
+    driver,
     global_ctx::GlobalContext,
     module::{Module, ModuleId},
     parse::ast::{
         Ast,
         expr::{Expr, ExprKind},
-        stmt::{Stmt, StmtKind},
+        stmt::{ImportPathType, Stmt, StmtKind},
     },
     prelude::DiagResult,
     tol::{
@@ -199,6 +203,7 @@ impl<'gctx> Analyzer<'gctx> {
             StmtKind::Ituloy => self.resolve_ituloy(statement),
             StmtKind::Ibalik { .. } => self.resolve_ibalik(statement),
             StmtKind::Klase { .. } => self.resolve_klase(statement),
+            StmtKind::Kunin { .. } => self.resolve_kunin(statement),
             StmtKind::Block { statements } => {
                 self.enter_scope(false);
                 for statement in statements {
@@ -436,6 +441,70 @@ impl<'gctx> Analyzer<'gctx> {
 
         klase.set_resolved_var(resolved_var);
         Ok(())
+    }
+
+    fn resolve_kunin(&mut self, kunin: &mut Stmt) -> DiagResult<()> {
+        let StmtKind::Kunin {
+            segments,
+            import_path_type,
+        } = kunin.kind_mut()
+        else {
+            unreachable!()
+        };
+
+        let segments_span =
+            segments.first().unwrap().span().start..segments.last().unwrap().span().end;
+        let path = self.path_from_segments(segments, import_path_type);
+        let module = driver::module_from_path(path).map_err(|report| {
+            let help = report.help().unwrap();
+            let current_module = self.current_module();
+            let diagnostic = TolDiagnostic::err(
+                current_module.source_arc(),
+                current_module.filename(),
+                report.to_string(),
+            )
+            .label(Label::new(segments_span.clone()).message("path na ito"))
+            .help(help.to_string());
+
+            Box::new(diagnostic)
+        })?;
+
+        let module_id = self.ctx.register_module(module);
+        if let Err(diag) = driver::compile_module(module_id, self.ctx) {
+            return Err(Box::new(diag.label(
+                Label::new(segments_span).message("nabigong i-compile ang module na ito"),
+            )));
+        };
+
+        let storage = self.assign_storage();
+        let symbol_name = segments.last().unwrap().lexeme().to_string();
+        let symbol = Symbol::new(
+            symbol_name,
+            segments_span,
+            storage,
+            SymbolKind::Module { module_id },
+        );
+        let resolved_var = self.declare_symbol(symbol)?;
+        kunin.set_resolved_var(resolved_var);
+
+        Ok(())
+    }
+
+    fn path_from_segments(&mut self, segments: &[Token], path_type: &ImportPathType) -> PathBuf {
+        let mut base_path = match path_type {
+            ImportPathType::Relative => {
+                self.current_module().path().parent().unwrap().to_path_buf()
+            }
+            ImportPathType::Std => todo!(),
+            ImportPathType::Root => todo!(),
+        };
+
+        for segment in segments {
+            let segment_str = segment.lexeme();
+            base_path.push(segment_str);
+        }
+
+        base_path.with_extension("tol")
     }
 
     fn resolve_method(&mut self, method: &mut Stmt) -> DiagResult<()> {
