@@ -122,6 +122,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             function_chunk,
             params.len() as u8,
             symbol.frame_size(),
+            self.module_id,
         );
 
         let SymbolKind::Function { upvalues, .. } = symbol.kind() else {
@@ -400,6 +401,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                     function_chunk,
                     params.len() as u8,
                     symbol.frame_size(),
+                    self.module_id,
                 );
 
                 let SymbolKind::Function { upvalues, .. } = symbol.kind() else {

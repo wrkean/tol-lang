@@ -49,7 +49,13 @@ impl VM {
         natives: HashMap<String, usize>,
     ) -> Self {
         let closure = Rc::new(Closure {
-            func: Rc::new(Function::new("__paraan_una__".to_string(), chunk, 0, 0)),
+            func: Rc::new(Function::new(
+                "__paraan_una__".to_string(),
+                chunk,
+                0,
+                0,
+                entry_module_id,
+            )),
             upvalues: Vec::new(),
         });
 
@@ -168,7 +174,7 @@ impl VM {
                 }
                 op if op == OpCode::Call as u8 => {
                     let arity = self.read_byte();
-                    self.call_function(arity, self.current_frame().module_id);
+                    self.call_function(arity);
                 }
                 op if op == OpCode::Return as u8 => {
                     let value = self.pop();
@@ -331,11 +337,7 @@ impl VM {
                                     // Insert at the beginning of the locals the callee itself
                                     let callee_idx = self.stack.len() - arg_count - 1;
                                     self.stack[callee_idx] = method.clone();
-                                    self.call_value(
-                                        method,
-                                        arg_count as u8,
-                                        self.current_frame().module_id,
-                                    );
+                                    self.call_value(method, arg_count as u8);
                                 }
                                 None => {
                                     self.runtime_error(
@@ -371,11 +373,7 @@ impl VM {
                             self.stack.remove(self.stack.len() - arg_count);
 
                             // Call the method with only the actual arguments (arg_count - 1)
-                            self.call_value(
-                                method,
-                                arg_count as u8 - 1,
-                                self.current_frame().module_id,
-                            );
+                            self.call_value(method, arg_count as u8 - 1);
                         }
                         Value::Int(_) => {
                             let mut args = vec![Value::Null; arg_count];
@@ -686,7 +684,7 @@ impl VM {
         }
     }
 
-    fn call_function(&mut self, arity: u8, module_id: ModuleId) {
+    fn call_function(&mut self, arity: u8) {
         let callee_index = self.stack.len() - 1 - arity as usize;
 
         let is_function = matches!(
@@ -719,7 +717,12 @@ impl VM {
 
         match self.peek(arity as usize) {
             Value::Closure(cl) => {
-                self.new_frame(Rc::clone(cl), callee_index, cl.func.frame_size, module_id);
+                self.new_frame(
+                    Rc::clone(cl),
+                    callee_index,
+                    cl.func.frame_size,
+                    cl.func.module_id,
+                );
             }
             Value::NativeFunction(func) => {
                 let func = func.clone();
@@ -754,14 +757,14 @@ impl VM {
                     Rc::clone(&bound.method),
                     callee_index,
                     bound.method.func.frame_size,
-                    module_id,
+                    bound.method.func.module_id,
                 );
             }
             _ => unreachable!(),
         }
     }
 
-    fn call_value(&mut self, value: &Value, arity: u8, module_id: ModuleId) {
+    fn call_value(&mut self, value: &Value, arity: u8) {
         let is_function = matches!(
             &value,
             Value::NativeFunction(_)
@@ -793,7 +796,12 @@ impl VM {
         match value {
             Value::Closure(cl) => {
                 let locals_base = self.stack.len() - arity as usize - 1;
-                self.new_frame(Rc::clone(cl), locals_base, cl.func.frame_size, module_id);
+                self.new_frame(
+                    Rc::clone(cl),
+                    locals_base,
+                    cl.func.frame_size,
+                    cl.func.module_id,
+                );
             }
             Value::NativeFunction(func) => {
                 let base = self.stack.len() - arity as usize;
@@ -817,7 +825,7 @@ impl VM {
                 let insert_at = self.stack.len() - arity as usize;
                 self.stack.insert(insert_at, bound.receiver.clone());
                 let closure_val = Value::Closure(Rc::clone(&bound.method));
-                self.call_value(&closure_val, arity + 1, module_id);
+                self.call_value(&closure_val, arity + 1);
             }
             _ => unreachable!(),
         }

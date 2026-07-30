@@ -3,7 +3,10 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use crate::vm::{chunk::Chunk, value::Value};
+use crate::{
+    module::ModuleId,
+    vm::{chunk::Chunk, value::Value},
+};
 
 #[derive(Debug, Clone)]
 pub struct BoundMethod {
@@ -31,15 +34,23 @@ pub struct Function {
     pub chunk: Rc<Chunk>,
     pub arity: u8,
     pub frame_size: usize,
+    pub module_id: ModuleId,
 }
 
 impl Function {
-    pub fn new(name: String, chunk: Chunk, arity: u8, frame_size: usize) -> Self {
+    pub fn new(
+        name: String,
+        chunk: Chunk,
+        arity: u8,
+        frame_size: usize,
+        module_id: ModuleId,
+    ) -> Self {
         Self {
             name,
             chunk: Rc::new(chunk),
             arity,
             frame_size,
+            module_id,
         }
     }
 
