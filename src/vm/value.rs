@@ -1,3 +1,19 @@
+use std::{cell::RefCell, fmt, rc::Rc, sync::Arc};
+
+use Value::*;
+
+use crate::{
+    stdlib::builtins::native_functions::NativeFunction,
+    tol::diagnostic::runtime::RuntimeError,
+    vm::{
+        VM,
+        class::{ClassDef, ClassInstance},
+        function::{BoundMethod, Closure, Function},
+        list::List,
+        module_obj::ModuleObj,
+    },
+};
+
 #[derive(Debug, Clone)]
 pub enum Value {
     Int(i64),
@@ -14,22 +30,6 @@ pub enum Value {
     ModuleObj(Rc<RefCell<ModuleObj>>),
     Null,
 }
-
-use std::{cell::RefCell, fmt, rc::Rc, sync::Arc};
-
-use Value::*;
-
-use crate::{
-    tol::diagnostic::runtime::RuntimeError,
-    vm::{
-        VM,
-        class::{ClassDef, ClassInstance},
-        function::{BoundMethod, Closure, Function},
-        list::List,
-        module_obj::ModuleObj,
-        native_functions::NativeFunction,
-    },
-};
 impl Value {
     pub fn add(self, right: Self) -> Result<Self, ValueError> {
         match (self, right) {

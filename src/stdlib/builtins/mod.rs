@@ -1,10 +1,7 @@
-//! Built-in methods and functions for the Tol programming language
-
 use crate::{tol::diagnostic::runtime::RuntimeError, vm::VM};
 
-pub mod lista;
-pub mod numero;
-pub mod string;
+pub mod methods;
+pub mod native_functions;
 
 pub fn expected_args_count(
     vm: &VM,

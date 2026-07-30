@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    builtin::expected_args_count,
+    stdlib::builtins,
     tol::diagnostic::runtime::RuntimeError,
     vm::{VM, list::List, value::Value},
 };
@@ -17,14 +17,14 @@ fn expect_string_argument(vm: &mut VM, args: &[Value]) -> Result<Rc<str>, Box<Ru
 }
 
 pub fn haba(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
-    expected_args_count(vm, args.len(), 1)?;
+    builtins::expected_args_count(vm, args.len(), 1)?;
     let string = expect_string_argument(vm, args)?;
 
     Ok(Value::Int(string.len() as i64))
 }
 
 pub fn bilang_numero(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
-    expected_args_count(vm, args.len(), 1)?;
+    builtins::expected_args_count(vm, args.len(), 1)?;
     let string = expect_string_argument(vm, args)?;
 
     match string.parse::<i64>() {
@@ -37,7 +37,7 @@ pub fn bilang_numero(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeEr
 }
 
 pub fn titik(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
-    expected_args_count(vm, args.len(), 1)?;
+    builtins::expected_args_count(vm, args.len(), 1)?;
     let string = expect_string_argument(vm, args)?;
 
     if string.len() > 1 {

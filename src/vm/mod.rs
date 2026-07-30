@@ -1,9 +1,9 @@
 use std::{cell::RefCell, collections::HashMap, iter::Filter, rc::Rc};
 
 use crate::{
-    builtin,
     global_ctx::{GlobalContext, StringInterner},
     module::{Module, ModuleId},
+    stdlib::builtins,
     tol::diagnostic::{Label, miette_diagnostic::MietteDiagnostic, runtime::RuntimeError},
     vm::{
         chunk::Chunk,
@@ -11,7 +11,6 @@ use crate::{
         function::{BoundMethod, Closure, Function, Upvalue, UpvalueState},
         list::List,
         module_obj::ModuleObj,
-        native_functions::NativeFunction,
         opcode::OpCode,
         value::{Value, ValueError},
     },
@@ -676,9 +675,9 @@ impl VM {
 
         // For 1 argument, the integer itself
         match method_name.as_ref() {
-            "bilangString" => builtin::numero::bilang_string(self, &args),
-            "abs" => builtin::numero::abs(self, &args),
-            "bilangKarakter" => builtin::numero::bilang_karakter(self, &args),
+            "bilangString" => builtins::methods::numero::bilang_string(self, &args),
+            "abs" => builtins::methods::numero::abs(self, &args),
+            "bilangKarakter" => builtins::methods::numero::bilang_karakter(self, &args),
             _ => Err(Box::new(self.new_runtime_error(
                 &format!("walang \"method\" na `{}` ang numero na ito", method_name),
                 self.current_ip(),
@@ -692,8 +691,8 @@ impl VM {
         args: Vec<Value>,
     ) -> Result<Value, Box<RuntimeError>> {
         match method_name.as_ref() {
-            "dagdag" => builtin::lista::dagdag(self, &args),
-            "haba" => builtin::lista::haba(self, &args),
+            "dagdag" => builtins::methods::lista::dagdag(self, &args),
+            "haba" => builtins::methods::lista::haba(self, &args),
             _ => Err(Box::new(self.new_runtime_error(
                 &format!("walang \"method\" na `{}` ang lista", method_name),
                 self.current_ip(),
@@ -707,9 +706,9 @@ impl VM {
         args: Vec<Value>,
     ) -> Result<Value, Box<RuntimeError>> {
         match method_name.as_ref() {
-            "haba" => builtin::string::haba(self, &args),
-            "bilangNumero" => builtin::string::bilang_numero(self, &args),
-            "titik" => builtin::string::titik(self, &args),
+            "haba" => builtins::methods::string::haba(self, &args),
+            "bilangNumero" => builtins::methods::string::bilang_numero(self, &args),
+            "titik" => builtins::methods::string::titik(self, &args),
             _ => Err(Box::new(self.new_runtime_error(
                 &format!("walang \"method\" na `{}` ang string", method_name),
                 self.current_ip(),
@@ -1031,7 +1030,7 @@ impl VM {
     // These are what gets shown when the value is to be printed.
     // Unimplemented variants are handled in `Value::fmt` function in the value module
     // as they do not need some values provided by the vm
-    fn print_value(&self, value: &Value) {
+    pub fn print_value(&self, value: &Value) {
         match value {
             Value::Str(id) => {
                 print!("{}", self.get_interned_string(*id));

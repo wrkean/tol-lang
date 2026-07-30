@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    builtin::expected_args_count,
+    stdlib::builtins,
     tol::diagnostic::runtime::RuntimeError,
     vm::{self, VM, list::List, value::Value},
 };
@@ -19,7 +19,7 @@ fn expect_list_argument(
 }
 
 pub fn dagdag(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
-    expected_args_count(vm, args.len(), 2)?;
+    builtins::expected_args_count(vm, args.len(), 2)?;
     let list = expect_list_argument(vm, args)?;
 
     list.borrow_mut().elements.push(args[1].clone());
@@ -28,7 +28,7 @@ pub fn dagdag(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
 }
 
 pub fn haba(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
-    expected_args_count(vm, args.len(), 1)?;
+    builtins::expected_args_count(vm, args.len(), 1)?;
     let list = expect_list_argument(vm, args)?;
 
     Ok(Value::Int(list.borrow().elements.len() as i64))

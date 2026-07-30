@@ -1,5 +1,5 @@
 use crate::{
-    builtin::expected_args_count,
+    stdlib::builtins,
     tol::diagnostic::{Label, runtime::RuntimeError},
     vm::{VM, value::Value},
 };
@@ -14,7 +14,7 @@ fn expect_int_argument(vm: &mut VM, args: &[Value]) -> Result<i64, Box<RuntimeEr
 }
 
 pub fn abs(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
-    expected_args_count(vm, args.len(), 1)?;
+    builtins::expected_args_count(vm, args.len(), 1)?;
     let int = expect_int_argument(vm, args)?;
 
     if int == i64::MIN {
@@ -29,7 +29,7 @@ pub fn abs(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
 }
 
 pub fn bilang_string(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
-    expected_args_count(vm, args.len(), 1)?;
+    builtins::expected_args_count(vm, args.len(), 1)?;
     let int = expect_int_argument(vm, args)?;
 
     let id = vm.intern_string(&int.to_string());
@@ -37,7 +37,7 @@ pub fn bilang_string(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeEr
 }
 
 pub fn bilang_karakter(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
-    expected_args_count(vm, args.len(), 1)?;
+    builtins::expected_args_count(vm, args.len(), 1)?;
     let int = expect_int_argument(vm, args)?;
 
     let id = vm.intern_string(&(int as u8 as char).to_string());
