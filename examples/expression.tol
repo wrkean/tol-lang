@@ -1,4 +1,4 @@
-kunin ../
+kunin hello
 
 bawat i sa 1..5:
     io.isulatln("{}", i)
