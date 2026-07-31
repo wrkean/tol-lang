@@ -33,7 +33,7 @@ pub fn attach_stdlib(target_module_id: ModuleId, ctx: &mut GlobalContext) -> Dia
 
 fn attach_std_io(target_module_id: ModuleId, ctx: &mut GlobalContext) -> DiagResult<()> {
     let stdlib_path = ctx.stdlib_path();
-    let io_module = driver::module_from_path(stdlib_path.join("std/io.tol"))?;
+    let io_module = driver::module_from_path(stdlib_path.join("io.tol"))?;
     let io_module_id = ctx.register_module(io_module);
     native_functions::io::initialize_io_module(io_module_id, ctx);
     driver::compile_module(io_module_id, ctx, false)?;
@@ -45,7 +45,7 @@ fn attach_std_io(target_module_id: ModuleId, ctx: &mut GlobalContext) -> DiagRes
 
 fn attach_std_math(target_module_id: ModuleId, ctx: &mut GlobalContext) -> DiagResult<()> {
     let stdlib_path = ctx.stdlib_path();
-    let math_module = driver::module_from_path(stdlib_path.join("std/math.tol"))?;
+    let math_module = driver::module_from_path(stdlib_path.join("math.tol"))?;
     let math_module_id = ctx.register_module(math_module);
     native_functions::math::initialize_math_module(math_module_id, ctx);
     driver::compile_module(math_module_id, ctx, false)?;
