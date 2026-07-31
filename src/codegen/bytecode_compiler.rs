@@ -368,6 +368,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         match expression.kind() {
             ExprKind::Integer(x) => self.chunk.add_and_emit_constant(Value::Int(*x), span),
             ExprKind::Float(x) => self.chunk.add_and_emit_constant(Value::Float(*x), span),
+            ExprKind::Boolean(b) => self.chunk.add_and_emit_constant(Value::Bool(*b), span),
             ExprKind::Str { interned_id, .. } => {
                 self.chunk
                     .add_and_emit_constant(Value::Str(interned_id.unwrap()), span);

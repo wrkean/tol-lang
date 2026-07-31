@@ -44,6 +44,8 @@ pub enum TokenKind {
     Ibalik,
     Klase,
     Kunin,
+    Totoo,
+    Mali,
 
     SemiColon,
     Colon,

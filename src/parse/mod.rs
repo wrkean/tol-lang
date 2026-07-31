@@ -574,6 +574,17 @@ impl<'c> Parser<'c> {
                     },
                 ))
             }
+            TokenKind::Totoo | TokenKind::Mali => {
+                let tok = self.advance();
+                let span = tok.span().clone();
+                let b = match tok.kind() {
+                    TokenKind::Totoo => true,
+                    TokenKind::Mali => false,
+                    _ => unreachable!(),
+                };
+
+                Ok(Expr::new(span, ExprKind::Boolean(b)))
+            }
             _ => {
                 let current_module = self.current_module();
                 let span = self.peek().span().clone();

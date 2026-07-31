@@ -76,6 +76,9 @@ pub enum ExprKind {
     /// e.g.: `4.2`
     Float(f64),
 
+    /// True or false
+    Boolean(bool),
+
     /// Identifiers. Names in the source code that are not keywords basically.
     Identifier(String),
 
@@ -147,6 +150,7 @@ impl fmt::Display for Expr {
         match &self.kind {
             ExprKind::Integer(x) => write!(f, "{x}"),
             ExprKind::Float(x) => write!(f, "{x}"),
+            ExprKind::Boolean(b) => write!(f, "{b}"),
             ExprKind::Identifier(s) => write!(f, "{s}"),
             ExprKind::Str { text, interned_id } => write!(f, "{text}"),
             ExprKind::Binary { left, right, op } => {

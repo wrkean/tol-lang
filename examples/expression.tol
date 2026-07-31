@@ -1,4 +1,1 @@
-kunin ./fibo
-
-io.println("Hello World!")
-ang hi = io.input("Hello: ")
+io.println("{}", totoo == totoo)

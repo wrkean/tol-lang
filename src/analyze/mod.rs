@@ -594,6 +594,7 @@ impl<'gctx> Analyzer<'gctx> {
         match expression.kind_mut() {
             ExprKind::Integer(_) => Ok(()),
             ExprKind::Float(_) => Ok(()),
+            ExprKind::Boolean(_) => Ok(()),
             ExprKind::Str { text, interned_id } => {
                 let id = self.ctx.intern(text);
                 *interned_id = Some(id);
