@@ -1,2 +1,1 @@
-habang totoo:
-    io.isulat("Hello")
+io.isulatln("Hello {}", math.sqrt(4))

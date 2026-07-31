@@ -884,7 +884,10 @@ impl VM {
         );
         if !is_function {
             let current_module = self.current_module();
-            self.runtime_error("hindi paraan ang tinawag dito", self.current_ip());
+            self.runtime_error(
+                &format!("hindi paraan ang tinawag dito kundi {}", value),
+                self.current_ip(),
+            );
             return;
         }
         let func_arity = match value {
@@ -915,7 +918,11 @@ impl VM {
             }
             Value::NativeFunction(func) => {
                 let base = self.stack.len() - arity as usize;
-                let args = self.stack[base..arity as usize + base].to_vec();
+                let mut args = vec![Value::Null; arity as usize];
+                for i in (0..arity).rev() {
+                    args[i as usize] = self.pop();
+                }
+                self.pop(); // Pop the native function itself
 
                 match ((func.func)(self, &args)) {
                     Ok(v) => self.push(v),

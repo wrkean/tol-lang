@@ -143,7 +143,9 @@ impl<'gctx> Analyzer<'gctx> {
     /// Creates a new analyze instance that targets the given module by id
     pub fn new(ctx: &'gctx mut GlobalContext, module_id: ModuleId) -> Self {
         let module = ctx.module_by_id(module_id);
-        let next_global_slot = module.globals().len();
+        // Respective the native declarations that are already declared by the compiler
+        let next_global_slot = module.global_name_map().len();
+
         Self {
             functions: vec![FunctionCtx::new()],
             ctx,
@@ -161,6 +163,7 @@ impl<'gctx> Analyzer<'gctx> {
     pub fn analyze(&mut self) {
         self.enter_scope(false);
 
+        let module = self.ctx.module_by_id(self.module_id);
         if let Err(diag) = self.resolve_dependencies() {
             self.current_module_mut().add_diagnostic(*diag);
             return;
@@ -790,6 +793,7 @@ impl<'gctx> Analyzer<'gctx> {
                 } else {
                     None
                 };
+
                 let name = symbol.name().to_string();
                 let id = self.ctx.add_symbol(symbol);
                 current_scope.insert(name.clone(), id);
@@ -816,10 +820,6 @@ impl<'gctx> Analyzer<'gctx> {
         for scope in self.functions[func_idx].scopes.iter().rev() {
             if let Some(&id) = scope.get(name) {
                 if func_idx == 0 {
-                    let module = self.current_module();
-                    if !module.global_name_map().contains_key(name) {
-                        return None;
-                    }
                     return Some(ResolvedVar::Global(id));
                 } else {
                     return Some(ResolvedVar::Local(id));
@@ -829,6 +829,19 @@ impl<'gctx> Analyzer<'gctx> {
 
         // 2. Base case: If we're at the top-level (func_idx == 0) and didn't find it, return None
         if func_idx == 0 {
+            let module = self.ctx.module_by_id(self.module_id);
+            if module.global_name_map().contains_key(name) {
+                // Found in the global name map but not in the function stack scopes? It probably is
+                // defined by the compiler itself. Lets declare it.
+                let symbol = Symbol::new(
+                    name.to_string(),
+                    0..0,
+                    Storage::Global(*module.global_name_map().get(name).unwrap()),
+                    SymbolKind::Native, // Compiler native
+                );
+                let resolved_var = self.declare_symbol(symbol).ok();
+                return resolved_var;
+            }
             return None;
         }
 
@@ -943,7 +956,7 @@ impl<'gctx> Analyzer<'gctx> {
 
     fn assign_storage(&mut self) -> Storage {
         if self.is_in_global_scope() {
-            Storage::Global(self.get_local_slot())
+            Storage::Global(self.get_global_slot())
         } else {
             Storage::Local(self.get_local_slot())
         }

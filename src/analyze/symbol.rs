@@ -81,7 +81,7 @@ pub enum SymbolKind {
         ret_ty: TolType,
         frame_size: usize,
     },
-    NativeFunction,
+    Native,
     Klase {
         methods: HashSet<String>,
     },
@@ -92,6 +92,7 @@ pub enum SymbolKind {
 
 pub type StorageId = usize;
 
+#[derive(Debug)]
 pub enum Storage {
     Global(StorageId),
     Local(StorageId),

@@ -5,6 +5,7 @@ use crate::{
 };
 
 pub mod io;
+pub mod math;
 
 pub type NativeFn = fn(&mut VM, &[Value]) -> Result<Value, Box<RuntimeError>>;
 

@@ -16,7 +16,10 @@ use crate::{
     module::{Module, ModuleCompileState, ModuleId},
     parse::{Parser, lexer::Lexer},
     prelude::DiagResult,
-    stdlib::builtins::{self, native_functions},
+    stdlib::{
+        self,
+        builtins::{self, native_functions},
+    },
     tol::diagnostic::{TolDiagnostic, miette_diagnostic::MietteDiagnostic},
     vm::VM,
 };
@@ -39,7 +42,7 @@ pub fn compile_module(
 ) -> DiagResult<()> {
     let module = ctx.module_by_id_mut(module_id);
     if do_attach_stdlib {
-        attach_stdlib(module_id, ctx)?;
+        stdlib::attach_stdlib(module_id, ctx)?;
     }
 
     let module = ctx.module_by_id(module_id);
@@ -84,29 +87,6 @@ pub fn compile_module(
     module.set_chunk(chunk);
     module.set_compile_state(ModuleCompileState::Compiled);
     module.report_diagnostics();
-
-    Ok(())
-}
-
-fn attach_stdlib(target_module_id: ModuleId, ctx: &mut GlobalContext) -> DiagResult<()> {
-    attach_std_io(target_module_id, ctx)?;
-
-    Ok(())
-}
-
-fn attach_std_io(target_module_id: ModuleId, ctx: &mut GlobalContext) -> DiagResult<()> {
-    // TODO: Replace the hardcoded path
-    let io_module = module_from_path("/home/wrkean/Projects/tol-lang/src/stdlib/std/io.tol")
-        .map_err(|diag| {
-            let target_module = ctx.module_by_id(target_module_id);
-            diag.source(target_module.source_arc())
-                .filename(target_module.filename())
-        })?;
-    let io_module_id = ctx.register_module(io_module);
-    compile_module(io_module_id, ctx, false)?;
-    native_functions::io::initialize_io_module(io_module_id, ctx);
-    ctx.module_by_id_mut(target_module_id)
-        .add_dependency(io_module_id);
 
     Ok(())
 }
