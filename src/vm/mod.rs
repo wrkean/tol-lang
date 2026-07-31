@@ -12,6 +12,7 @@ use crate::{
         list::List,
         module_obj::ModuleObj,
         opcode::OpCode,
+        range::Range,
         value::{Value, ValueError},
     },
 };
@@ -19,10 +20,12 @@ use crate::{
 pub mod chunk;
 pub mod class;
 pub mod function;
+pub mod iterators;
 pub mod list;
 pub mod module_obj;
 pub mod native_functions;
 pub mod opcode;
+pub mod range;
 pub mod value;
 
 struct Frame {
@@ -372,123 +375,8 @@ impl VM {
                 };
                 let method_name = self.get_interned_string(method_name_id);
 
-                let receiver = self.peek(arg_count - 1);
-                match receiver {
-                    Value::ClassInstance(inst) => {
-                        let inst = inst.clone();
-                        match inst.borrow().def.methods.get(method_name.as_ref()) {
-                            Some(method) => {
-                                // Insert at the beginning of the locals the callee itself
-                                let callee_idx = self.stack.len() - arg_count - 1;
-                                self.stack[callee_idx] = method.clone();
-                                self.call_value(method, arg_count as u8);
-                            }
-                            None => {
-                                self.runtime_error(
-                                    &format!(
-                                        "hindi \"method\" ng {} ang {}",
-                                        inst.borrow().def.name,
-                                        method_name
-                                    ),
-                                    self.current_ip(),
-                                );
-                            }
-                        }
-                    }
-                    Value::ClassDef(def) => {
-                        let def = def.clone();
-                        let Some(method) = def.methods.get(method_name.as_ref()) else {
-                            self.runtime_error(
-                                &format!("hindi \"method\" ng {} ang {}", def.name, method_name),
-                                self.current_ip(),
-                            );
-                            return;
-                        };
-
-                        // Replace the 'Null' slot at index (len - arg_count - 1) with the method
-                        let callee_idx = self.stack.len() - arg_count - 1;
-                        self.stack[callee_idx] = method.clone();
-
-                        // Remove the ClassDef receiver from the stack
-                        self.stack.remove(self.stack.len() - arg_count);
-
-                        // Call the method with only the actual arguments (arg_count - 1)
-                        self.call_value(method, arg_count as u8 - 1);
-                    }
-                    Value::ModuleObj(module_obj) => {
-                        let Some(func) = module_obj
-                            .borrow()
-                            .exports
-                            .get(method_name.as_ref())
-                            .cloned()
-                        else {
-                            self.runtime_error(
-                                &format!(
-                                    "walang paraan na `{}` ang module na `{}`",
-                                    module_obj.borrow().name,
-                                    method_name
-                                ),
-                                self.current_ip(),
-                            );
-                            return;
-                        };
-
-                        // Replace the 'Null' slot at index (len - arg_count - 1) with the method
-                        let callee_idx = self.stack.len() - arg_count - 1;
-                        self.stack[callee_idx] = func.clone();
-
-                        // Remove the ModuleObj receiver from the stack
-                        self.stack.remove(self.stack.len() - arg_count);
-
-                        // Call the function with only the actual arguments (arg_count - 1)
-                        self.call_value(&func, arg_count as u8 - 1);
-                    }
-                    Value::Int(_) => {
-                        let mut args = vec![Value::Null; arg_count];
-                        for i in (0..arg_count).rev() {
-                            args[i] = self.pop();
-                        }
-                        self.pop(); // Pops the null value
-                        match self.invoke_builtin_int_method(method_name.clone(), args) {
-                            Ok(v) => self.push(v),
-                            Err(err) => {
-                                self.runtime_error(&err.message, self.current_ip());
-                            }
-                        }
-                    }
-                    Value::List(_) => {
-                        let mut args = vec![Value::Null; arg_count];
-                        for i in (0..arg_count).rev() {
-                            args[i] = self.pop();
-                        }
-                        self.pop(); // Pops the null value
-                        match self.invoke_builtin_list_method(method_name, args) {
-                            Ok(v) => self.push(v),
-                            Err(err) => {
-                                self.runtime_error(&err.message, self.current_ip());
-                            }
-                        }
-                    }
-                    Value::Str(_) => {
-                        let mut args = vec![Value::Null; arg_count];
-                        for i in (0..arg_count).rev() {
-                            args[i] = self.pop();
-                        }
-                        self.pop(); // Pops the null value
-                        match self.invoke_builtin_string_method(method_name, args) {
-                            Ok(v) => self.push(v),
-                            Err(err) => {
-                                self.runtime_error(&err.message, self.current_ip());
-                            }
-                        }
-                    }
-                    val => {
-                        self.runtime_error(
-                            &format!("walang method ang {val} na {method_name}"),
-                            self.current_ip(),
-                        );
-                    }
-                }
+                let receiver = self.peek(arg_count - 1).clone();
+                self.invoke_method(&receiver, method_name.as_ref(), arg_count);
             }
             op if op == OpCode::List as u8 => {
                 let element_count = self.read_u16();
@@ -601,8 +489,185 @@ impl VM {
                 let module_obj = self.register_module(module_id as usize);
                 self.push(Value::ModuleObj(module_obj));
             }
+            op if op == OpCode::GetIter as u8 => {
+                let iterable = self.pop();
+                self.push(Value::Null);
+                self.push(iterable.clone());
+                self.invoke_method(&iterable, "__maging_iter__", 1);
+            }
+            // FIX: Stack resize gets triggered per iteration
+            op if op == OpCode::Bawat as u8 => {
+                let target = self.read_u16();
+                let iterator = self.peek(0).clone();
+                // dbg!(&self.stack);
+                let result = match iterator {
+                    Value::Iterator(iter) => iter.borrow_mut().next(self).unwrap_or(Value::Null),
+                    val => {
+                        self.runtime_error(
+                            &format!("hindi iterator ang nandito kundi: {val}"),
+                            self.current_ip(),
+                        );
+                        return;
+                    }
+                };
+                if let Value::Null = &result {
+                    self.current_frame_mut().ip += target as usize;
+                } else {
+                    self.push(result)
+                }
+            }
+            op if op == OpCode::MakeRange as u8 => {
+                let end = self.pop();
+                let start = self.pop();
+                let inclusive = self.read_byte() == 1;
+
+                let (start, end) = match (start, end) {
+                    (Value::Int(s), Value::Int(e)) => (s, e),
+                    _ => {
+                        self.runtime_error(
+                            "maaaring mga numero lamang ang operand ng `..` at `..=`",
+                            self.current_ip(),
+                        );
+                        return;
+                    }
+                };
+                let range = Range {
+                    start,
+                    end,
+                    step: 1,
+                    inclusive,
+                };
+                self.push(Value::Range(Rc::new(range)));
+            }
             _ => println!("bug: unknown opcode {:#X}", opcode),
         };
+    }
+
+    fn invoke_method(&mut self, receiver: &Value, method_name: &str, arg_count: usize) {
+        match receiver {
+            Value::ClassInstance(inst) => {
+                let inst = inst.clone();
+                match inst.borrow().def.methods.get(method_name) {
+                    Some(method) => {
+                        // Insert at the beginning of the locals the callee itself
+                        let callee_idx = self.stack.len() - arg_count - 1;
+                        self.stack[callee_idx] = method.clone();
+                        self.call_value(method, arg_count as u8);
+                    }
+                    None => {
+                        self.runtime_error(
+                            &format!(
+                                "hindi \"method\" ng {} ang {}",
+                                inst.borrow().def.name,
+                                method_name
+                            ),
+                            self.current_ip(),
+                        );
+                    }
+                }
+            }
+            Value::ClassDef(def) => {
+                let def = def.clone();
+                let Some(method) = def.methods.get(method_name) else {
+                    self.runtime_error(
+                        &format!("hindi \"method\" ng {} ang {}", def.name, method_name),
+                        self.current_ip(),
+                    );
+                    return;
+                };
+
+                // Replace the 'Null' slot at index (len - arg_count - 1) with the method
+                let callee_idx = self.stack.len() - arg_count - 1;
+                self.stack[callee_idx] = method.clone();
+
+                // Remove the ClassDef receiver from the stack
+                self.stack.remove(self.stack.len() - arg_count);
+
+                // Call the method with only the actual arguments (arg_count - 1)
+                self.call_value(method, arg_count as u8 - 1);
+            }
+            Value::ModuleObj(module_obj) => {
+                let Some(func) = module_obj.borrow().exports.get(method_name).cloned() else {
+                    self.runtime_error(
+                        &format!(
+                            "walang paraan na `{}` ang module na `{}`",
+                            method_name,
+                            module_obj.borrow().name,
+                        ),
+                        self.current_ip(),
+                    );
+                    return;
+                };
+
+                // Replace the 'Null' slot at index (len - arg_count - 1) with the method
+                let callee_idx = self.stack.len() - arg_count - 1;
+                self.stack[callee_idx] = func.clone();
+
+                // Remove the ModuleObj receiver from the stack
+                self.stack.remove(self.stack.len() - arg_count);
+
+                // Call the function with only the actual arguments (arg_count - 1)
+                self.call_value(&func, arg_count as u8 - 1);
+            }
+            Value::Int(_) => {
+                let mut args = vec![Value::Null; arg_count];
+                for i in (0..arg_count).rev() {
+                    args[i] = self.pop();
+                }
+                self.pop(); // Pops the null value
+                match self.invoke_builtin_int_method(Rc::from(method_name), args) {
+                    Ok(v) => self.push(v),
+                    Err(err) => {
+                        self.runtime_error(&err.message, self.current_ip());
+                    }
+                }
+            }
+            Value::List(_) => {
+                let mut args = vec![Value::Null; arg_count];
+                for i in (0..arg_count).rev() {
+                    args[i] = self.pop();
+                }
+                self.pop(); // Pops the null value
+                match self.invoke_builtin_list_method(Rc::from(method_name), args) {
+                    Ok(v) => self.push(v),
+                    Err(err) => {
+                        self.runtime_error(&err.message, self.current_ip());
+                    }
+                }
+            }
+            Value::Str(_) => {
+                let mut args = vec![Value::Null; arg_count];
+                for i in (0..arg_count).rev() {
+                    args[i] = self.pop();
+                }
+                self.pop(); // Pops the null value
+                match self.invoke_builtin_string_method(Rc::from(method_name), args) {
+                    Ok(v) => self.push(v),
+                    Err(err) => {
+                        self.runtime_error(&err.message, self.current_ip());
+                    }
+                }
+            }
+            Value::Range(_) => {
+                let mut args = vec![Value::Null; arg_count];
+                for i in (0..arg_count).rev() {
+                    args[i] = self.pop();
+                }
+                self.pop(); // Pops the null value
+                match self.invoke_builtin_range_method(Rc::from(method_name), args) {
+                    Ok(v) => self.push(v),
+                    Err(err) => {
+                        self.runtime_error(&err.message, self.current_ip());
+                    }
+                }
+            }
+            val => {
+                self.runtime_error(
+                    &format!("walang method ang {val} na {method_name}"),
+                    self.current_ip(),
+                );
+            }
+        }
     }
 
     fn run_module(&mut self, module_id: ModuleId) {
@@ -694,6 +759,7 @@ impl VM {
         match method_name.as_ref() {
             "dagdag" => builtins::methods::lista::dagdag(self, &args),
             "haba" => builtins::methods::lista::haba(self, &args),
+            "__maging_iter__" => builtins::methods::lista::__maging_iter__(self, &args),
             _ => Err(Box::new(self.new_runtime_error(
                 &format!("walang \"method\" na `{}` ang lista", method_name),
                 self.current_ip(),
@@ -712,6 +778,21 @@ impl VM {
             "titik" => builtins::methods::string::titik(self, &args),
             _ => Err(Box::new(self.new_runtime_error(
                 &format!("walang \"method\" na `{}` ang string", method_name),
+                self.current_ip(),
+            ))),
+        }
+    }
+
+    fn invoke_builtin_range_method(
+        &mut self,
+        method_name: Rc<str>,
+        args: Vec<Value>,
+    ) -> Result<Value, Box<RuntimeError>> {
+        match method_name.as_ref() {
+            "hakbang" => builtins::methods::range::hakbang(self, &args),
+            "__maging_iter__" => builtins::methods::range::__maging_iter__(self, &args),
+            _ => Err(Box::new(self.new_runtime_error(
+                &format!("walang \"method\" na `{}` ang range (..)", method_name),
                 self.current_ip(),
             ))),
         }
@@ -962,7 +1043,6 @@ impl VM {
         let frame = self.current_frame_mut();
 
         if locals_base + index >= self.stack.len() {
-            eprintln!("stack increased by {}", locals_base + index + 1);
             self.stack.resize(locals_base + index + 1, Value::Null);
         }
         self.stack[locals_base + index] = value;

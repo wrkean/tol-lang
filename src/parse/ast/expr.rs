@@ -122,10 +122,19 @@ pub enum ExprKind {
 
     /// List literals
     ///
-    /// e.g. `[0, 1, 2, 3]` or `@[expr1; 100]`
+    /// e.g.: `[0, 1, 2, 3]` or `@[expr1; 100]`
     List {
         elements: Vec<Expr>,
         init: Option<ListInit>,
+    },
+
+    /// Range expressions
+    ///
+    /// e.g.: `0..5`, `0..=4`
+    Range {
+        start: Box<Expr>,
+        end: Box<Expr>,
+        is_inclusive: bool,
     },
 
     /// Index access expression
@@ -161,6 +170,7 @@ impl fmt::Display for Expr {
             ExprKind::FieldAccess { .. } => unimplemented!(),
             ExprKind::List { .. } => unimplemented!(),
             ExprKind::IndexAccess { .. } => unimplemented!(),
+            ExprKind::Range { .. } => unimplemented!(),
         }
     }
 }

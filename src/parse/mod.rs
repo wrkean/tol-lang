@@ -73,6 +73,7 @@ impl<'c> Parser<'c> {
             TokenKind::Ibalik => self.parse_ibalik(),
             TokenKind::Klase => self.parse_klase(),
             TokenKind::Kunin => self.parse_kunin(),
+            TokenKind::Bawat => self.parse_bawat(),
             TokenKind::Biyakin => {
                 let span = self.advance().span().clone();
                 self.consume(
@@ -330,6 +331,27 @@ impl<'c> Parser<'c> {
             StmtKind::Kunin {
                 segments,
                 import_path_type,
+            },
+        ))
+    }
+
+    fn parse_bawat(&mut self) -> DiagResult<Stmt> {
+        let start = self.advance().span().start;
+        let bind = self
+            .consume_ident("umaasa ng pangalan sa bawat elemento ng iterable dito")?
+            .clone();
+        self.consume(TokenKind::Sa, "umaasa ng `sa` pagkatapos ng pangalan dito")?;
+        let iterable = self.parse_expression(0)?;
+        self.consume(TokenKind::Colon, "umaasa ng `:` pagkatapos ng iterable")?;
+        let block = self.parse_block()?;
+        let end = block.span().end;
+
+        Ok(Stmt::new(
+            start..end,
+            StmtKind::Bawat {
+                bind,
+                iterable,
+                block: Box::new(block),
             },
         ))
     }
@@ -679,6 +701,21 @@ impl<'c> Parser<'c> {
                     ExprKind::IndexAccess {
                         left: Box::new(left),
                         index: Box::new(index),
+                    },
+                ))
+            }
+            op if matches!(op, TokenKind::DotDot | TokenKind::DotDotEq) => {
+                let is_inclusive = op == &TokenKind::DotDotEq;
+                let end_expr = self.parse_expression(0)?;
+                let end = end_expr.span().end;
+                let span = left.span().start..end;
+
+                Ok(Expr::new(
+                    span,
+                    ExprKind::Range {
+                        start: Box::new(left),
+                        end: Box::new(end_expr),
+                        is_inclusive,
                     },
                 ))
             }

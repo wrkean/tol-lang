@@ -127,7 +127,17 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
             ':' => self.add_token(TokenKind::Colon, self.current_span()),
             ';' => self.add_token(TokenKind::SemiColon, self.current_span()),
             '|' => self.add_token(TokenKind::Pipe, self.current_span()),
-            '.' => self.add_token(TokenKind::Dot, self.current_span()),
+            '.' => {
+                if self.match_ch('.') {
+                    if self.match_ch('=') {
+                        self.add_token(TokenKind::DotDotEq, self.current_span());
+                    } else {
+                        self.add_token(TokenKind::DotDot, self.current_span());
+                    }
+                } else {
+                    self.add_token(TokenKind::Dot, self.current_span());
+                }
+            }
             '@' => self.add_token(TokenKind::At, self.current_span()),
             '#' => {
                 while let Some(ch) = self.peek() {

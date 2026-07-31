@@ -83,6 +83,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             StmtKind::Ibalik { .. } => self.compile_ibalik(statement),
             StmtKind::Klase { .. } => self.compile_klase(statement),
             StmtKind::Kunin { .. } => self.compile_kunin(statement),
+            StmtKind::Bawat { .. } => self.compile_bawat(statement),
             StmtKind::Expr { .. } => self.compile_expression_statement(statement),
             StmtKind::Block { statements } => {
                 for statement in statements {
@@ -285,6 +286,42 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             .emit_opcode(OpCode::ImportModule, kunin.span().clone());
         self.chunk.emit_byte(constant_index, kunin.span().clone());
         self.store_var(kunin.resolved_var(), kunin.span().clone());
+    }
+
+    fn compile_bawat(&mut self, bawat: &Stmt) {
+        let StmtKind::Bawat {
+            bind,
+            iterable,
+            block,
+        } = bawat.kind()
+        else {
+            unreachable!()
+        };
+
+        self.compile_expression(iterable);
+
+        // VM calls `.__maging_iter__()` method for iterable if it exists, or it errors.
+        self.chunk
+            .emit_opcode(OpCode::GetIter, iterable.span().clone());
+
+        let loop_start = self.chunk.code().len();
+        self.loop_stack.push(LoopContext {
+            break_jumps: Vec::new(),
+            loop_start,
+        });
+
+        let bawat_iter_pos = self.chunk.emit_jump(OpCode::Bawat, iterable.span().clone());
+
+        self.store_var(bawat.resolved_var(), bind.span().clone());
+        self.compile_statement(block);
+        self.chunk.emit_opcode(OpCode::Pop, block.span().clone());
+        self.chunk.emit_loop(loop_start, block.span().clone());
+        self.chunk.patch_jump(bawat_iter_pos);
+
+        let ctx = self.loop_stack.pop().unwrap();
+        for jump in ctx.break_jumps {
+            self.chunk.patch_jump(jump);
+        }
     }
 
     fn compile_method(&mut self, method: &Stmt) {
@@ -499,6 +536,17 @@ impl<'gctx> BytecodeCompiler<'gctx> {
 
                 self.chunk
                     .emit_opcode(OpCode::IndexGet, index.span().clone());
+            }
+            ExprKind::Range {
+                start,
+                end,
+                is_inclusive,
+            } => {
+                self.compile_expression(start);
+                self.compile_expression(end);
+                self.chunk.emit_opcode(OpCode::MakeRange, span.clone());
+                self.chunk
+                    .emit_byte(if *is_inclusive { 1 } else { 0 }, span.clone());
             }
         }
     }

@@ -1,1 +1,2 @@
-io.isulatln("Hello {}", math.sqrt(4))
+bawat i sa 1..5:
+    io.isulatln("{}", i)

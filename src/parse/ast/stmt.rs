@@ -131,6 +131,12 @@ pub enum StmtKind {
         import_path_type: ImportPathType,
     },
 
+    Bawat {
+        bind: Token,
+        iterable: Expr,
+        block: Box<Stmt>,
+    },
+
     /// Break statement
     Biyakin,
 

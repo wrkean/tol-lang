@@ -222,6 +222,7 @@ impl<'gctx> Analyzer<'gctx> {
             StmtKind::Ibalik { .. } => self.resolve_ibalik(statement),
             StmtKind::Klase { .. } => self.resolve_klase(statement),
             StmtKind::Kunin { .. } => self.resolve_kunin(statement),
+            StmtKind::Bawat { .. } => self.resolve_bawat(statement),
             StmtKind::Block { statements } => {
                 self.enter_scope(false);
                 for statement in statements {
@@ -501,6 +502,38 @@ impl<'gctx> Analyzer<'gctx> {
         Ok(())
     }
 
+    fn resolve_bawat(&mut self, bawat: &mut Stmt) -> DiagResult<()> {
+        let StmtKind::Bawat {
+            bind,
+            iterable,
+            block,
+        } = bawat.kind_mut()
+        else {
+            unreachable!()
+        };
+
+        self.enter_scope(false);
+        let _temp_storage_for_iterator = self.assign_storage();
+        let storage = self.assign_storage();
+
+        let symbol = Symbol::new(
+            bind.lexeme().to_string(),
+            bind.span().clone(),
+            storage,
+            SymbolKind::Name {
+                ty: TolType::DiAlam,
+            },
+        );
+        let resolved_var = self.declare_symbol(symbol)?;
+        self.resolve_expression(iterable)?;
+        self.resolve_statement(block)?;
+        self.exit_scope();
+
+        bawat.set_resolved_var(resolved_var);
+
+        Ok(())
+    }
+
     fn path_from_segments(&mut self, segments: &[Token], path_type: &ImportPathType) -> PathBuf {
         let mut base_path = match path_type {
             ImportPathType::Relative => {
@@ -741,6 +774,16 @@ impl<'gctx> Analyzer<'gctx> {
             ExprKind::IndexAccess { left, index } => {
                 self.resolve_expression(left)?;
                 self.resolve_expression(index)?;
+
+                Ok(())
+            }
+            ExprKind::Range {
+                start,
+                end,
+                is_inclusive,
+            } => {
+                self.resolve_expression(start)?;
+                self.resolve_expression(end)?;
 
                 Ok(())
             }

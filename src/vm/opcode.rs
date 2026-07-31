@@ -27,6 +27,9 @@ pub enum OpCode {
     // Log as in Logical
     LogAnd, // At
     LogOr,  // O
+    GetIter,
+    Bawat,
+    MakeRange,
 
     Pop,
     Push,

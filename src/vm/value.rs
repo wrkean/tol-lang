@@ -9,8 +9,10 @@ use crate::{
         VM,
         class::{ClassDef, ClassInstance},
         function::{BoundMethod, Closure, Function},
+        iterators::NativeIterator,
         list::List,
         module_obj::ModuleObj,
+        range::Range,
     },
 };
 
@@ -28,6 +30,8 @@ pub enum Value {
     BoundMethod(Rc<BoundMethod>),
     List(Rc<RefCell<List>>),
     ModuleObj(Rc<RefCell<ModuleObj>>),
+    Iterator(Rc<RefCell<dyn NativeIterator>>),
+    Range(Rc<Range>),
     Null,
 }
 impl Value {
@@ -182,7 +186,9 @@ impl Value {
             | Value::List(_)
             | Value::Closure(_)
             | Null
-            | Value::ModuleObj(_) => self.to_string(),
+            | Value::ModuleObj(_)
+            | Value::Range(_)
+            | Value::Iterator(_) => self.to_string(),
             Value::Str(id) => vm.get_interned_string(*id).to_string(),
         }
     }
@@ -190,9 +196,6 @@ impl Value {
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // These are what gets shown when the value is to be printed.
-        // Unimplemented variants are handled in `VM::print_value` function in the VM
-        // as they need some values provided only by the vm
         match self {
             Int(x) => write!(f, "{x}"),
             Float(x) => write!(f, "{x}"),
@@ -219,6 +222,11 @@ impl fmt::Display for Value {
                 )
             }
             ModuleObj(module_obj) => write!(f, "<modyul '{}'>", module_obj.borrow().name),
+            Iterator(iter) => write!(f, "<iterator '{:?}'>", iter.borrow()),
+            Range(r) => {
+                let op_str = if r.inclusive { "..=" } else { ".." };
+                write!(f, "{}{}{}..{}", r.start, op_str, r.end, r.step)
+            }
         }
     }
 }

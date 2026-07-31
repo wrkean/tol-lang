@@ -48,6 +48,8 @@ pub enum TokenKind {
     Mali,
     AtKw,
     O,
+    Bawat,
+    Sa,
 
     SemiColon,
     Colon,
@@ -64,6 +66,8 @@ pub enum TokenKind {
     Percent,
     PercentEq,
     Dot,
+    DotDot,
+    DotDotEq,
 
     IntLiteral(i64),
     FloatLiteral(f64),

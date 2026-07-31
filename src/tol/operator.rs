@@ -13,10 +13,11 @@ pub fn precedence(kind: &TokenKind) -> u8 {
         TokenKind::O => 3,
         TokenKind::EqualEq | TokenKind::NotEq => 4,
         TokenKind::Greater | TokenKind::GreatEq | TokenKind::Lesser | TokenKind::LessEq => 5,
-        TokenKind::Plus | TokenKind::PlusPlus | TokenKind::Minus => 6,
-        TokenKind::Star | TokenKind::Slash | TokenKind::Percent => 7,
-        TokenKind::LParen | TokenKind::LSquare => 8,
-        TokenKind::Dot => 9,
+        TokenKind::DotDot | TokenKind::DotDotEq => 6,
+        TokenKind::Plus | TokenKind::PlusPlus | TokenKind::Minus => 7,
+        TokenKind::Star | TokenKind::Slash | TokenKind::Percent => 8,
+        TokenKind::LParen | TokenKind::LSquare => 9,
+        TokenKind::Dot => 10,
         _ => 0,
     }
 }
@@ -37,7 +38,11 @@ pub fn associativity(kind: &TokenKind) -> Associativity {
         | TokenKind::LessEq
         | TokenKind::LParen
         | TokenKind::Dot
-        | TokenKind::LSquare => Associativity::Left,
+        | TokenKind::LSquare
+        | TokenKind::AtKw
+        | TokenKind::O
+        | TokenKind::DotDot
+        | TokenKind::DotDotEq => Associativity::Left,
         _ => Associativity::Right,
     }
 }

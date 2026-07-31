@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{
     stdlib::builtins,
     tol::diagnostic::runtime::RuntimeError,
-    vm::{self, VM, list::List, value::Value},
+    vm::{self, VM, iterators::ListIterator, list::List, value::Value},
 };
 
 fn expect_list_argument(
@@ -32,4 +32,13 @@ pub fn haba(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
     let list = expect_list_argument(vm, args)?;
 
     Ok(Value::Int(list.borrow().elements.len() as i64))
+}
+
+pub fn __maging_iter__(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
+    builtins::expected_args_count(vm, args.len(), 1)?;
+    let list = expect_list_argument(vm, args)?;
+
+    let list_iter = ListIterator::new(list);
+
+    Ok(Value::Iterator(Rc::new(RefCell::new(list_iter))))
 }
