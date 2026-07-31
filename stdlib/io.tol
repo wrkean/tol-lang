@@ -2,8 +2,8 @@
 # nilalagay pa dito.
 #
 # Ito ang mga paraan na nabibilang dito:
-#   print(teksto, ...)
-#   println(teksto, ...)
+#   isulat(teksto, ...)
+#   isulatln(teksto, ...)
 #   input(teksto, ...)
 #
-# Ang mga implementasyon ay ginawa sa linggwaheng Rust, makikita sa io.rs: ../builtins/native_functions/io.rs
+# Ang mga implementasyon ay ginawa sa linggwaheng Rust, makikita sa io.rs: ../src/builtins/native_functions/io.rs

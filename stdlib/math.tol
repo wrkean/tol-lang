@@ -3,5 +3,6 @@
 #
 # Ito ang mga paraan na nabibilang dito:
 #   abs(numero_o_lutang)
+#   sqrt(numero_o_lutang)
 #
-# Ang mga implementasyon ay ginawa sa linggwaheng Rust, makikita sa io.rs: ../builtins/native_functions/math.rs
+# Ang mga implementasyon ay ginawa sa linggwaheng Rust, makikita sa io.rs: ../src/builtins/native_functions/math.rs
