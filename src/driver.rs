@@ -9,7 +9,7 @@ use std::{
 use miette::miette;
 
 use crate::{
-    Args,
+    Cli,
     analyze::Analyzer,
     builtins::{self, native_functions},
     codegen::bytecode_compiler::BytecodeCompiler,

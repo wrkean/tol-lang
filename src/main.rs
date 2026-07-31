@@ -4,10 +4,13 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-use crate::{global_ctx::GlobalContext, tol::diagnostic::miette_diagnostic::MietteDiagnostic};
+use crate::{
+    cli::Cli, global_ctx::GlobalContext, tol::diagnostic::miette_diagnostic::MietteDiagnostic,
+};
 
 mod analyze;
 mod builtins;
+mod cli;
 mod codegen;
 mod driver;
 mod global_ctx;
@@ -18,7 +21,7 @@ mod tol;
 mod vm;
 
 fn main() {
-    let args = Args::parse();
+    let args = Cli::parse();
 
     let stdlib_path = option_env!("TOL_STDLIB");
     let stdlib_path = match stdlib_path {
@@ -40,9 +43,4 @@ fn main() {
         return;
     }
     driver::run(0, global_context);
-}
-
-#[derive(Parser)]
-pub struct Args {
-    input: PathBuf,
 }
