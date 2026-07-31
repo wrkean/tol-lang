@@ -1,7 +1,8 @@
-use std::{collections::HashMap, mem, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, mem, path::PathBuf, rc::Rc, sync::Arc};
 
 use crate::{
     parse::ast::{Ast, stmt::Stmt},
+    stdlib::builtins::native_functions::{NativeFn, NativeFunction},
     tol::{
         diagnostic::{Severity, TolDiagnostic, miette_diagnostic::MietteDiagnostic},
         token::Span,
@@ -48,9 +49,6 @@ pub struct Module {
 
     /// Global name map. Maps the name -> index to the globals vector
     global_name_map: HashMap<String, usize>,
-
-    /// Modules imported in this module
-    dependencies: Vec<ModuleId>,
 }
 
 impl Module {
@@ -77,7 +75,6 @@ impl Module {
             chunk: Chunk::new(),
             globals: Vec::new(),
             global_name_map: HashMap::new(),
-            dependencies: Vec::new(),
         }
     }
 
@@ -207,12 +204,24 @@ impl Module {
         &self.compile_state
     }
 
-    pub fn add_dependency(&mut self, module_id: ModuleId) {
-        self.dependencies.push(module_id);
-    }
-
     pub fn take_global_name_map(&mut self) -> HashMap<String, usize> {
         mem::take(&mut self.global_name_map)
+    }
+
+    pub fn add_native_fn(&mut self, name: String, arity: Option<usize>, func: NativeFn) {
+        let native_fn = NativeFunction {
+            name: name.clone(),
+            arity: None,
+            func,
+        };
+        let value = Value::NativeFunction(Rc::new(native_fn));
+        self.globals.push(value);
+        let id = self.globals().len() - 1;
+        self.register_global(name, id);
+    }
+
+    pub fn global_name_map(&self) -> &HashMap<String, usize> {
+        &self.global_name_map
     }
 }
 

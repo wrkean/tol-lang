@@ -53,8 +53,8 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 0..0
             }
         };
-        self.chunk.emit_opcode(OpCode::Null, 0..0);
-        self.chunk.emit_opcode(OpCode::Return, 0..0);
+        self.chunk.emit_opcode(OpCode::Null, span.clone());
+        self.chunk.emit_opcode(OpCode::Return, span);
 
         mem::take(&mut self.chunk)
     }

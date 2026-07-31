@@ -142,12 +142,14 @@ pub struct Analyzer<'gctx> {
 impl<'gctx> Analyzer<'gctx> {
     /// Creates a new analyze instance that targets the given module by id
     pub fn new(ctx: &'gctx mut GlobalContext, module_id: ModuleId) -> Self {
+        let module = ctx.module_by_id(module_id);
+        let next_global_slot = module.globals().len();
         Self {
             functions: vec![FunctionCtx::new()],
             ctx,
             module_id,
             loop_depth: 0,
-            next_global_slot: 0,
+            next_global_slot,
             next_local_slot: 1,
             max_local_slot: 1,
             next_local_slot_stack: Vec::new(),
@@ -789,6 +791,10 @@ impl<'gctx> Analyzer<'gctx> {
         for scope in self.functions[func_idx].scopes.iter().rev() {
             if let Some(&id) = scope.get(name) {
                 if func_idx == 0 {
+                    let module = self.current_module();
+                    if module.global_name_map().contains_key(name) {
+                        return None;
+                    }
                     return Some(ResolvedVar::Global(id));
                 } else {
                     return Some(ResolvedVar::Local(id));
