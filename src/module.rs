@@ -2,8 +2,8 @@ use std::{collections::HashMap, mem, path::PathBuf, rc::Rc, sync::Arc};
 
 use crate::{
     analyze::ResolvedVar,
+    builtins::native_functions::{NativeFn, NativeFunction},
     parse::ast::{Ast, stmt::Stmt},
-    stdlib::builtins::native_functions::{NativeFn, NativeFunction},
     tol::{
         diagnostic::{Severity, TolDiagnostic, miette_diagnostic::MietteDiagnostic},
         token::Span,

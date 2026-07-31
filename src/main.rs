@@ -7,13 +7,13 @@ use clap::Parser;
 use crate::{global_ctx::GlobalContext, tol::diagnostic::miette_diagnostic::MietteDiagnostic};
 
 mod analyze;
+mod builtins;
 mod codegen;
 mod driver;
 mod global_ctx;
 mod module;
 mod parse;
 mod prelude;
-mod stdlib;
 mod tol;
 mod vm;
 

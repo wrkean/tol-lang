@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    stdlib::builtins,
+    builtins,
     tol::diagnostic::runtime::RuntimeError,
     vm::{VM, iterators::RangeIterator, list::List, range::Range, value::Value},
 };

@@ -1,9 +1,9 @@
 use std::{cell::RefCell, collections::HashMap, iter::Filter, rc::Rc};
 
 use crate::{
+    builtins,
     global_ctx::{GlobalContext, StringInterner},
     module::{Module, ModuleId},
-    stdlib::builtins,
     tol::diagnostic::{Label, miette_diagnostic::MietteDiagnostic, runtime::RuntimeError},
     vm::{
         chunk::Chunk,

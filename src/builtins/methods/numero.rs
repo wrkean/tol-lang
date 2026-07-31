@@ -1,5 +1,5 @@
 use crate::{
-    stdlib::builtins,
+    builtins,
     tol::diagnostic::{Label, runtime::RuntimeError},
     vm::{VM, value::Value},
 };

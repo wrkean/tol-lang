@@ -1,7 +1,7 @@
 use crate::{
+    builtins,
     global_ctx::GlobalContext,
     module::ModuleId,
-    stdlib::builtins,
     tol::diagnostic::runtime::RuntimeError,
     vm::{VM, value::Value},
 };

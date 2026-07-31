@@ -3,7 +3,7 @@ use std::{cell::RefCell, fmt, rc::Rc, sync::Arc};
 use Value::*;
 
 use crate::{
-    stdlib::builtins::native_functions::NativeFunction,
+    builtins::native_functions::NativeFunction,
     tol::diagnostic::runtime::RuntimeError,
     vm::{
         VM,

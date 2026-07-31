@@ -1,9 +1,9 @@
 use std::io::{self, Write};
 
 use crate::{
+    builtins,
     global_ctx::GlobalContext,
     module::ModuleId,
-    stdlib::builtins,
     tol::diagnostic::{Label, runtime::RuntimeError},
     vm::{VM, value::Value},
 };
