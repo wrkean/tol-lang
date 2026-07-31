@@ -1,1 +1,2 @@
 io.isulatln("Kumusta mundo!")
+io.isulatln("{}", math.PI)
