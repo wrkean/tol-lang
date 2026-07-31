@@ -304,12 +304,17 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         self.chunk
             .emit_opcode(OpCode::GetIter, iterable.span().clone());
 
+        // Store the iterator (not the iterable anymore)
+        self.store_var(iterable.resolved_var(), iterable.span().clone());
+
         let loop_start = self.chunk.code().len();
         self.loop_stack.push(LoopContext {
             break_jumps: Vec::new(),
             loop_start,
         });
 
+        // For each iteration, we load the iterator
+        self.load_var(iterable.resolved_var(), iterable.span().clone());
         let bawat_iter_pos = self.chunk.emit_jump(OpCode::Bawat, iterable.span().clone());
 
         self.store_var(bawat.resolved_var(), bind.span().clone());

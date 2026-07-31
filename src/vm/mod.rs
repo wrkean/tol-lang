@@ -495,7 +495,6 @@ impl VM {
                 self.push(iterable.clone());
                 self.invoke_method(&iterable, "__maging_iter__", 1);
             }
-            // FIX: Stack resize gets triggered per iteration
             op if op == OpCode::Bawat as u8 => {
                 let target = self.read_u16();
                 let iterator = self.peek(0).clone();

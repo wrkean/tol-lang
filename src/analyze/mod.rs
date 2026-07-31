@@ -513,7 +513,27 @@ impl<'gctx> Analyzer<'gctx> {
         };
 
         self.enter_scope(false);
-        let _temp_storage_for_iterator = self.assign_storage();
+
+        // Reserve a slot for the iterator. The iterator is made at runtime
+        let iterator_storage = self.assign_storage();
+        let iterator_symbol = Symbol::new(
+            format!(
+                "__iterator_{}_{}__",
+                iterable.span().start,
+                iterable.span().end
+            ),
+            iterable.span().clone(),
+            iterator_storage,
+            SymbolKind::Name {
+                ty: TolType::DiAlam,
+            },
+        );
+        let iterator_resolved_var = self.declare_symbol(iterator_symbol)?;
+
+        // Let the iterable expression hold the resolved var, this will let the compiler know where
+        // to store the iterator
+        iterable.set_resolved_var(iterator_resolved_var);
+
         let storage = self.assign_storage();
 
         let symbol = Symbol::new(
