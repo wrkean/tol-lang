@@ -11,8 +11,8 @@ use crate::{
 pub fn initialize_io_module(io_module_id: ModuleId, ctx: &mut GlobalContext) {
     let module = ctx.module_by_id_mut(io_module_id);
     module.add_native_fn("input", Some(1), native_input);
-    module.add_native_fn("print", None, native_print);
-    module.add_native_fn("println", None, native_println);
+    module.add_native_fn("isulat", None, native_print);
+    module.add_native_fn("isulatln", None, native_println);
 }
 
 pub fn native_input(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
