@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-use crate::global_ctx::GlobalContext;
+use crate::{global_ctx::GlobalContext, tol::diagnostic::miette_diagnostic::MietteDiagnostic};
 
 mod analyze;
 mod codegen;
@@ -21,8 +21,8 @@ fn main() {
     let args = Args::parse();
 
     let mut global_context = GlobalContext::new(args);
-    if let Err(report) = driver::compile_entry_point(&mut global_context) {
-        eprintln!("{}", report);
+    if let Err(diag) = driver::compile_entry_point(&mut global_context) {
+        eprintln!("{}", miette::Report::new(MietteDiagnostic::from(*diag)));
         return;
     }
     driver::run(0, global_context);

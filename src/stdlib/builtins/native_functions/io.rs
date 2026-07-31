@@ -1,10 +1,19 @@
 use std::io::{self, Write};
 
 use crate::{
+    global_ctx::GlobalContext,
+    module::ModuleId,
     stdlib::builtins,
     tol::diagnostic::{Label, runtime::RuntimeError},
     vm::{VM, value::Value},
 };
+
+pub fn initialize_io_module(io_module_id: ModuleId, ctx: &mut GlobalContext) {
+    let module = ctx.module_by_id_mut(io_module_id);
+    module.add_native_fn("input", Some(1), native_input);
+    module.add_native_fn("print", None, native_print);
+    module.add_native_fn("println", None, native_println);
+}
 
 pub fn native_input(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
     builtins::expected_args_count(vm, args.len(), 1);

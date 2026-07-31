@@ -1,6 +1,7 @@
 use std::{collections::HashMap, mem, path::PathBuf, rc::Rc, sync::Arc};
 
 use crate::{
+    analyze::ResolvedVar,
     parse::ast::{Ast, stmt::Stmt},
     stdlib::builtins::native_functions::{NativeFn, NativeFunction},
     tol::{
@@ -53,6 +54,9 @@ pub struct Module {
     /// Modules attached by the compiler, not by the user. Usually the standard library should be here.
     /// The index maps to the module table owned by the global context
     dependencies: Vec<ModuleId>,
+
+    /// Resolved dependencies, filled after analyzer
+    resolved_dependencies: HashMap<ModuleId, ResolvedVar>,
 }
 
 impl Module {
@@ -80,6 +84,7 @@ impl Module {
             globals: Vec::new(),
             global_name_map: HashMap::new(),
             dependencies: Vec::new(),
+            resolved_dependencies: HashMap::new(),
         }
     }
 
@@ -213,16 +218,16 @@ impl Module {
         mem::take(&mut self.global_name_map)
     }
 
-    pub fn add_native_fn(&mut self, name: String, arity: Option<usize>, func: NativeFn) {
+    pub fn add_native_fn(&mut self, name: &str, arity: Option<usize>, func: NativeFn) {
         let native_fn = NativeFunction {
-            name: name.clone(),
+            name: name.to_string(),
             arity: None,
             func,
         };
         let value = Value::NativeFunction(Rc::new(native_fn));
         self.globals.push(value);
         let id = self.globals().len() - 1;
-        self.register_global(name, id);
+        self.register_global(name.to_string(), id);
     }
 
     pub fn global_name_map(&self) -> &HashMap<String, usize> {
@@ -232,6 +237,22 @@ impl Module {
     pub fn add_dependency(&mut self, module_id: ModuleId) {
         self.dependencies.push(module_id);
     }
+
+    pub fn dependencies(&self) -> &[usize] {
+        &self.dependencies
+    }
+
+    pub fn add_resolved_dependency(&mut self, module_id: ModuleId, resolved_var: ResolvedVar) {
+        self.resolved_dependencies.insert(module_id, resolved_var);
+    }
+
+    pub fn resolved_dependencies(&self) -> &HashMap<ModuleId, ResolvedVar> {
+        &self.resolved_dependencies
+    }
+
+    pub fn get_resolved_dependency(&self, module_id: ModuleId) -> &ResolvedVar {
+        &self.resolved_dependencies[&module_id]
+    }
 }
 
 /// A module's compile state, composed of three states:
@@ -239,6 +260,7 @@ impl Module {
 /// - Initialized: Initial state of the module upon creating it
 /// - Compiling: State of the module if it is being currently compiled (being lexed/parsed/analyzed/compiled)
 /// - Compiled: State of the module after being compiled, which holds its own bytecode
+#[derive(Debug)]
 pub enum ModuleCompileState {
     Initialized,
     Compiling,

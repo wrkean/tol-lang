@@ -41,6 +41,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
 
     /// Runs the compiler for the target module
     pub fn compile(&mut self) -> Chunk {
+        self.load_dependencies();
         let ast = self.ctx.module_by_id(self.module_id).ast();
         for statement in ast {
             self.compile_statement(statement);
@@ -57,6 +58,18 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         self.chunk.emit_opcode(OpCode::Return, span);
 
         mem::take(&mut self.chunk)
+    }
+
+    pub fn load_dependencies(&mut self) {
+        let current_module = self.current_module();
+        for module_id in current_module.dependencies().to_vec() {
+            let constant_index = self.chunk.add_constant(Value::Int(module_id as i64));
+            self.chunk.emit_opcode(OpCode::ImportModule, 0..0);
+            self.chunk.emit_byte(constant_index, 0..0);
+            let current_module = self.current_module();
+            let resolved_dependency = current_module.get_resolved_dependency(module_id);
+            self.store_var(resolved_dependency.clone(), 0..0);
+        }
     }
 
     fn compile_statement(&mut self, statement: &Stmt) {
@@ -291,12 +304,10 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 let symbol = self.ctx.symbol_by_id(symbol_id);
                 match symbol.storage() {
                     Storage::Global(slot) => {
-                        self.chunk.emit_opcode(OpCode::StoreGlobal, span.clone());
-                        self.chunk.emit_byte(*slot as u8, span);
+                        self.store_in_global_slot(*slot, span);
                     }
                     Storage::Local(slot) => {
-                        self.chunk.emit_opcode(OpCode::StoreLocal, span.clone());
-                        self.chunk.emit_byte(*slot as u8, span);
+                        self.store_in_local_slot(*slot, span);
                     }
                 }
             }
@@ -305,6 +316,16 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 self.chunk.emit_byte(upvalue_idx as u8, span);
             }
         }
+    }
+
+    fn store_in_global_slot(&mut self, slot: usize, span: Span) {
+        self.chunk.emit_opcode(OpCode::StoreGlobal, span.clone());
+        self.chunk.emit_byte(slot as u8, span);
+    }
+
+    fn store_in_local_slot(&mut self, slot: usize, span: Span) {
+        self.chunk.emit_opcode(OpCode::StoreLocal, span.clone());
+        self.chunk.emit_byte(slot as u8, span);
     }
 
     fn load_var(&mut self, var: ResolvedVar, span: Span) {

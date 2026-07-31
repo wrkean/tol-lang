@@ -1,8 +1,1 @@
-paraan hello():
-    kung 1 == 1:
-        ang x = 5
-
-    kung 2 == 2:
-        ang y = 5
-
-hello()
+kunin ./test

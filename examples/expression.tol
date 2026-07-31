@@ -1,3 +1,4 @@
-list.tao.pangalan = "Keanne"
-println("{}", list.tao.pangalan)
-list.bago = 1
+kunin ./fibo
+
+io.println("Hello World!")
+ang hi = io.input("Hello: ")

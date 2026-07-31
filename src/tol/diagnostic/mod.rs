@@ -8,8 +8,8 @@ pub mod runtime;
 /// Diagnostic struct used to construct diagnostics at compile time
 #[derive(Debug)]
 pub struct TolDiagnostic {
-    source: Arc<str>,
-    filename: String,
+    source: Option<Arc<str>>,
+    filename: Option<String>,
     message: String,
     help: Option<String>,
     severity: Severity,
@@ -20,8 +20,19 @@ impl TolDiagnostic {
     /// Generate a new diagnostic with severity = Error
     pub fn err(source: Arc<str>, filename: String, message: impl Into<String>) -> Self {
         Self {
-            source,
-            filename,
+            source: Some(source),
+            filename: Some(filename),
+            message: message.into(),
+            help: None,
+            severity: Severity::Error,
+            labels: Vec::new(),
+        }
+    }
+
+    pub fn err_no_source(message: impl Into<String>) -> Self {
+        Self {
+            source: None,
+            filename: None,
             message: message.into(),
             help: None,
             severity: Severity::Error,
@@ -45,6 +56,18 @@ impl TolDiagnostic {
 
     pub fn severity(&self) -> &Severity {
         &self.severity
+    }
+
+    pub fn source(mut self, source: Arc<str>) -> Self {
+        self.source = Some(source);
+
+        self
+    }
+
+    pub fn filename(mut self, filename: String) -> Self {
+        self.filename = Some(filename);
+
+        self
     }
 }
 

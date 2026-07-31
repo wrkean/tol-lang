@@ -13,7 +13,7 @@ pub struct MietteDiagnostic {
     message: String,
 
     #[source_code]
-    src: NamedSource<Arc<str>>,
+    src: Option<NamedSource<Arc<str>>>,
 
     #[label(collection)]
     labels: Vec<LabeledSpan>,
@@ -42,7 +42,13 @@ impl From<TolDiagnostic> for MietteDiagnostic {
                 super::Severity::Warning => todo!("babala: {}", tol_diag.message),
                 super::Severity::Advice => todo!("abiso: {}", tol_diag.message),
             },
-            src: NamedSource::new(tol_diag.filename.clone(), tol_diag.source),
+            src: match tol_diag.source {
+                Some(s) => Some(NamedSource::new(
+                    tol_diag.filename.unwrap_or("unknown filename".to_string()),
+                    s,
+                )),
+                None => None,
+            },
             labels,
             help: tol_diag.help,
         }
@@ -54,7 +60,7 @@ impl From<RuntimeError> for MietteDiagnostic {
         let label = run_error.label;
         Self {
             message: format!("error habang nakatakbo: {}", run_error.message),
-            src: NamedSource::new(run_error.filename, run_error.source),
+            src: Some(NamedSource::new(run_error.filename, run_error.source)),
             labels: vec![LabeledSpan::new(
                 label.message,
                 label.span.start,

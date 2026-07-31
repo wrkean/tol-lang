@@ -161,9 +161,40 @@ impl<'gctx> Analyzer<'gctx> {
     pub fn analyze(&mut self) {
         self.enter_scope(false);
 
+        if let Err(diag) = self.resolve_dependencies() {
+            self.current_module_mut().add_diagnostic(*diag);
+            return;
+        }
+
         self.resolve_names();
 
         self.exit_scope();
+    }
+
+    fn resolve_dependencies(&mut self) -> DiagResult<()> {
+        let module = self.ctx.module_by_id(self.module_id);
+        for id in module.dependencies().to_vec() {
+            let symbol_name = self
+                .ctx
+                .module_by_id(id)
+                .filename()
+                .strip_suffix(".tol")
+                .unwrap()
+                .to_string();
+            let storage = self.assign_storage();
+            let symbol = Symbol::new(
+                symbol_name.clone(),
+                0..0,
+                storage,
+                SymbolKind::Module { module_id: id },
+            );
+            let resolved_var = self.declare_symbol(symbol)?;
+            self.ctx
+                .module_by_id_mut(self.module_id)
+                .add_resolved_dependency(id, resolved_var);
+        }
+
+        Ok(())
     }
 
     fn resolve_names(&mut self) {
@@ -439,22 +470,15 @@ impl<'gctx> Analyzer<'gctx> {
         let segments_span =
             segments.first().unwrap().span().start..segments.last().unwrap().span().end;
         let path = self.path_from_segments(segments, import_path_type);
-        let module = driver::module_from_path(path).map_err(|report| {
-            let help = report.help().unwrap();
+        let module = driver::module_from_path(path).map_err(|diag| {
             let current_module = self.current_module();
-            let diagnostic = TolDiagnostic::err(
-                current_module.source_arc(),
-                current_module.filename(),
-                report.to_string(),
-            )
-            .label(Label::new(segments_span.clone()).message("path na ito"))
-            .help(help.to_string());
-
-            Box::new(diagnostic)
+            diag.source(current_module.source_arc())
+                .filename(current_module.filename())
+                .label(Label::new(segments_span.clone()).message("path na ito"))
         })?;
 
         let module_id = self.ctx.register_module(module);
-        if let Err(diag) = driver::compile_module(module_id, self.ctx) {
+        if let Err(diag) = driver::compile_module(module_id, self.ctx, true) {
             return Err(Box::new(diag.label(
                 Label::new(segments_span).message("nabigong i-compile ang module na ito"),
             )));
@@ -792,7 +816,7 @@ impl<'gctx> Analyzer<'gctx> {
             if let Some(&id) = scope.get(name) {
                 if func_idx == 0 {
                     let module = self.current_module();
-                    if module.global_name_map().contains_key(name) {
+                    if !module.global_name_map().contains_key(name) {
                         return None;
                     }
                     return Some(ResolvedVar::Global(id));

@@ -590,7 +590,6 @@ impl VM {
                 }
             }
             op if op == OpCode::ImportModule as u8 => {
-                println!("Reached");
                 let constant_index = self.read_byte() as usize;
                 let Value::Int(module_id) = self.current_chunk().get_constant(constant_index)
                 else {

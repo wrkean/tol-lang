@@ -1,0 +1,9 @@
+# Ang module na ito ay sinasadyang walang laman. Ang mga paraan na tinatawag na nagmula dito ay kilala ng compiler at hindi na dapat
+# nilalagay pa dito.
+#
+# Ito ang mga paraan na nabibilang dito:
+#   print(teksto, ...)
+#   println(teksto, ...)
+#   input(teksto, ...)
+#
+# Ang mga implementasyon ay ginawa sa linggwaheng Rust, makikita sa io.rs: ../builtins/native_functions/io.rs
