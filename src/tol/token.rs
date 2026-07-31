@@ -46,6 +46,8 @@ pub enum TokenKind {
     Kunin,
     Totoo,
     Mali,
+    AtKw,
+    O,
 
     SemiColon,
     Colon,

@@ -135,6 +135,8 @@ impl VM {
             op if op == OpCode::GreatEq as u8 => self.binary_op(Value::ge),
             op if op == OpCode::Lesser as u8 => self.binary_op(Value::lt),
             op if op == OpCode::LessEq as u8 => self.binary_op(Value::le),
+            op if op == OpCode::LogAnd as u8 => self.binary_op(Value::and),
+            op if op == OpCode::LogOr as u8 => self.binary_op(Value::or),
             op if op == OpCode::StoreGlobal as u8 => {
                 let index = self.read_byte() as usize;
                 let value = self.pop();

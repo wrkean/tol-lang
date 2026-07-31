@@ -624,7 +624,9 @@ impl<'c> Parser<'c> {
             | TokenKind::Greater
             | TokenKind::GreatEq
             | TokenKind::Lesser
-            | TokenKind::LessEq => {
+            | TokenKind::LessEq
+            | TokenKind::AtKw
+            | TokenKind::O => {
                 let right = self.parse_expression(0)?;
                 let span = left.span().start..right.span().end;
 

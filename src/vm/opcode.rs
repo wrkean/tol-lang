@@ -24,6 +24,9 @@ pub enum OpCode {
     IndexSet,
     Dup,
     ImportModule,
+    // Log as in Logical
+    LogAnd, // At
+    LogOr,  // O
 
     Pop,
     Push,

@@ -1,1 +1,2 @@
-io.println("{}", totoo == totoo)
+habang totoo:
+    io.println("Hello")

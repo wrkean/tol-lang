@@ -151,6 +151,24 @@ impl Value {
         }
     }
 
+    pub fn and(self, right: Self) -> Result<Self, ValueError> {
+        match (self, right) {
+            (Bool(b1), Bool(b2)) => Ok(Bool(b1 && b2)),
+            (l, r) => Err(ValueError::new(
+                "maaari lamang na mga \"boolean\" ang pwede sa `&&`",
+            )),
+        }
+    }
+
+    pub fn or(self, right: Self) -> Result<Self, ValueError> {
+        match (self, right) {
+            (Bool(b1), Bool(b2)) => Ok(Bool(b1 || b2)),
+            (l, r) => Err(ValueError::new(
+                "maaari lamang na mga \"boolean\" ang pwede sa `&&`",
+            )),
+        }
+    }
+
     pub fn to_printed_string(&self, vm: &VM) -> String {
         match self {
             Int(_)
