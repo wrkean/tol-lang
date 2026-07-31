@@ -1,4 +1,0 @@
-klase Tao
-
-ang tao = Tao()
-ang lista = [1, 2, 3, tao]

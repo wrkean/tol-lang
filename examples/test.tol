@@ -1,5 +1,0 @@
-klase Tao:
-    paraan tanungin(ako, tanong):
-        io.println("Tinanong ako ng {}", tanong)
-
-ang tao = Tao()
