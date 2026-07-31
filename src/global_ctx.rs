@@ -71,11 +71,14 @@ pub struct GlobalContext {
     string_interner: RefCell<StringInterner>,
 
     native_functions: HashMap<String, usize>,
+
+    // Path pointing to the root of the standard library
+    stdlib_path: PathBuf,
 }
 
 impl GlobalContext {
     /// Creates a new global context with the arguments
-    pub fn new(cli_args: Args) -> Self {
+    pub fn new(cli_args: Args, stdlib_path: PathBuf) -> Self {
         Self {
             entry_point: cli_args.input,
             modules: Vec::new(),
@@ -83,6 +86,7 @@ impl GlobalContext {
             symbols: Vec::new(),
             string_interner: RefCell::new(StringInterner::new()),
             native_functions: HashMap::new(),
+            stdlib_path,
         }
     }
 
@@ -162,5 +166,9 @@ impl GlobalContext {
         let chunk = entry_module.take_chunk();
 
         VM::new(chunk, self.string_interner.take(), 0, self.modules)
+    }
+
+    pub fn stdlib_path(&self) -> &PathBuf {
+        &self.stdlib_path
     }
 }

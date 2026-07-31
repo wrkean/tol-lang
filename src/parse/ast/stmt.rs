@@ -212,8 +212,8 @@ pub enum ImportPathType {
     Std,
 
     /// Searches the relative path
-    Relative,
-
+    /// true: relative to the current path (`./`) false: relative to the parent path (`../`)
+    Relative(bool),
     /// Searches the package root path.
     ///
     /// TODO: Implement later

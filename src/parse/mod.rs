@@ -280,11 +280,15 @@ impl<'c> Parser<'c> {
         let import_path_type = match self.peek().kind() {
             TokenKind::Dot => {
                 self.advance();
-                self.consume(
-                    TokenKind::Slash,
-                    "ang tuldok dito ay dapat na may kasunod na `/`",
-                )?;
-                ImportPathType::Relative
+                let mut relative_to_current_path = true;
+                if let TokenKind::Dot = self.peek().kind() {
+                    self.advance();
+                    relative_to_current_path = false;
+                    ImportPathType::Relative(relative_to_current_path)
+                } else {
+                    self.consume(TokenKind::Slash, "umaasa ako ng `/` o `.`")?;
+                    ImportPathType::Relative(relative_to_current_path)
+                }
             }
             TokenKind::Slash => {
                 self.advance();

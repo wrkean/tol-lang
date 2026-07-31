@@ -40,6 +40,12 @@ impl TolDiagnostic {
         }
     }
 
+    pub fn message(mut self, message: impl Into<String>) -> Self {
+        self.message = message.into();
+
+        self
+    }
+
     /// Attach a label to this diagnostic
     pub fn label(mut self, label: Label) -> Self {
         self.labels.push(label);

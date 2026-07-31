@@ -2,7 +2,7 @@
 
 use std::{
     collections::{HashMap, HashSet},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use crate::{
@@ -556,10 +556,25 @@ impl<'gctx> Analyzer<'gctx> {
 
     fn path_from_segments(&mut self, segments: &[Token], path_type: &ImportPathType) -> PathBuf {
         let mut base_path = match path_type {
-            ImportPathType::Relative => {
-                self.current_module().path().parent().unwrap().to_path_buf()
+            ImportPathType::Relative(relative_to_current_path) => {
+                // TODO: Robust handling
+                if *relative_to_current_path {
+                    self.current_module()
+                        .path()
+                        .parent()
+                        .unwrap_or(Path::new("/"))
+                        .to_path_buf()
+                } else {
+                    self.current_module()
+                        .path()
+                        .parent()
+                        .unwrap_or(Path::new("/"))
+                        .parent()
+                        .unwrap_or(Path::new("/"))
+                        .to_path_buf()
+                }
             }
-            ImportPathType::Std => todo!(),
+            ImportPathType::Std => self.ctx.stdlib_path().join("std"),
             ImportPathType::Root => todo!(),
         };
 
