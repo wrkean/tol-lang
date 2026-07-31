@@ -246,12 +246,7 @@ impl<'c> Parser<'c> {
             }
             _ => {
                 let current_module = self.current_module();
-                let diagnostic = TolDiagnostic::err(
-                    current_module.source_arc(),
-                    current_module.filename(),
-                    "hindi inaasahang token",
-                )
-                .label(
+                let diagnostic = current_module.new_err("hindi inaasahang token").label(
                     Label::new(self.peek().span().clone()).message("umaasa ako ng `:` o `;` dito"),
                 );
 
@@ -297,24 +292,15 @@ impl<'c> Parser<'c> {
             // TODO: Implement once packages are implemented, this refers to the project root
             TokenKind::Identifier(name) => {
                 let current_module = self.current_module();
-                let diagnostic = TolDiagnostic::err(
-                    current_module.source_arc(),
-                    current_module.filename(),
-                    "sa ngayon, hindi pa ito pwede sa tol",
-                )
-                .label(Label::new(self.peek().span().clone()).message("tanggalin ito"))
-                .help(format!("kapag may \"packages\" na ang tol ay pwede mo na itong gawin. Sa ngayon, gamitin muna ang `../{name}`, `./{name}`, o `/{name}`"));
+                let diagnostic = current_module.new_err("sa ngayon, hindi pa ito pwede sa tol")
+                    .label(Label::new(self.peek().span().clone()).message("tanggalin ito"))
+                    .help(format!("kapag may \"packages\" na ang tol ay pwede mo na itong gawin. Sa ngayon, gamitin muna ang `../{name}`, `./{name}`, o `/{name}`"));
 
                 return Err(Box::new(diagnostic));
             }
             _ => {
                 let current_module = self.current_module();
-                let diagnostic = TolDiagnostic::err(
-                    current_module.source_arc(),
-                    current_module.filename(),
-                    "hindi inaasahang token",
-                )
-                .label(
+                let diagnostic = current_module.new_err("hindi inaasahang token").label(
                     Label::new(self.peek().span().clone())
                         .message("umaasa ako ng isa sa mga ito: (`.`, `/`, o pangalan)"),
                 );

@@ -107,12 +107,9 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
             ')' | ']' | '}' => {
                 if self.bracket_depth == 0 {
                     let current_module = self.current_module();
-                    let diagnostic = TolDiagnostic::err(
-                        current_module.source_arc(),
-                        current_module.filename(),
-                        "walang kapares na bracket",
-                    )
-                    .label(Label::new(self.current_span()).message("wala itong kapares"));
+                    let diagnostic = current_module
+                        .new_err("walang kapares na bracket")
+                        .label(Label::new(self.current_span()).message("wala itong kapares"));
                     self.current_module_mut().add_diagnostic(diagnostic);
                     return;
                 }
@@ -235,16 +232,13 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
             ch if ch.is_ascii_digit() => self.lex_number(),
             _ => {
                 let current_module = self.current_module();
-                let diagnostic = TolDiagnostic::err(
-                    current_module.source_arc(),
-                    current_module.filename(),
-                    "paggamit ng karakter na hindi parte ng sintax",
-                )
-                .label(
-                    Label::new(self.current_span())
-                        .message("ang karakter na ito ay hindi parte ng sintax ng tol"),
-                )
-                .help("subukan mo itong tanggalin");
+                let diagnostic = current_module
+                    .new_err("paggamit ng karakter na hindi parte ng sintax")
+                    .label(
+                        Label::new(self.current_span())
+                            .message("ang karakter na ito ay hindi parte ng sintax ng tol"),
+                    )
+                    .help("subukan mo itong tanggalin");
                 self.current_module_mut().add_diagnostic(diagnostic);
             }
         }
@@ -279,15 +273,13 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
 
             if !last_was_colon {
                 let current_module = self.current_module();
-                let diagnostic = TolDiagnostic::err(
-                    current_module.source_arc(),
-                    current_module.filename(),
-                    "hindi inaasahang pag-\"indent\"",
-                )
-                .label(
-                    Label::new(self.current_span()).message("hindi ka dapat mag-\"indent\" dito"),
-                )
-                .help("sa tol, maaari lamang mag-\"indent\" pagkatapos ng isang `:`");
+                let diagnostic = current_module
+                    .new_err("hindi inaasahang pag-\"indent\"")
+                    .label(
+                        Label::new(self.current_span())
+                            .message("hindi ka dapat mag-\"indent\" dito"),
+                    )
+                    .help("sa tol, maaari lamang mag-\"indent\" pagkatapos ng isang `:`");
                 self.current_module_mut().add_diagnostic(diagnostic);
             } else {
                 self.indent_stack.push(current_indent);
@@ -306,14 +298,11 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
                     .map(|n| n.to_string())
                     .collect::<Vec<_>>()
                     .join(", ");
-                let diagnostic = TolDiagnostic::err(
-                    current_module.source_arc(),
-                    current_module.filename(),
-                    "hindi tumutugma ang antas ng indentasyon",
-                )
-                .label(Label::new(self.current_span()).message(format!(
-                    "{current_indent} na espasyo, pero ang mga bukas na antas ay: {levels}"
-                )));
+                let diagnostic = current_module
+                    .new_err("hindi tumutugma ang antas ng indentasyon")
+                    .label(Label::new(self.current_span()).message(format!(
+                        "{current_indent} na espasyo, pero ang mga bukas na antas ay: {levels}"
+                    )));
                 self.current_module_mut().add_diagnostic(diagnostic);
             }
         }
@@ -380,16 +369,13 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
                         't' => string_builder.push('\t'),
                         _ => {
                             let current_module = self.current_module();
-                            let diagnostic = TolDiagnostic::err(
-                                current_module.source_arc(),
-                                current_module.filename(),
-                                "hindi valid na \"escape\" karakter",
-                            )
-                            .label(
-                                Label::new(self.current - 1..self.current)
-                                    .message("hindi ito valid na \"escape\" karakter"),
-                            )
-                            .help("ang \"escape\" karakter ay karakter na nagsisimula sa `\\`");
+                            let diagnostic = current_module
+                                .new_err("hindi valid na \"escape\" karakter")
+                                .label(
+                                    Label::new(self.current - 1..self.current)
+                                        .message("hindi ito valid na \"escape\" karakter"),
+                                )
+                                .help("ang \"escape\" karakter ay karakter na nagsisimula sa `\\`");
                             self.add_token(
                                 TokenKind::StringLiteral(string_builder),
                                 self.current_span(),

@@ -117,6 +117,11 @@ impl Module {
         self.diagnostics.push(diagnostic);
     }
 
+    /// Produce a new diagnostic associated with this module
+    pub fn new_err(&self, message: impl Into<String>) -> TolDiagnostic {
+        TolDiagnostic::err(self.source_arc(), self.filename(), message.into())
+    }
+
     /// The module name + .tol extension
     pub fn filename(&self) -> String {
         self.name.clone() + ".tol"

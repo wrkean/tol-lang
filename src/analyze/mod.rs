@@ -369,13 +369,10 @@ impl<'gctx> Analyzer<'gctx> {
     fn resolve_biyakin(&mut self, biyakin: &Stmt) -> DiagResult<()> {
         if self.loop_depth == 0 {
             let current_module = self.current_module();
-            let diagnostic = TolDiagnostic::err(
-                current_module.source_arc(),
-                current_module.filename(),
-                "paggamit ng `biyakin` sa labas ng loop",
-            )
-            .label(Label::new(biyakin.span().clone()).message("ito ay nasa labas ng loop"))
-            .help("maaari lamang gamitin ang `biyakin` sa loob ng loop");
+            let diagnostic = current_module
+                .new_err("paggamit ng `biyakin` sa labas ng loop")
+                .label(Label::new(biyakin.span().clone()).message("ito ay nasa labas ng loop"))
+                .help("maaari lamang gamitin ang `biyakin` sa loob ng loop");
 
             return Err(Box::new(diagnostic));
         }
@@ -386,13 +383,10 @@ impl<'gctx> Analyzer<'gctx> {
     fn resolve_ituloy(&mut self, ituloy: &Stmt) -> DiagResult<()> {
         if self.loop_depth == 0 {
             let current_module = self.current_module();
-            let diagnostic = TolDiagnostic::err(
-                current_module.source_arc(),
-                current_module.filename(),
-                "paggamit ng `ituloy` sa labas ng loop",
-            )
-            .label(Label::new(ituloy.span().clone()).message("ito ay nasa labas ng loop"))
-            .help("maaari lamang gamitin ang `biyakin` sa loob ng loop");
+            let diagnostic = current_module
+                .new_err("paggamit ng `ituloy` sa labas ng loop")
+                .label(Label::new(ituloy.span().clone()).message("ito ay nasa labas ng loop"))
+                .help("maaari lamang gamitin ang `biyakin` sa loob ng loop");
 
             return Err(Box::new(diagnostic));
         }
@@ -411,13 +405,10 @@ impl<'gctx> Analyzer<'gctx> {
 
         if self.next_local_slot_stack.is_empty() {
             let current_module = self.current_module();
-            let diagnostic = TolDiagnostic::err(
-                current_module.source_arc(),
-                current_module.filename(),
-                "paggamit ng `ibalik` sa labas ng paraan",
-            )
-            .label(Label::new(ibalik.span().clone()).message("ito ay nasa labas ng paraan"))
-            .help("maaari lamang gamitin ang `ibalik` sa loob ng isang paraan");
+            let diagnostic = current_module
+                .new_err("paggamit ng `ibalik` sa labas ng paraan")
+                .label(Label::new(ibalik.span().clone()).message("ito ay nasa labas ng paraan"))
+                .help("maaari lamang gamitin ang `ibalik` sa loob ng isang paraan");
 
             return Err(Box::new(diagnostic));
         }
@@ -709,16 +700,13 @@ impl<'gctx> Analyzer<'gctx> {
             ExprKind::Call { left, args } => {
                 if !left.is_lvalue() {
                     let current_module = self.current_module();
-                    let diagnostic = TolDiagnostic::err(
-                        current_module.source_arc(),
-                        current_module.filename(),
-                        "pag-tawag ng hindi isang \"lvalue\"",
-                    )
-                    .label(
-                        Label::new(left.span().clone())
-                            .message("hindi ito isang \"lvalue\", ngunit tinawag mo ito"),
-                    )
-                    .help("mga \"lvalue\" lamang ang pwede tawagin");
+                    let diagnostic = current_module
+                        .new_err("pag-tawag ng hindi isang \"lvalue\"")
+                        .label(
+                            Label::new(left.span().clone())
+                                .message("hindi ito isang \"lvalue\", ngunit tinawag mo ito"),
+                        )
+                        .help("mga \"lvalue\" lamang ang pwede tawagin");
 
                     return Err(Box::new(diagnostic));
                 }
@@ -828,12 +816,9 @@ impl<'gctx> Analyzer<'gctx> {
     fn ensure_valid_assignment(&mut self, left: &Expr, op: &Token) -> DiagResult<()> {
         let current_module = self.current_module();
         if !left.is_lvalue() {
-            let diagnostic = TolDiagnostic::err(
-                current_module.source_arc(),
-                current_module.filename(),
-                "pag-assign sa hindi \"lvalue\"",
-            )
-            .label(Label::new(left.span().clone()).message("hindi ito isang \"lvalue\""));
+            let diagnostic = current_module
+                .new_err("pag-assign sa hindi \"lvalue\"")
+                .label(Label::new(left.span().clone()).message("hindi ito isang \"lvalue\""));
 
             return Err(Box::new(diagnostic));
         }
@@ -855,13 +840,10 @@ impl<'gctx> Analyzer<'gctx> {
                 let declared_span = declared_symbol.span().clone();
 
                 let current_module = self.current_module();
-                let diagnostic = TolDiagnostic::err(
-                    current_module.source_arc(),
-                    current_module.filename(),
-                    "pag-deklara ng kaparehong pangalan sa iisang sakop",
-                )
-                .label(Label::new(declared_span).message("na-ideklara na dito"))
-                .label(Label::new(symbol.span().clone()).message("dineklara mo ulit dito"));
+                let diagnostic = current_module
+                    .new_err("pag-deklara ng kaparehong pangalan sa iisang sakop")
+                    .label(Label::new(declared_span).message("na-ideklara na dito"))
+                    .label(Label::new(symbol.span().clone()).message("dineklara mo ulit dito"));
 
                 Err(Box::new(diagnostic))
             }
