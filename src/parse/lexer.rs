@@ -129,6 +129,14 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
             '|' => self.add_token(TokenKind::Pipe, self.current_span()),
             '.' => self.add_token(TokenKind::Dot, self.current_span()),
             '@' => self.add_token(TokenKind::At, self.current_span()),
+            '#' => {
+                while let Some(ch) = self.peek() {
+                    if ch == '\n' {
+                        break;
+                    }
+                    self.advance();
+                }
+            }
             '!' => {
                 if self.match_ch('=') {
                     self.add_token(TokenKind::NotEq, self.current_span())
