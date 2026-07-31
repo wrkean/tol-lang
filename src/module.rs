@@ -49,6 +49,10 @@ pub struct Module {
 
     /// Global name map. Maps the name -> index to the globals vector
     global_name_map: HashMap<String, usize>,
+
+    /// Modules attached by the compiler, not by the user. Usually the standard library should be here.
+    /// The index maps to the module table owned by the global context
+    dependencies: Vec<ModuleId>,
 }
 
 impl Module {
@@ -75,6 +79,7 @@ impl Module {
             chunk: Chunk::new(),
             globals: Vec::new(),
             global_name_map: HashMap::new(),
+            dependencies: Vec::new(),
         }
     }
 
@@ -222,6 +227,10 @@ impl Module {
 
     pub fn global_name_map(&self) -> &HashMap<String, usize> {
         &self.global_name_map
+    }
+
+    pub fn add_dependency(&mut self, module_id: ModuleId) {
+        self.dependencies.push(module_id);
     }
 }
 
