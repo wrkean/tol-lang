@@ -19,10 +19,12 @@ pub fn initialize_uri_module(target_module_id: ModuleId, ctx: &mut GlobalContext
     let lista_type = initialize_lista_type();
     let numero_type = initialize_numero_type();
     let teksto_type = initialize_teksto_type();
+    let sakop_type = initialize_sakop_type();
 
     module.new_global("Lista", lista_type);
     module.new_global("Numero", numero_type);
     module.new_global("Teksto", teksto_type);
+    module.new_global("Sakop", sakop_type);
 }
 
 fn initialize_lista_type() -> Value {
@@ -59,6 +61,17 @@ fn initialize_teksto_type() -> Value {
     insert(&mut methods, "titik", Some(1), titik);
 
     let class_def = ClassDef::new("Teksto".to_string(), methods);
+    Value::ClassDef(Rc::new(class_def))
+}
+
+fn initialize_sakop_type() -> Value {
+    let mut methods = HashMap::new();
+
+    use builtins::methods::range::*;
+    insert(&mut methods, "hakbang", Some(2), hakbang);
+    insert(&mut methods, "__maging_iter__", Some(1), __maging_iter__);
+
+    let class_def = ClassDef::new("Sakop".to_string(), methods);
     Value::ClassDef(Rc::new(class_def))
 }
 

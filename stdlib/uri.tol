@@ -1,0 +1,4 @@
+# Ang module na ito ay sinasadyang walang laman. Dito nakatira ang mga uri ng mga data sa tol kagaya ng:
+#   Numero, Lutang, Teksto, Lista, at iba pa
+#
+# Ang mga implementasyon ay ginawa sa linggwaheng Rust, makikita sa uri.rs: ../src/builtins/native_functions/uri.rs

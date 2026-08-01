@@ -608,6 +608,7 @@ impl VM {
                 // Call the function with only the actual arguments (arg_count - 1)
                 self.call_value(&func, arg_count as u8 - 1);
             }
+            // Resort to calling the builtins
             val => {
                 let mut args = vec![Value::Null; arg_count];
                 for i in (0..arg_count).rev() {
@@ -620,38 +621,6 @@ impl VM {
                         self.runtime_error(&err.message, self.current_ip());
                     }
                 }
-            }
-            Value::Str(_) => {
-                let mut args = vec![Value::Null; arg_count];
-                for i in (0..arg_count).rev() {
-                    args[i] = self.pop();
-                }
-                self.pop(); // Pops the null value
-                match self.invoke_builtin_string_method(Rc::from(method_name), args) {
-                    Ok(v) => self.push(v),
-                    Err(err) => {
-                        self.runtime_error(&err.message, self.current_ip());
-                    }
-                }
-            }
-            Value::Range(_) => {
-                let mut args = vec![Value::Null; arg_count];
-                for i in (0..arg_count).rev() {
-                    args[i] = self.pop();
-                }
-                self.pop(); // Pops the null value
-                match self.invoke_builtin_range_method(Rc::from(method_name), args) {
-                    Ok(v) => self.push(v),
-                    Err(err) => {
-                        self.runtime_error(&err.message, self.current_ip());
-                    }
-                }
-            }
-            val => {
-                self.runtime_error(
-                    &format!("walang method ang {val} na {method_name}"),
-                    self.current_ip(),
-                );
             }
         }
     }
@@ -728,6 +697,7 @@ impl VM {
             Value::List(_) => "Lista",
             Value::Int(_) => "Numero",
             Value::Str(_) => "Teksto",
+            Value::Range(_) => "Sakop",
             _ => todo!(),
         };
 
@@ -756,56 +726,6 @@ impl VM {
         };
 
         (native_fn.func)(self, &args)
-    }
-
-    fn invoke_builtin_int_method(
-        &mut self,
-        method_name: Rc<str>,
-        args: Vec<Value>,
-    ) -> Result<Value, Box<RuntimeError>> {
-        let arg_count = args.len();
-
-        // For 1 argument, the integer itself
-        match method_name.as_ref() {
-            "bilangString" => builtins::methods::numero::bilang_string(self, &args),
-            "abs" => builtins::methods::numero::abs(self, &args),
-            "bilangKarakter" => builtins::methods::numero::bilang_karakter(self, &args),
-            _ => Err(Box::new(self.new_runtime_error(
-                &format!("walang \"method\" na `{}` ang numero na ito", method_name),
-                self.current_ip(),
-            ))),
-        }
-    }
-
-    fn invoke_builtin_string_method(
-        &mut self,
-        method_name: Rc<str>,
-        args: Vec<Value>,
-    ) -> Result<Value, Box<RuntimeError>> {
-        match method_name.as_ref() {
-            "haba" => builtins::methods::string::haba(self, &args),
-            "bilangNumero" => builtins::methods::string::bilang_numero(self, &args),
-            "titik" => builtins::methods::string::titik(self, &args),
-            _ => Err(Box::new(self.new_runtime_error(
-                &format!("walang \"method\" na `{}` ang string", method_name),
-                self.current_ip(),
-            ))),
-        }
-    }
-
-    fn invoke_builtin_range_method(
-        &mut self,
-        method_name: Rc<str>,
-        args: Vec<Value>,
-    ) -> Result<Value, Box<RuntimeError>> {
-        match method_name.as_ref() {
-            "hakbang" => builtins::methods::range::hakbang(self, &args),
-            "__maging_iter__" => builtins::methods::range::__maging_iter__(self, &args),
-            _ => Err(Box::new(self.new_runtime_error(
-                &format!("walang \"method\" na `{}` ang range (..)", method_name),
-                self.current_ip(),
-            ))),
-        }
     }
 
     fn capture_upvalue(&mut self, stack_location: usize) -> Upvalue {
