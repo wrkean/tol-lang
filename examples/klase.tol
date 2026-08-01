@@ -1,0 +1,30 @@
+# Ang mga klase ay pwede magmay-ari ng mga paraan o mga pangalan
+#
+# Mag-bigay ng depinisyon ng isang Tao
+klase Tao:
+    # Paraan na tatawagin para gumawa ng bagong
+    # "instance" ng Tao
+    paraan bago(pangalan, edad):
+        ang tao = Tao() # Ang pagtawag sa klase ay nagreresulta ng bagong "instance"
+        tao.pangalan = pangalan
+        tao.edad = edad
+
+        ibalik tao
+
+# Tao na bata na may pangalang John at edad 10
+ang bata = Tao.bago("John", 10)
+
+# Tao na matanda na may pangalang Crisostomo at edad 70
+ang matanda = Tao.bago("Crisostomo", 70)
+
+io.isulatln("Pangalan ng bata: {}", bata.pangalan)
+io.isulatln("Edad ng bata: {}", bata.edad)
+
+io.isulatln("Pangalan ng matanda: {}", matanda.pangalan)
+io.isulatln("Edad ng matanda: {}", matanda.edad)
+
+# Pwede ring gumawa ng klaseng walang laman
+klase WalangLaman
+
+# Wala itong mga pangalan o paraan, kaya wala din halos itong saysay
+ang walang_laman = WalangLaman()

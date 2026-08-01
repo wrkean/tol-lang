@@ -24,7 +24,7 @@ impl ListIterator {
 
 impl NativeIterator for ListIterator {
     fn next(&mut self, vm: &mut VM) -> Option<Value> {
-        let val = self.list.borrow_mut().elements.get(self.index).cloned();
+        let val = self.list.borrow().elements.get(self.index).cloned();
         self.index += 1;
 
         val

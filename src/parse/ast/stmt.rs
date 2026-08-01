@@ -135,6 +135,7 @@ pub enum StmtKind {
         bind: Token,
         iterable: Expr,
         block: Box<Stmt>,
+        iterator_var: Option<ResolvedVar>,
     },
 
     /// Break statement

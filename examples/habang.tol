@@ -1,0 +1,27 @@
+# Ang habang ay pinapaulit ulit ang bahagi ng code hanggang
+# sa ang kondisyon nito ay magiging `mali`
+ang bilang = 0
+habang bilang < 5:
+    io.isulatln("Kondisyon: {}", bilang < 5)
+    io.isulatln("Bilang: {}", bilang)
+    bilang += 1
+
+io.isulatln("Kondisyon: {}", bilang < 5)
+io.isulatln("Bilang: {}", bilang)
+
+io.isulatln("")
+
+# Kung nais mong putulin ang `habang` habang nakaandar pa ito,
+# gamitin ang biyakin
+ang bilang2 = 0
+habang bilang2 < 5:
+    io.isulatln("Kondisyon: {}", bilang2 < 5)
+    io.isulatln("Bilang2: {}", bilang2)
+    bilang2 += 1
+
+    biyakin # Putulin kaagad sa unang iterasyon pa lang
+    # Pwede rin gamitin ang `ituloy` para imbes na putulin
+    # ang kasalukuyang iterasyon, babalik ito sa umpisa
+
+io.isulatln("Kondisyon: {}", bilang2 < 5)
+io.isulatln("Bilang2: {}", bilang2)

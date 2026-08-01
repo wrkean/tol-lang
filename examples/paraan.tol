@@ -1,0 +1,24 @@
+# Ang mga paraan ay mga bahagi ng code na maaari mong tawagin sa kahit saang parte ng code
+#
+# Paraan na nagkakalkula ng ika-nth sa fibonacci sequence
+paraan fibonacciSequence(n):
+    kung n < 1:
+        ibalik 1
+
+    ibalik fibonacciSequence(n - 1) + fibonacciSequence(n - 2)
+
+# Pagtawag ng paraan
+io.isulatln("{}", fibonacciSequence(5)) # 13
+
+# Pwede ding gumawa ng paraan na walang pangalan
+# Ang sintax nito ay sumusunod
+#                               Paraan na walang pangalan na tumatanggap
+#                               ng isang parametro at binabalik ang doble nito
+ang paraan_na_walang_pangalan = |x| x * 2
+
+# Ang pagtawag ay kagaya lang ng mga karaniwang pangalan
+ang resulta = paraan_na_walang_pangalan(5) # 5 * 2 = 10
+
+# Dahil isa itong expresyon, pwede mo itong tawagin nang diretso
+ang resulta1 = (|x| x * 2)(5) # Tinawag ito nang diretso gamit ang argumentong `5`
+io.isulatln("{}", resulta1) # 10

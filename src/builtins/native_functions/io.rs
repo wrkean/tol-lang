@@ -109,7 +109,7 @@ fn format_template(
 
             let value = sub_args.get(arg_index).ok_or_else(|| {
                 Box::new(vm.new_runtime_error(&format!(
-                        "ang format ay umaasa ng mga argumento: hindi mahanap na value para sa placeholder ika-{} na karakter",
+                        "ang format ay umaasa ng mga argumento: hindi mahanap na value para sa ika-{} na placeholder",
                     arg_index
                 ), vm.current_ip()))
             })?;

@@ -354,6 +354,7 @@ impl<'c> Parser<'c> {
                 bind,
                 iterable,
                 block: Box::new(block),
+                iterator_var: None,
             },
         ))
     }

@@ -293,10 +293,15 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             bind,
             iterable,
             block,
+            iterator_var,
         } = bawat.kind()
         else {
             unreachable!()
         };
+
+        let iter_var = iterator_var
+            .clone()
+            .expect("iterator_var must be resolved");
 
         self.compile_expression(iterable);
 
@@ -304,8 +309,8 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         self.chunk
             .emit_opcode(OpCode::GetIter, iterable.span().clone());
 
-        // Store the iterator (not the iterable anymore)
-        self.store_var(iterable.resolved_var(), iterable.span().clone());
+        // Store the iterator into the hidden iterator storage slot
+        self.store_var(iter_var.clone(), iterable.span().clone());
 
         let loop_start = self.chunk.code().len();
         self.loop_stack.push(LoopContext {
@@ -314,7 +319,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
         });
 
         // For each iteration, we load the iterator
-        self.load_var(iterable.resolved_var(), iterable.span().clone());
+        self.load_var(iter_var, iterable.span().clone());
         let bawat_iter_pos = self.chunk.emit_jump(OpCode::Bawat, iterable.span().clone());
 
         self.store_var(bawat.resolved_var(), bind.span().clone());

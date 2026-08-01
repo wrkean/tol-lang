@@ -498,6 +498,7 @@ impl<'gctx> Analyzer<'gctx> {
             bind,
             iterable,
             block,
+            iterator_var,
         } = bawat.kind_mut()
         else {
             unreachable!()
@@ -519,11 +520,8 @@ impl<'gctx> Analyzer<'gctx> {
                 ty: TolType::DiAlam,
             },
         );
-        let iterator_resolved_var = self.declare_symbol(iterator_symbol)?;
-
-        // Let the iterable expression hold the resolved var, this will let the compiler know where
-        // to store the iterator
-        iterable.set_resolved_var(iterator_resolved_var);
+        let iter_var = self.declare_symbol(iterator_symbol)?;
+        *iterator_var = Some(iter_var);
 
         let storage = self.assign_storage();
 

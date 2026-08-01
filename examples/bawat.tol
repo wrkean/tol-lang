@@ -1,0 +1,32 @@
+# Magbilang mula 0 hanggang 5
+# Pansinin sa baba na hindi kabilang ang `6`
+bawat bilang sa 0..6:
+    io.isulatln("{}", bilang) # 0, 1, 2, 3, 4, 5
+
+io.isulatln("")
+
+# Kung gusto mong isali ang 6, lagyan lamang ng `=` ang `..`
+bawat bilang sa 0..=6:
+    io.isulatln("{}", bilang) # 0, 1, 2, 3, 4, 5, 6
+
+io.isulatln("")
+
+# Kung karaniwang hakbang ay isa lamang, kung nais mo itong baguhin,
+# gamitin ang `hakbang` na method
+bawat bilang sa (0..=6).hakbang(2):
+    io.isulatln("{}", bilang) # 0, 2, 4, 6
+
+io.isulatln("")
+
+# Pwede din isa isahin ang lista
+ang lista = [1, 2, 3, 4, 5]
+bawat numero sa lista:
+    io.isulatln("{}", numero)
+
+io.isulatln("")
+
+# Kung nais mong isa isahin ang lista at mag-apply
+# ng operasyon sa bawat elemento, gamitin ang `iMap` na method
+# Dapat gawin munang iterator ang lista gamit ang `iter()`
+bawat numero_doble sa lista.iter().iMap(|elemento| elemento * 2):
+    io.isulatln("{}", numero_doble)

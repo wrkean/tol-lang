@@ -1,1 +1,13 @@
-ang lista = [1, 2, 3]
+# Ang `io` ay isang module na nagbibigay ng input at output na mga paraan
+#
+# Magsulat sa console ng "Kumusta mundo"
+io.isulatln("Kumusta mundo!")
+
+# Pwede din na gamitin ang mga pangalan sa pag sulat
+ang numero = 10
+io.isulatln("Ang numero ay: {}", numero) # Pinalitan ang `{}` ng value ng `numero`
+
+# Kumuha ng input galing sa gumagamit
+io.isulat("Sabihin ang iyong pangalan: ")
+ang pangalan = io.input()
+io.isulatln("Ang pangalan ko ay {}!", pangalan)

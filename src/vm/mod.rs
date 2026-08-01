@@ -504,7 +504,6 @@ impl VM {
             op if op == OpCode::Bawat as u8 => {
                 let target = self.read_u16();
                 let iterator = self.peek(0).clone();
-                // dbg!(&self.stack);
                 let result = match iterator {
                     Value::Iterator(iter) => iter.borrow_mut().next(self).unwrap_or(Value::Null),
                     val => {
