@@ -621,13 +621,13 @@ impl VM {
                     }
                 }
             }
-            Value::List(_) => {
+            val => {
                 let mut args = vec![Value::Null; arg_count];
                 for i in (0..arg_count).rev() {
                     args[i] = self.pop();
                 }
                 self.pop(); // Pops the null value
-                match self.invoke_builtin_list_method(Rc::from(method_name), args) {
+                match self.invoke_builtin_method(val, method_name, args) {
                     Ok(v) => self.push(v),
                     Err(err) => {
                         self.runtime_error(&err.message, self.current_ip());
@@ -731,6 +731,44 @@ impl VM {
         }
     }
 
+    fn invoke_builtin_method(
+        &mut self,
+        value: &Value,
+        method_name: &str,
+        args: Vec<Value>,
+    ) -> Result<Value, Box<RuntimeError>> {
+        let class_name = match value {
+            Value::List(_) => "Lista",
+            _ => todo!(),
+        };
+
+        let def_id = *self
+            .current_module()
+            .global_name_map()
+            .get(class_name)
+            .unwrap();
+        let def = self.current_module().globals().get(def_id).unwrap();
+        let Value::ClassDef(def) = def else {
+            unreachable!()
+        };
+        let native_fn = match def.methods.get(method_name) {
+            Some(func) => {
+                let Value::NativeFunction(func) = func else {
+                    unreachable!()
+                };
+                func.clone()
+            }
+            None => {
+                return Err(Box::new(self.new_runtime_error(
+                    &format!("walang \"method\" na `{}` ang {}", method_name, class_name),
+                    self.current_ip(),
+                )));
+            }
+        };
+
+        (native_fn.func)(self, &args)
+    }
+
     fn invoke_builtin_int_method(
         &mut self,
         method_name: Rc<str>,
@@ -745,22 +783,6 @@ impl VM {
             "bilangKarakter" => builtins::methods::numero::bilang_karakter(self, &args),
             _ => Err(Box::new(self.new_runtime_error(
                 &format!("walang \"method\" na `{}` ang numero na ito", method_name),
-                self.current_ip(),
-            ))),
-        }
-    }
-
-    fn invoke_builtin_list_method(
-        &mut self,
-        method_name: Rc<str>,
-        args: Vec<Value>,
-    ) -> Result<Value, Box<RuntimeError>> {
-        match method_name.as_ref() {
-            "dagdag" => builtins::methods::lista::dagdag(self, &args),
-            "haba" => builtins::methods::lista::haba(self, &args),
-            "__maging_iter__" => builtins::methods::lista::__maging_iter__(self, &args),
-            _ => Err(Box::new(self.new_runtime_error(
-                &format!("walang \"method\" na `{}` ang lista", method_name),
                 self.current_ip(),
             ))),
         }

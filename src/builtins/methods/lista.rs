@@ -42,3 +42,11 @@ pub fn __maging_iter__(vm: &mut VM, args: &[Value]) -> Result<Value, Box<Runtime
 
     Ok(Value::Iterator(Rc::new(RefCell::new(list_iter))))
 }
+
+pub fn bago(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
+    builtins::expected_args_count(vm, args.len(), 0)?;
+
+    Ok(Value::List(Rc::new(RefCell::new(List {
+        elements: Vec::new(),
+    }))))
+}

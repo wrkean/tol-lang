@@ -258,6 +258,12 @@ impl Module {
     pub fn get_resolved_dependency(&self, module_id: ModuleId) -> &ResolvedVar {
         &self.resolved_dependencies[&module_id]
     }
+
+    pub fn new_global(&mut self, name: &str, value: Value) {
+        self.globals.push(value);
+        let id = self.globals().len() - 1;
+        self.register_global(name.to_string(), id);
+    }
 }
 
 /// A module's compile state, composed of three states:

@@ -1,2 +1,4 @@
 io.isulatln("Kumusta mundo!")
 io.isulatln("{}", math.PI)
+
+ang lista = Lista.bago()

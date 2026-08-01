@@ -133,14 +133,12 @@ pub fn attach_stdlib(target_module_id: ModuleId, ctx: &mut GlobalContext) -> Dia
         diagnostic
             .source(source_arc.clone())
             .filename(filename.clone())
+            .message(format!("nabigong i-compile ang module {}, na-iset mo ba ang environment variable na TOL_STDLIB?", filename.strip_suffix(".tol").unwrap_or(&filename)))
     };
 
-    attach_std_io(target_module_id, ctx)
-        .map_err(map_err_to_diagnostic)
-        .map_err(|err| err.message("nabigong i-compile ang io na module, na-iset mo ba ang environment variable na TOL_STDLIB?"))?;
-    attach_std_math(target_module_id, ctx)
-        .map_err(map_err_to_diagnostic)
-        .map_err(|err| err.message("nabigong i-compile ang math na module, na-iset mo ba ang environment variable na TOL_STDLIB?"))?;
+    attach_std_io(target_module_id, ctx).map_err(map_err_to_diagnostic)?;
+    attach_std_math(target_module_id, ctx).map_err(map_err_to_diagnostic)?;
+    attach_std_uri(target_module_id, ctx).map_err(map_err_to_diagnostic)?;
 
     Ok(())
 }
@@ -165,6 +163,22 @@ fn attach_std_math(target_module_id: ModuleId, ctx: &mut GlobalContext) -> DiagR
     compile_module(math_module_id, ctx, false)?;
     ctx.module_by_id_mut(target_module_id)
         .add_dependency(math_module_id);
+
+    Ok(())
+}
+
+fn attach_std_uri(target_module_id: ModuleId, ctx: &mut GlobalContext) -> DiagResult<()> {
+    let stdlib_path = ctx.stdlib_path();
+    let uri_module = module_from_path(stdlib_path.join("uri.tol"))?;
+    let uri_module_id = ctx.register_module(uri_module);
+
+    // Attach "Lista" to both the module's globals
+    native_functions::uri::initialize_uri_module(uri_module_id, ctx);
+    native_functions::uri::initialize_uri_module(target_module_id, ctx);
+
+    compile_module(uri_module_id, ctx, false)?;
+    ctx.module_by_id_mut(target_module_id)
+        .add_dependency(uri_module_id);
 
     Ok(())
 }
