@@ -1,4 +1,9 @@
-use std::{cell::RefCell, collections::HashMap, iter::Filter, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    iter::Filter,
+    rc::Rc,
+};
 
 use crate::{
     builtins,
@@ -43,6 +48,7 @@ pub struct VM {
     modules: Vec<Module>,
     loaded_modules: HashMap<ModuleId, Rc<RefCell<ModuleObj>>>,
     halt: bool,
+    primitive_types: HashSet<&'static str>,
 }
 
 impl VM {
@@ -76,6 +82,9 @@ impl VM {
                 locals_base: 1,
                 module_id: entry_module_id,
             }],
+            primitive_types: HashSet::from([
+                "Lista", "Sakop", "Numero", "Lutang", "Bool", "Teksto",
+            ]),
         }
     }
 
@@ -693,6 +702,10 @@ impl VM {
             _ => todo!(),
         };
 
+        // This is to prevent inconsistent naming since the names of the primitive types are not
+        // centered on one source
+        assert!(self.primitive_types.contains(class_name));
+
         let def_id = *self
             .current_module()
             .global_name_map()
@@ -853,6 +866,17 @@ impl VM {
                 };
             }
             Value::ClassDef(c) => {
+                // Don't allow something like `Lista()` because this produces a class definition
+                // Lista instead of an actual Lista object (List)!
+                // TODO: Maybe allow this later? A workaround?
+                if self.primitive_types.contains(c.name.as_str()) {
+                    self.runtime_error(
+                        "hindi pwede tawagin ang isang primitive type",
+                        self.current_ip(),
+                    );
+                    return;
+                }
+
                 let new_instance = ClassInstance {
                     def: Rc::clone(c),
                     fields: HashMap::new(),

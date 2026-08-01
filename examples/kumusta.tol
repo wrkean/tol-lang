@@ -2,7 +2,6 @@ io.isulatln("Kumusta mundo!")
 io.isulatln("{}", math.PI)
 
 ang lista = Lista.bago()
-lista.dagdag(2)
 ang numero = 65.bilangKarakter()
 io.isulatln("{}", numero)
 ang teksto = Teksto.bilangNumero("5")
@@ -13,3 +12,8 @@ bawat numero sa lista:
 
 bawat numero sa 0..=5:
     io.isulatln("{}", -numero)
+
+kung di totoo:
+    io.isulatln("unreachable")
+kungwala:
+    io.isulatln("reachable")
