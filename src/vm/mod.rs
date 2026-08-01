@@ -727,6 +727,7 @@ impl VM {
         let class_name = match value {
             Value::List(_) => "Lista",
             Value::Int(_) => "Numero",
+            Value::Str(_) => "Teksto",
             _ => todo!(),
         };
 
