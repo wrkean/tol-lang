@@ -241,7 +241,7 @@ impl fmt::Display for Value {
                 )
             }
             ModuleObj(module_obj) => write!(f, "<modyul '{}'>", module_obj.borrow().name),
-            Iterator(iter) => write!(f, "<iterator '{:?}'>", iter.borrow()),
+            Iterator(iter) => write!(f, "<iterator>"),
             Range(r) => {
                 let op_str = if r.inclusive { "..=" } else { ".." };
                 write!(f, "{}{}{}..{}", r.start, op_str, r.end, r.step)

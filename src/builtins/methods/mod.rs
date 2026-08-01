@@ -1,3 +1,4 @@
+pub mod iterator;
 pub mod lista;
 pub mod numero;
 pub mod range;

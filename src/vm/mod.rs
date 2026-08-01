@@ -83,7 +83,7 @@ impl VM {
                 module_id: entry_module_id,
             }],
             primitive_types: HashSet::from([
-                "Lista", "Sakop", "Numero", "Lutang", "Bool", "Teksto",
+                "Lista", "Sakop", "Numero", "Lutang", "Bool", "Teksto", "Iterator",
             ]),
         }
     }
@@ -97,7 +97,7 @@ impl VM {
         }
     }
 
-    fn run_until_frame_depth(&mut self, target_depth: usize) {
+    pub(crate) fn run_until_frame_depth(&mut self, target_depth: usize) {
         while self.frames.len() > target_depth {
             self.step();
             if self.halt {
@@ -699,6 +699,7 @@ impl VM {
             Value::Int(_) => "Numero",
             Value::Str(_) => "Teksto",
             Value::Range(_) => "Sakop",
+            Value::Iterator(_) => "Iterator",
             _ => todo!(),
         };
 

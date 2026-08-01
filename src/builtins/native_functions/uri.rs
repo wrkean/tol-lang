@@ -2,7 +2,7 @@ use std::{collections::HashMap, rc::Rc};
 
 use crate::{
     builtins::{
-        self,
+        self, methods,
         native_functions::{NativeFn, NativeFunction},
     },
     global_ctx::GlobalContext,
@@ -20,11 +20,13 @@ pub fn initialize_uri_module(target_module_id: ModuleId, ctx: &mut GlobalContext
     let numero_type = initialize_numero_type();
     let teksto_type = initialize_teksto_type();
     let sakop_type = initialize_sakop_type();
+    let iterator_type = initialize_iterator_type();
 
     module.new_global("Lista", lista_type);
     module.new_global("Numero", numero_type);
     module.new_global("Teksto", teksto_type);
     module.new_global("Sakop", sakop_type);
+    module.new_global("Iterator", iterator_type);
 }
 
 fn initialize_lista_type() -> Value {
@@ -72,6 +74,17 @@ fn initialize_sakop_type() -> Value {
     insert(&mut methods, "iter", Some(1), iter);
 
     let class_def = ClassDef::new("Sakop".to_string(), methods);
+    Value::ClassDef(Rc::new(class_def))
+}
+
+fn initialize_iterator_type() -> Value {
+    let mut methods = HashMap::new();
+
+    use builtins::methods::iterator::*;
+    insert(&mut methods, "iMap", Some(2), map);
+    insert(&mut methods, "ipuninSaLista", Some(1), ipunin_sa_lista);
+
+    let class_def = ClassDef::new("Iterator".to_string(), methods);
     Value::ClassDef(Rc::new(class_def))
 }
 

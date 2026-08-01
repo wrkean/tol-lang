@@ -16,41 +16,23 @@ pub fn initialize_io_module(io_module_id: ModuleId, ctx: &mut GlobalContext) {
 }
 
 pub fn native_input(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
-    builtins::expected_args_count(vm, args.len(), 1);
-    match args.first() {
-        Some(arg) => {
-            vm.print_value(arg);
-            io::stdout().flush();
+    builtins::expected_args_count(vm, args.len(), 0)?;
+    let mut input = String::new();
 
-            let mut input = String::new();
-
-            if let Err(e) = io::stdin().read_line(&mut input) {
-                let current_module = vm.current_module();
-                return Err(Box::new(RuntimeError::new(
-                    current_module.source_arc(),
-                    current_module.filename(),
-                    e.to_string(),
-                    Label::new(0..0),
-                )));
-            }
-
-            let input = input.trim_end();
-            let id = vm.intern_string(input);
-
-            Ok(Value::Str(id))
-        }
-        None => {
-            let current_module = vm.current_module();
-            let err = RuntimeError::new(
-                current_module.source_arc(),
-                current_module.filename(),
-                "ang input() ay umaasa ng kahit isang argumento",
-                Label::new(0..0),
-            );
-
-            Err(Box::new(err))
-        }
+    if let Err(e) = io::stdin().read_line(&mut input) {
+        let current_module = vm.current_module();
+        return Err(Box::new(RuntimeError::new(
+            current_module.source_arc(),
+            current_module.filename(),
+            format!("Nabigong kunin ang input: {}", e),
+            Label::new(0..0),
+        )));
     }
+
+    let input = input.trim_end();
+    let id = vm.intern_string(input);
+
+    Ok(Value::Str(id))
 }
 
 pub fn native_print(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {

@@ -1,5 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
+use phf::Map;
+
 use crate::vm::{VM, list::List, range::Range, value::Value};
 
 /// Built-in iterator
@@ -86,5 +88,35 @@ impl NativeIterator for RangeIterator {
         }
 
         Some(Value::Int(value))
+    }
+}
+
+#[derive(Debug)]
+pub struct MapIterator {
+    source: Rc<RefCell<dyn NativeIterator>>,
+    mapper: Value,
+}
+
+impl MapIterator {
+    pub fn new(source: Rc<RefCell<dyn NativeIterator>>, mapper: Value) -> Self {
+        Self { source, mapper }
+    }
+}
+
+impl NativeIterator for MapIterator {
+    fn next(&mut self, vm: &mut VM) -> Option<Value> {
+        let item = self.source.borrow_mut().next(vm)?;
+
+        vm.push(self.mapper.clone());
+        vm.push(item);
+
+        let target_depth = vm.frames.len();
+        vm.call_value(&self.mapper.clone(), 1);
+
+        if vm.frames.len() > target_depth {
+            vm.run_until_frame_depth(target_depth);
+        }
+
+        Some(vm.pop())
     }
 }
