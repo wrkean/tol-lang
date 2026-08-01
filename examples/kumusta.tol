@@ -2,3 +2,5 @@ io.isulatln("Kumusta mundo!")
 io.isulatln("{}", math.PI)
 
 ang lista = Lista.bago()
+ang numero = 65.bilang_karakter()
+io.isulatln("{}", numero)

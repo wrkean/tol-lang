@@ -608,19 +608,6 @@ impl VM {
                 // Call the function with only the actual arguments (arg_count - 1)
                 self.call_value(&func, arg_count as u8 - 1);
             }
-            Value::Int(_) => {
-                let mut args = vec![Value::Null; arg_count];
-                for i in (0..arg_count).rev() {
-                    args[i] = self.pop();
-                }
-                self.pop(); // Pops the null value
-                match self.invoke_builtin_int_method(Rc::from(method_name), args) {
-                    Ok(v) => self.push(v),
-                    Err(err) => {
-                        self.runtime_error(&err.message, self.current_ip());
-                    }
-                }
-            }
             val => {
                 let mut args = vec![Value::Null; arg_count];
                 for i in (0..arg_count).rev() {
@@ -739,6 +726,7 @@ impl VM {
     ) -> Result<Value, Box<RuntimeError>> {
         let class_name = match value {
             Value::List(_) => "Lista",
+            Value::Int(_) => "Numero",
             _ => todo!(),
         };
 

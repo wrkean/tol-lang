@@ -11,26 +11,42 @@ use crate::{
     vm::{VM, class::ClassDef, value::Value},
 };
 
+// TODO: Very tedious!!! need macros
 pub fn initialize_uri_module(target_module_id: ModuleId, ctx: &mut GlobalContext) {
     let module = ctx.module_by_id_mut(target_module_id);
     let lista_type = initialize_lista_type();
+    let numero_type = initialize_numero_type();
     module.new_global("Lista", lista_type);
+    module.new_global("Numero", numero_type);
 }
 
 fn initialize_lista_type() -> Value {
     let mut methods = HashMap::new();
 
     use builtins::methods::lista::*;
-    methods.insert("dagdag".into(), new_native("dagdag", Some(2), dagdag));
-    methods.insert("haba".into(), new_native("haba", Some(1), haba));
-    methods.insert("bago".into(), new_native("bago", Some(0), bago));
-    methods.insert(
-        "__maging_iter__".into(),
-        new_native("__maging_iter__", Some(1), __maging_iter__),
-    );
+    insert(&mut methods, "dagdag", Some(2), dagdag);
+    insert(&mut methods, "haba", Some(1), haba);
+    insert(&mut methods, "bago", Some(0), bago);
+    insert(&mut methods, "__maging_iter__", Some(1), __maging_iter__);
 
     let class_def = ClassDef::new("Lista".to_string(), methods);
     Value::ClassDef(Rc::new(class_def))
+}
+
+fn initialize_numero_type() -> Value {
+    let mut methods = HashMap::new();
+
+    use builtins::methods::numero::*;
+    insert(&mut methods, "abs", Some(1), abs);
+    insert(&mut methods, "bilang_string", Some(1), bilang_string);
+    insert(&mut methods, "bilang_karakter", Some(1), bilang_karakter);
+
+    let class_def = ClassDef::new("Numero".to_string(), methods);
+    Value::ClassDef(Rc::new(class_def))
+}
+
+fn insert(methods: &mut HashMap<String, Value>, name: &str, arity: Option<usize>, func: NativeFn) {
+    methods.insert(name.into(), new_native(name, arity, func));
 }
 
 fn new_native(name: &str, arity: Option<usize>, func: NativeFn) -> Value {
