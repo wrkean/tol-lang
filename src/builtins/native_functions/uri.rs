@@ -45,8 +45,8 @@ fn initialize_numero_type() -> Value {
 
     use builtins::methods::numero::*;
     insert(&mut methods, "abs", Some(1), abs);
-    insert(&mut methods, "bilang_string", Some(1), bilang_string);
-    insert(&mut methods, "bilang_karakter", Some(1), bilang_karakter);
+    insert(&mut methods, "bilangString", Some(1), bilang_string);
+    insert(&mut methods, "bilangKarakter", Some(1), bilang_karakter);
 
     let class_def = ClassDef::new("Numero".to_string(), methods);
     Value::ClassDef(Rc::new(class_def))
@@ -57,7 +57,7 @@ fn initialize_teksto_type() -> Value {
 
     use builtins::methods::string::*;
     insert(&mut methods, "haba", Some(1), haba);
-    insert(&mut methods, "bilang_numero", Some(1), bilang_numero);
+    insert(&mut methods, "bilangNumero", Some(1), bilang_numero);
     insert(&mut methods, "titik", Some(1), titik);
 
     let class_def = ClassDef::new("Teksto".to_string(), methods);
