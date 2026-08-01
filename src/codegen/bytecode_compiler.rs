@@ -300,7 +300,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
 
         self.compile_expression(iterable);
 
-        // VM calls `.__maging_iter__()` method for iterable if it exists, or it errors.
+        // VM calls `.iter()` method for iterable if it exists, or it errors.
         self.chunk
             .emit_opcode(OpCode::GetIter, iterable.span().clone());
 

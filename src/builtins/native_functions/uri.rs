@@ -34,7 +34,7 @@ fn initialize_lista_type() -> Value {
     insert(&mut methods, "dagdag", Some(2), dagdag);
     insert(&mut methods, "haba", Some(1), haba);
     insert(&mut methods, "bago", Some(0), bago);
-    insert(&mut methods, "__maging_iter__", Some(1), __maging_iter__);
+    insert(&mut methods, "iter", Some(1), iter);
 
     let class_def = ClassDef::new("Lista".to_string(), methods);
     Value::ClassDef(Rc::new(class_def))
@@ -69,7 +69,7 @@ fn initialize_sakop_type() -> Value {
 
     use builtins::methods::range::*;
     insert(&mut methods, "hakbang", Some(2), hakbang);
-    insert(&mut methods, "__maging_iter__", Some(1), __maging_iter__);
+    insert(&mut methods, "iter", Some(1), iter);
 
     let class_def = ClassDef::new("Sakop".to_string(), methods);
     Value::ClassDef(Rc::new(class_def))

@@ -494,7 +494,7 @@ impl VM {
                 let iterable = self.pop();
                 self.push(Value::Null);
                 self.push(iterable.clone());
-                self.invoke_method(&iterable, "__maging_iter__", 1);
+                self.invoke_method(&iterable, "iter", 1);
             }
             op if op == OpCode::Bawat as u8 => {
                 let target = self.read_u16();

@@ -40,7 +40,7 @@ pub fn hakbang(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> 
     Ok(Value::Range(Rc::new(range)))
 }
 
-pub fn __maging_iter__(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
+pub fn iter(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
     builtins::expected_args_count(vm, args.len(), 1)?;
     let range = expect_range_argument(vm, args)?;
 

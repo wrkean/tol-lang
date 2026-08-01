@@ -34,7 +34,7 @@ pub fn haba(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
     Ok(Value::Int(list.borrow().elements.len() as i64))
 }
 
-pub fn __maging_iter__(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
+pub fn iter(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
     builtins::expected_args_count(vm, args.len(), 1)?;
     let list = expect_list_argument(vm, args)?;
 
