@@ -116,22 +116,12 @@ impl VM {
                 let val = self.peek(0).clone();
                 self.push(val);
             }
-            op if op == OpCode::Add as u8 || op == OpCode::AddEq as u8 => {
-                self.binary_op(Value::add)
-            }
+            op if op == OpCode::Add as u8 => self.binary_op(Value::add),
             op if op == OpCode::Concat as u8 => self.concat(),
-            op if op == OpCode::Sub as u8 || op == OpCode::SubEq as u8 => {
-                self.binary_op(Value::sub)
-            }
-            op if op == OpCode::Mult as u8 || op == OpCode::MultEq as u8 => {
-                self.binary_op(Value::mult)
-            }
-            op if op == OpCode::Div as u8 || op == OpCode::DivEq as u8 => {
-                self.binary_op(Value::div)
-            }
-            op if op == OpCode::Modulo as u8 || op == OpCode::ModuloEq as u8 => {
-                self.binary_op(Value::modulo)
-            }
+            op if op == OpCode::Sub as u8 => self.binary_op(Value::sub),
+            op if op == OpCode::Mult as u8 => self.binary_op(Value::mult),
+            op if op == OpCode::Div as u8 => self.binary_op(Value::div),
+            op if op == OpCode::Modulo as u8 => self.binary_op(Value::modulo),
             op if op == OpCode::EqualEq as u8 => self.binary_op(Value::eqeq),
             op if op == OpCode::NotEq as u8 => self.binary_op(Value::neq),
             op if op == OpCode::Greater as u8 => self.binary_op(Value::gt),
@@ -140,6 +130,8 @@ impl VM {
             op if op == OpCode::LessEq as u8 => self.binary_op(Value::le),
             op if op == OpCode::LogAnd as u8 => self.binary_op(Value::and),
             op if op == OpCode::LogOr as u8 => self.binary_op(Value::or),
+            op if op == OpCode::Negate as u8 => self.unary_op(Value::neg),
+            op if op == OpCode::LogNot as u8 => self.unary_op(Value::not),
             op if op == OpCode::StoreGlobal as u8 => {
                 let index = self.read_byte() as usize;
                 let value = self.pop();
@@ -983,6 +975,20 @@ impl VM {
         let left = self.pop();
 
         match f(left, right) {
+            Ok(res) => {
+                self.push(res);
+            }
+            Err(err) => {
+                let current_module = self.current_module();
+                self.runtime_error(&err.message, self.current_ip());
+            }
+        }
+    }
+
+    fn unary_op(&mut self, f: impl Fn(Value) -> Result<Value, ValueError>) {
+        let operand = self.pop();
+
+        match f(operand) {
             Ok(res) => {
                 self.push(res);
             }

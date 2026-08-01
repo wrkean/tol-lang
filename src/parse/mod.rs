@@ -609,6 +609,21 @@ impl<'c> Parser<'c> {
 
                 Ok(Expr::new(span, ExprKind::Boolean(b)))
             }
+            // Unary expressions
+            TokenKind::Di | TokenKind::Minus => {
+                let start = self.peek().span().start;
+                let op = self.advance().clone();
+                let expr = self.parse_expression(0)?;
+                let span = start..expr.span().end;
+
+                Ok(Expr::new(
+                    span,
+                    ExprKind::Unary {
+                        operand: Box::new(expr),
+                        op,
+                    },
+                ))
+            }
             _ => {
                 let current_module = self.current_module();
                 let span = self.peek().span().clone();

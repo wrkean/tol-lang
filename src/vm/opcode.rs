@@ -27,6 +27,7 @@ pub enum OpCode {
     // Log as in Logical
     LogAnd, // At
     LogOr,  // O
+    LogNot, // Di
     GetIter,
     Bawat,
     MakeRange,
@@ -47,6 +48,7 @@ pub enum OpCode {
     ModuloEq,
     EqualEq,
     NotEq,
+    Negate,
     Greater,
     GreatEq,
     Lesser,

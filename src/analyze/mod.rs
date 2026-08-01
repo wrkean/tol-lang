@@ -697,6 +697,7 @@ impl<'gctx> Analyzer<'gctx> {
 
                 self.resolve_expression(right)
             }
+            ExprKind::Unary { operand, .. } => self.resolve_expression(operand),
             ExprKind::Call { left, args } => {
                 if !left.is_lvalue() {
                     let current_module = self.current_module();

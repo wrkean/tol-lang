@@ -50,6 +50,7 @@ pub enum TokenKind {
     O,
     Bawat,
     Sa,
+    Di,
 
     SemiColon,
     Colon,

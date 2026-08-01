@@ -20,4 +20,5 @@ pub static KEYWORDS: phf::Map<&'static str, TokenKind> = phf_map! {
     "o" => TokenKind::O,
     "bawat" => TokenKind::Bawat,
     "sa" => TokenKind::Sa,
+    "di" => TokenKind::Di,
 };

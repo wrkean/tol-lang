@@ -62,14 +62,22 @@ impl Chunk {
         self.emit_byte(index, span);
     }
 
-    pub fn emit_operator(&mut self, op_kind: &TokenKind, span: Span) {
+    pub fn emit_operator(&mut self, op_kind: &TokenKind, span: Span, unary: bool) {
         let opcode = match op_kind {
             TokenKind::Plus | TokenKind::PlusEq => OpCode::Add,
             TokenKind::PlusPlus => OpCode::Concat,
-            TokenKind::Minus | TokenKind::MinusEq => OpCode::Sub,
             TokenKind::Star | TokenKind::StarEq => OpCode::Mult,
             TokenKind::Slash | TokenKind::Slash => OpCode::Div,
             TokenKind::Percent | TokenKind::Percent => OpCode::Modulo,
+            TokenKind::Minus => {
+                if unary {
+                    OpCode::Negate
+                } else {
+                    OpCode::Sub
+                }
+            }
+            TokenKind::MinusEq => OpCode::Sub,
+            TokenKind::Di => OpCode::LogNot,
             TokenKind::EqualEq => OpCode::EqualEq,
             TokenKind::NotEq => OpCode::NotEq,
             TokenKind::Greater => OpCode::Greater,

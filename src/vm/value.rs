@@ -159,7 +159,7 @@ impl Value {
         match (self, right) {
             (Bool(b1), Bool(b2)) => Ok(Bool(b1 && b2)),
             (l, r) => Err(ValueError::new(
-                "maaari lamang na mga \"boolean\" ang pwede sa `&&`",
+                "maaari lamang na mga \"boolean\" ang pwede sa `at`",
             )),
         }
     }
@@ -168,7 +168,26 @@ impl Value {
         match (self, right) {
             (Bool(b1), Bool(b2)) => Ok(Bool(b1 || b2)),
             (l, r) => Err(ValueError::new(
-                "maaari lamang na mga \"boolean\" ang pwede sa `&&`",
+                "maaari lamang na mga \"boolean\" ang pwede sa `o`",
+            )),
+        }
+    }
+
+    pub fn not(self) -> Result<Self, ValueError> {
+        match (self) {
+            Bool(b) => Ok(Bool(!b)),
+            _ => Err(ValueError::new(
+                "maaari lamang na mga \"boolean\" ang pwede sa `di`",
+            )),
+        }
+    }
+
+    pub fn neg(self) -> Result<Self, ValueError> {
+        match self {
+            Int(x) => Ok(Int(-x)),
+            Float(x) => Ok(Float(-x)),
+            _ => Err(ValueError::new(
+                "maaari lamang na mga numero at lutang ang pwede sa unary na `-`",
             )),
         }
     }

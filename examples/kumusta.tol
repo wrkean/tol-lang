@@ -12,4 +12,4 @@ bawat numero sa lista:
     io.isulatln("{}", numero)
 
 bawat numero sa 0..=5:
-    io.isulatln("{}", numero)
+    io.isulatln("{}", -numero)

@@ -104,12 +104,11 @@ pub enum ExprKind {
         op: Token,
     },
 
-    // TODO: Unary expressions
-    // Unary {
-    //      operand: Box<Expr>,
-    //      op: Token,
-    // }
-    //
+    /// Unary expressions
+    ///
+    /// e.g.: `-4`
+    Unary { operand: Box<Expr>, op: Token },
+
     /// Function call expressions
     ///
     /// e.g.: `foo()`
@@ -164,6 +163,9 @@ impl fmt::Display for Expr {
             ExprKind::Str { text, interned_id } => write!(f, "{text}"),
             ExprKind::Binary { left, right, op } => {
                 write!(f, "({:?} {} {})", op.kind(), left, right)
+            }
+            ExprKind::Unary { operand, op } => {
+                write!(f, "({:?} {})", op.kind(), operand)
             }
             ExprKind::AnonymousFn { .. } => unimplemented!(),
             ExprKind::Call { .. } => unimplemented!(),

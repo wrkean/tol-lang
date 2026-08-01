@@ -417,8 +417,6 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             }
             ExprKind::Identifier(ident) => self.load_var(expression.resolved_var(), span),
             ExprKind::Binary { left, right, op } => {
-                let line = self.current_module().line_of(op.span().start);
-
                 if matches!(
                     op.kind(),
                     TokenKind::Equal
@@ -432,8 +430,12 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 } else {
                     self.compile_expression(left);
                     self.compile_expression(right);
-                    self.chunk.emit_operator(op.kind(), span.clone());
+                    self.chunk.emit_operator(op.kind(), span.clone(), false);
                 }
+            }
+            ExprKind::Unary { operand, op } => {
+                self.compile_expression(operand);
+                self.chunk.emit_operator(op.kind(), span, true);
             }
             ExprKind::Call { left, args } => {
                 if let ExprKind::FieldAccess { object, field } = left.kind() {
@@ -566,7 +568,8 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 if op.kind() != &TokenKind::Equal {
                     self.compile_expression(left);
                     self.compile_expression(right);
-                    self.chunk.emit_operator(op.kind(), op.span().clone());
+                    self.chunk
+                        .emit_operator(op.kind(), op.span().clone(), false);
 
                     self.compile_expression(object);
                 } else {
@@ -587,7 +590,8 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                     self.chunk.emit_opcode(OpCode::IndexGet, op.span().clone());
 
                     self.compile_expression(right);
-                    self.chunk.emit_operator(op.kind(), op.span().clone());
+                    self.chunk
+                        .emit_operator(op.kind(), op.span().clone(), false);
                 } else {
                     self.compile_expression(right);
                 }
@@ -601,7 +605,8 @@ impl<'gctx> BytecodeCompiler<'gctx> {
                 if op.kind() != &TokenKind::Equal {
                     self.compile_expression(left);
                     self.compile_expression(right);
-                    self.chunk.emit_operator(op.kind(), op.span().clone());
+                    self.chunk
+                        .emit_operator(op.kind(), op.span().clone(), false);
                 } else {
                     self.compile_expression(right);
                 }
