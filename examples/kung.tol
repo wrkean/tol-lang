@@ -1,0 +1,10 @@
+# Ang `kung` ay ginagamit kung gusto mo lang gawin ang
+# bahagi ng code kung ang isang kondisyon ay totoo
+ang numero = io.input().bilangNumero()
+
+kung numero > 0:
+    io.isulatln("Ang numero ay positibo")
+kundi numero < 0:
+    io.isulatln("Ang numero ay negatibo")
+kungwala:
+    io.isulatln("Ang numero ay 0")
