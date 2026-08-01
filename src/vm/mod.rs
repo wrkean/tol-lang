@@ -494,7 +494,12 @@ impl VM {
                 let iterable = self.pop();
                 self.push(Value::Null);
                 self.push(iterable.clone());
-                self.invoke_method(&iterable, "iter", 1);
+
+                // If it is iterable, call iter. If not, it may be an iterator already. Proceed and let the next instruction check
+                // if it is indeed an iterator
+                if iterable.is_iterable() {
+                    self.invoke_method(&iterable, "iter", 1);
+                }
             }
             op if op == OpCode::Bawat as u8 => {
                 let target = self.read_u16();

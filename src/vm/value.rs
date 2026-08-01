@@ -211,6 +211,10 @@ impl Value {
             Value::Str(id) => vm.get_interned_string(*id).to_string(),
         }
     }
+
+    pub fn is_iterable(&self) -> bool {
+        matches!(self, Value::Range(_) | Value::List(_))
+    }
 }
 
 impl fmt::Display for Value {
