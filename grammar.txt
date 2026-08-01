@@ -1,0 +1,99 @@
+program = statement* ;
+
+statement = ang_statement
+        | paraan_statement
+        | kung_statement
+        | habang_statement
+        | bawat_statement
+        | klase_statement
+        | kunin_statement
+        | ibalik_statement
+        | biyakin_statement
+        | ituloy_statement
+        | expr_statement ;
+
+ang_statement = "ang" identifier ( ":" TYPE )? "=" expression ";" ;
+
+paraan_statement = "paraan" identifier param_list ( "->" TYPE )? ":" block ;
+
+kung_statement = "kung" expression ":" block ( "kundi" expression ":" block )* ( "kungwala" ":" block )? ;
+
+habang_statement = "habang" expression ":" block ;
+
+bawat_statement = "bawat" identifier "sa" expression ":" block ;
+
+klase_statement = "klase" identifier ( ":" INDENT paraan_statement* DEDENT | ";" ) ;
+
+kunin_statement = "kunin" import_path ";" ;
+
+ibalik_statement = "ibalik" expression? ";" ;
+
+biyakin_statement = "biyakin" ";" ;
+
+ituloy_statement = "ituloy" ";" ;
+
+expr_statement = expression ";" ;
+
+import_path = ( ".." | "." "/" | "/" ) identifier ( "/" identifier )* ;
+
+param_list = "(" ( param ( "," param )* ","? )? ")" ;
+
+param = identifier ( ":" TYPE )? ;
+
+block = INDENT statement* DEDENT ;
+
+expression = primary_expression
+            | unary_expression
+            | binary_expression
+            | call_expression
+            | field_access
+            | index_access
+            | range_expression ;
+
+primary_expression = int_literal
+                  | float_literal
+                  | boolean_literal
+                  | string_literal
+                  | identifier
+                  | "(" expression ")"
+                  | lambda_expression
+                  | list_literal
+                  | list_init ;
+
+boolean_literal = "totoo" | "mali" ;
+
+lambda_expression = "|" ( param ( "," param )* ","? )? "|" expression ;
+
+list_literal = "[" ( expression ( "," expression )* ","? )? "]" ;
+
+list_init = "@" "[" expression ";" int_literal "]" ;
+
+unary_expression = unary_op expression ;
+
+unary_op = "di" | "-" ;
+
+binary_expression = expression binary_op expression ;
+
+binary_op = "+" | "-" | "*" | "/" | "%"
+          | "+=" | "-=" | "*=" | "/=" | "%="
+          | "++" | "="
+          | "==" | "!=" | ">" | ">=" | "<" | "<="
+          | "at" | "o" ;
+
+call_expression = expression "(" ( expression ( "," expression )* ","? )? ")" ;
+
+field_access = expression "." identifier ;
+
+index_access = expression "[" expression "]" ;
+
+range_expression = expression ( ".." | "..=" ) expression ;
+
+TYPE = "lutang" | "numero" | "bool" ;
+
+int_literal = [0-9]+ ;
+
+float_literal = [0-9]+ "." [0-9]+ ;
+
+identifier = [A-Za-z_][A-Za-z_0-9]* ;
+
+string_literal = '"' ( [^"\n\\] | '\\' [nt"\\] )* '"' ;
