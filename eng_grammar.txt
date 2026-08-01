@@ -9,7 +9,7 @@ statement = ang_statement
         | biyakin_statement
         | ituloy_statement ;
 
-ang_statement = "ang" "iiba"? identifier ( ":" TYPE )? "=" expression ";" ;
+ang_statement = "ang" identifier ( ":" TYPE )? "=" expression ";" ;
 
 print_statement = "print" expression ";" ;
 

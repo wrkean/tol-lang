@@ -79,7 +79,6 @@ impl<'src, 'gctx> Lexer<'src, 'gctx> {
             .last()
             .is_some_and(|tok| tok.kind().infers_semicolon())
         {
-            println!("{:?}", self.tokens.last().unwrap());
             self.add_token(TokenKind::SemiColon, self.current_span());
         }
 

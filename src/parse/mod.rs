@@ -139,7 +139,6 @@ impl<'c> Parser<'c> {
         let params = self.parse_params(TokenKind::LParen, TokenKind::RParen)?;
         let ret_ty = if self.peek().kind() == &TokenKind::ThinArrow {
             self.advance();
-            dbg!(self.peek().kind());
             self.parse_type()?
         } else {
             TolType::Wala
