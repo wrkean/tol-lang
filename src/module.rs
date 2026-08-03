@@ -226,13 +226,11 @@ impl Module {
     pub fn add_native_fn(&mut self, name: &str, arity: Option<usize>, func: NativeFn) {
         let native_fn = NativeFunction {
             name: name.to_string(),
-            arity: None,
+            arity,
             func,
         };
         let value = Value::NativeFunction(Rc::new(native_fn));
-        self.globals.push(value);
-        let id = self.globals().len() - 1;
-        self.register_global(name.to_string(), id);
+        self.insert_or_update_global(name.to_string(), value);
     }
 
     pub fn global_name_map(&self) -> &HashMap<String, usize> {
@@ -260,9 +258,18 @@ impl Module {
     }
 
     pub fn new_global(&mut self, name: &str, value: Value) {
+        self.insert_or_update_global(name.to_string(), value);
+    }
+
+    fn insert_or_update_global(&mut self, name: String, value: Value) {
+        if let Some(&slot) = self.global_name_map.get(&name) {
+            self.globals[slot] = value;
+            return;
+        }
+
         self.globals.push(value);
         let id = self.globals().len() - 1;
-        self.register_global(name.to_string(), id);
+        self.register_global(name, id);
     }
 }
 

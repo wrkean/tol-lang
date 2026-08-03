@@ -563,7 +563,7 @@ impl<'gctx> Analyzer<'gctx> {
                         .to_path_buf()
                 }
             }
-            ImportPathType::Std => self.ctx.stdlib_path().join("std"),
+            ImportPathType::Std => self.ctx.stdlib_path().to_path_buf(),
             ImportPathType::Root => todo!(),
         };
 

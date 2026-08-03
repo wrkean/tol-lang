@@ -37,11 +37,6 @@ pub fn compile_module(
     ctx: &mut GlobalContext,
     do_attach_stdlib: bool,
 ) -> DiagResult<()> {
-    let module = ctx.module_by_id_mut(module_id);
-    if do_attach_stdlib {
-        attach_stdlib(module_id, ctx)?;
-    }
-
     let module = ctx.module_by_id(module_id);
     match module.compile_state() {
         ModuleCompileState::Compiling => return Err(Box::new(TolDiagnostic::err(
@@ -55,6 +50,10 @@ pub fn compile_module(
 
         // Do nothing, proceed
         ModuleCompileState::Initialized => {}
+    }
+
+    if do_attach_stdlib {
+        attach_stdlib(module_id, ctx)?;
     }
 
     let module = ctx.module_by_id_mut(module_id);
