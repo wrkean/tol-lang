@@ -13,6 +13,7 @@ pub fn initialize_io_module(io_module_id: ModuleId, ctx: &mut GlobalContext) {
     module.add_native_fn("input", Some(1), native_input);
     module.add_native_fn("isulat", None, native_print);
     module.add_native_fn("isulatln", None, native_println);
+    module.add_native_fn("iformat", None, native_format);
 }
 
 pub fn native_input(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
@@ -89,6 +90,30 @@ pub fn native_println(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeE
     println!("{}", output);
 
     Ok(Value::Null)
+}
+
+pub fn native_format(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
+    let template = match args.first() {
+        Some(Value::Str(id)) => vm.get_interned_string(*id),
+        Some(_) => {
+            return Err(Box::new(vm.new_runtime_error(
+                "ang print() ay umaasa ng string bilang pangunahing argumento",
+                vm.current_ip(),
+            )));
+        }
+        None => {
+            return Err(Box::new(vm.new_runtime_error(
+                "ang print() ay umaasa kahit isang argumento",
+                vm.current_ip(),
+            )));
+        }
+    };
+
+    let sub_args = &args[1..];
+    let output = format_template(vm, &template, sub_args)?;
+
+    let intern_id = vm.intern_string(&output);
+    Ok(Value::Str(intern_id))
 }
 
 /// Formats a template string by substituting each '{}' placeholder
