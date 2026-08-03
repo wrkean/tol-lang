@@ -277,6 +277,7 @@ impl<'c> Parser<'c> {
                 let mut relative_to_current_path = true;
                 if let TokenKind::Dot = self.peek().kind() {
                     self.advance();
+                    self.consume(TokenKind::Slash, "umaasa ako ng `/`")?;
                     relative_to_current_path = false;
                     ImportPathType::Relative(relative_to_current_path)
                 } else {
@@ -313,6 +314,7 @@ impl<'c> Parser<'c> {
                 .clone(),
         );
         while !self.at_end() && self.peek().kind() == &TokenKind::Slash {
+            self.advance();
             segments.push(
                 self.consume_ident("umaasa ako ng pangalan ng path dito")?
                     .clone(),
