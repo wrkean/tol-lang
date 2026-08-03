@@ -26,3 +26,12 @@ impl NativeFunction {
         }
     }
 }
+
+#[macro_export]
+macro_rules! natives {
+    ($module:expr, $( $name:literal => $arity:expr => $func:path ),* $(,)?) => {{
+        $(
+            $module.add_native_fn($name, $arity, $func);
+        )*
+    }};
+}

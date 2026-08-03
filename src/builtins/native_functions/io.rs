@@ -4,16 +4,19 @@ use crate::{
     builtins,
     global_ctx::GlobalContext,
     module::ModuleId,
+    natives,
     tol::diagnostic::{Label, runtime::RuntimeError},
     vm::{VM, value::Value},
 };
 
 pub fn initialize_io_module(io_module_id: ModuleId, ctx: &mut GlobalContext) {
     let module = ctx.module_by_id_mut(io_module_id);
-    module.add_native_fn("input", Some(1), native_input);
-    module.add_native_fn("isulat", None, native_print);
-    module.add_native_fn("isulatln", None, native_println);
-    module.add_native_fn("iformat", None, native_format);
+    natives!(module,
+        "input" => Some(1) => native_input,
+        "isulat" => None => native_isulat,
+        "isulatln" => None=> native_isulatln,
+        "iformat" => None => native_iformat,
+    );
 }
 
 pub fn native_input(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
@@ -36,7 +39,7 @@ pub fn native_input(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeErr
     Ok(Value::Str(id))
 }
 
-pub fn native_print(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
+pub fn native_isulat(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
     let template = match args.first() {
         Some(Value::Str(id)) => vm.get_interned_string(*id),
         Some(_) => {
@@ -67,7 +70,7 @@ pub fn native_print(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeErr
     Ok(Value::Null)
 }
 
-pub fn native_println(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
+pub fn native_isulatln(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
     let template = match args.first() {
         Some(Value::Str(id)) => vm.get_interned_string(*id),
         Some(_) => {
@@ -92,7 +95,7 @@ pub fn native_println(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeE
     Ok(Value::Null)
 }
 
-pub fn native_format(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
+pub fn native_iformat(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
     let template = match args.first() {
         Some(Value::Str(id)) => vm.get_interned_string(*id),
         Some(_) => {

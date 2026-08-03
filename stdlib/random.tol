@@ -1,0 +1,2 @@
+paraan randNumero(min, max):
+    ibalik math.lerp(min, max, math.random())

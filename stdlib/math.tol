@@ -21,3 +21,6 @@ ang PHI = 1.618033988749894848204586834365638118
 
 # Full circle constant
 ang TAU = 6.28318530717958647692528676655900577
+
+paraan lerp(a, b, t):
+    ibalik a + (b - a) * t

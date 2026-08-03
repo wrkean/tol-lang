@@ -2,7 +2,8 @@ use std::{collections::HashMap, rc::Rc};
 
 use crate::{
     builtins::{
-        self, methods,
+        self,
+        methods::{self},
         native_functions::{NativeFn, NativeFunction},
     },
     global_ctx::GlobalContext,
@@ -11,7 +12,13 @@ use crate::{
     vm::{VM, class::ClassDef, value::Value},
 };
 
-// TODO: Very tedious!!! need a derive macro
+macro_rules! native_class {
+    ($name:literal, $( $method:literal => $arity:expr => $func:path ),* $(,)?) => {{
+        let mut methods = HashMap::new();
+        $( methods.insert($method.into(), new_native($method, $arity, $func)); )*
+        Value::ClassDef(Rc::new(ClassDef::new($name.to_string(), methods)))
+    }};
+}
 
 pub fn initialize_uri_module(target_module_id: ModuleId, ctx: &mut GlobalContext) {
     let module = ctx.module_by_id_mut(target_module_id);
@@ -30,62 +37,47 @@ pub fn initialize_uri_module(target_module_id: ModuleId, ctx: &mut GlobalContext
 }
 
 fn initialize_lista_type() -> Value {
-    let mut methods = HashMap::new();
-
     use builtins::methods::lista::*;
-    insert(&mut methods, "dagdag", Some(2), dagdag);
-    insert(&mut methods, "haba", Some(1), haba);
-    insert(&mut methods, "bago", Some(0), bago);
-    insert(&mut methods, "iter", Some(1), iter);
-
-    let class_def = ClassDef::new("Lista".to_string(), methods);
-    Value::ClassDef(Rc::new(class_def))
+    native_class!("Lista",
+        "dagdag" => Some(2) => dagdag,
+        "haba" => Some(1) => haba,
+        "bago" => Some(0) => bago,
+        "iter" => Some(1) => iter,
+    )
 }
 
 fn initialize_numero_type() -> Value {
-    let mut methods = HashMap::new();
-
     use builtins::methods::numero::*;
-    insert(&mut methods, "abs", Some(1), abs);
-    insert(&mut methods, "bilangString", Some(1), bilang_string);
-    insert(&mut methods, "bilangKarakter", Some(1), bilang_karakter);
-
-    let class_def = ClassDef::new("Numero".to_string(), methods);
-    Value::ClassDef(Rc::new(class_def))
+    native_class!("Numero",
+        "abs" => Some(1) => abs,
+        "bilangString" => Some(1) => bilang_string,
+        "bilangKarakter" => Some(1) => bilang_karakter,
+    )
 }
 
 fn initialize_teksto_type() -> Value {
-    let mut methods = HashMap::new();
-
     use builtins::methods::string::*;
-    insert(&mut methods, "haba", Some(1), haba);
-    insert(&mut methods, "bilangNumero", Some(1), bilang_numero);
-    insert(&mut methods, "titik", Some(1), titik);
-
-    let class_def = ClassDef::new("Teksto".to_string(), methods);
-    Value::ClassDef(Rc::new(class_def))
+    native_class!("Teksto",
+        "haba" => Some(1) => haba,
+        "bilangNumero" => Some(1) => bilang_numero,
+        "titik" => Some(1) => titik,
+    )
 }
 
 fn initialize_sakop_type() -> Value {
-    let mut methods = HashMap::new();
-
     use builtins::methods::range::*;
-    insert(&mut methods, "hakbang", Some(2), hakbang);
-    insert(&mut methods, "iter", Some(1), iter);
-
-    let class_def = ClassDef::new("Sakop".to_string(), methods);
-    Value::ClassDef(Rc::new(class_def))
+    native_class!("Sakop",
+        "hakbang" => Some(2) => hakbang,
+        "iter" => Some(1) => iter,
+    )
 }
 
 fn initialize_iterator_type() -> Value {
-    let mut methods = HashMap::new();
-
     use builtins::methods::iterator::*;
-    insert(&mut methods, "iMap", Some(2), map);
-    insert(&mut methods, "ipuninSaLista", Some(1), ipunin_sa_lista);
-
-    let class_def = ClassDef::new("Iterator".to_string(), methods);
-    Value::ClassDef(Rc::new(class_def))
+    native_class!("Iterator",
+        "iMap" => Some(2) => map,
+        "ipuninSaLista" => Some(1) => ipunin_sa_lista,
+    )
 }
 
 fn insert(methods: &mut HashMap<String, Value>, name: &str, arity: Option<usize>, func: NativeFn) {
