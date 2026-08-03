@@ -27,7 +27,7 @@ pub fn native_abs(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError
 pub fn native_sqrt(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
     builtins::expected_args_count(vm, args.len(), 1)?;
     match args.first() {
-        Some(Value::Int(x)) => Ok(Value::Int(x.isqrt())),
+        Some(Value::Int(x)) => Ok(Value::Float((*x as f64).sqrt())),
         Some(Value::Float(x)) => Ok(Value::Float(x.sqrt())),
         _ => {
             let err = vm.new_runtime_error("maaaring numero (1, 2, 3, ...) o lutang (1.1, 1.2, 1.3, ...) lamang ang pwedeng argumento dito ng `abs()`", vm.current_ip());
