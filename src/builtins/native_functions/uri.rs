@@ -94,22 +94,22 @@ pub fn native_anong_uri(vm: &mut VM, args: &[Value]) -> Result<Value, Box<Runtim
     builtins::expected_args_count(vm, args.len(), 1)?;
 
     let type_name = match args.first().unwrap() {
-        Value::Int(_) => "Numero".to_string(),
-        Value::Float(_) => "Lutang".to_string(),
-        Value::Bool(_) => "Bool".to_string(),
-        Value::Str(_) => "Teksto".to_string(),
-        Value::List(_) => "Lista".to_string(),
-        Value::Range(_) => "Sakop".to_string(),
-        Value::Iterator(_) => "Iterator".to_string(),
-        Value::ClassDef(def) => def.name.clone(),
-        Value::ClassInstance(inst) => inst.borrow().def.name.clone(),
-        Value::ModuleObj(module_obj) => module_obj.borrow().name.clone(),
+        Value::Int(_) => "Numero",
+        Value::Float(_) => "Lutang",
+        Value::Bool(_) => "Bool",
+        Value::Str(_) => "Teksto",
+        Value::List(_) => "Lista",
+        Value::Range(_) => "Sakop",
+        Value::Iterator(_) => "Iterator",
+        Value::ClassDef(def) => &def.name,
+        Value::ClassInstance(inst) => &inst.borrow().def.name,
+        Value::ModuleObj(module_obj) => "Module",
         Value::Function(_)
         | Value::Closure(_)
         | Value::NativeFunction(_)
-        | Value::BoundMethod(_) => "Paraan".to_string(),
-        Value::Null => "Wala".to_string(),
+        | Value::BoundMethod(_) => "Paraan",
+        Value::Null => "Wala",
     };
 
-    Ok(Value::Str(vm.intern_string(&type_name)))
+    Ok(Value::Str(vm.intern_string(type_name)))
 }
