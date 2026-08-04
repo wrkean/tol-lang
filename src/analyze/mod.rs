@@ -473,7 +473,8 @@ impl<'gctx> Analyzer<'gctx> {
         })?;
 
         let module_id = self.ctx.register_module(module);
-        if let Err(diag) = driver::compile_module(module_id, self.ctx, true) {
+        let do_attach_stdlib = !self.ctx.module_is_stdlib(module_id);
+        if let Err(diag) = driver::compile_module(module_id, self.ctx, do_attach_stdlib) {
             return Err(Box::new(diag.label(
                 Label::new(segments_span).message("nabigong i-compile ang module na ito"),
             )));

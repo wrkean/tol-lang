@@ -28,6 +28,13 @@ pub fn abs(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
     Ok(Value::Int(int.abs()))
 }
 
+pub fn bilang_lutang(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
+    builtins::expected_args_count(vm, args.len(), 1)?;
+    let int = expect_int_argument(vm, args)?;
+
+    Ok(Value::Float(int as f64))
+}
+
 pub fn bilang_string(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
     builtins::expected_args_count(vm, args.len(), 1)?;
     let int = expect_int_argument(vm, args)?;

@@ -1,0 +1,3 @@
+kunin /random
+
+io.isulatln("{}", random.randNumero(1, 2))

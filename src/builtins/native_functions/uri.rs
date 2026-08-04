@@ -34,6 +34,7 @@ pub fn initialize_uri_module(target_module_id: ModuleId, ctx: &mut GlobalContext
     module.new_global("Teksto", teksto_type);
     module.new_global("Sakop", sakop_type);
     module.new_global("Iterator", iterator_type);
+    module.add_native_fn("anongUri", Some(1), native_anong_uri);
 }
 
 fn initialize_lista_type() -> Value {
@@ -50,6 +51,7 @@ fn initialize_numero_type() -> Value {
     use builtins::methods::numero::*;
     native_class!("Numero",
         "abs" => Some(1) => abs,
+        "bilangLutang" => Some(1) => bilang_lutang,
         "bilangString" => Some(1) => bilang_string,
         "bilangKarakter" => Some(1) => bilang_karakter,
     )
@@ -86,4 +88,27 @@ fn insert(methods: &mut HashMap<String, Value>, name: &str, arity: Option<usize>
 
 fn new_native(name: &str, arity: Option<usize>, func: NativeFn) -> Value {
     Value::NativeFunction(Rc::new(NativeFunction::new(name, arity, func)))
+}
+
+pub fn native_anong_uri(vm: &mut VM, args: &[Value]) -> Result<Value, Box<RuntimeError>> {
+    builtins::expected_args_count(vm, args.len(), 1)?;
+
+    let type_name = match args.first().unwrap() {
+        Value::Int(_) => "Numero".to_string(),
+        Value::Float(_) => "Lutang".to_string(),
+        Value::Bool(_) => "Bool".to_string(),
+        Value::Str(_) => "Teksto".to_string(),
+        Value::List(_) => "Lista".to_string(),
+        Value::Range(_) => "Sakop".to_string(),
+        Value::Iterator(_) => "Iterator".to_string(),
+        Value::ClassDef(def) => def.name.clone(),
+        Value::ClassInstance(inst) => inst.borrow().def.name.clone(),
+        Value::ModuleObj(module_obj) => module_obj.borrow().name.clone(),
+        Value::Function(_) | Value::Closure(_) | Value::NativeFunction(_) | Value::BoundMethod(_) => {
+            "Paraan".to_string()
+        }
+        Value::Null => "Wala".to_string(),
+    };
+
+    Ok(Value::Str(vm.intern_string(&type_name)))
 }

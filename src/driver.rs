@@ -52,6 +52,10 @@ pub fn compile_module(
         ModuleCompileState::Initialized => {}
     }
 
+    if ctx.module_is_stdlib(module_id) {
+        bootstrap_stdlib_module(module_id, ctx)?;
+    }
+
     if do_attach_stdlib {
         attach_stdlib(module_id, ctx)?;
     }
@@ -104,6 +108,24 @@ fn parse_module(module_id: ModuleId, ctx: &mut GlobalContext) {
 fn analyze_module(module_id: ModuleId, ctx: &mut GlobalContext) {
     let mut analyzer = Analyzer::new(ctx, module_id);
     analyzer.analyze();
+}
+
+fn bootstrap_stdlib_module(module_id: ModuleId, ctx: &mut GlobalContext) -> DiagResult<()> {
+    let module_name = ctx
+        .module_by_id(module_id)
+        .filename()
+        .strip_suffix(".tol")
+        .unwrap()
+        .to_string();
+
+    match module_name.as_str() {
+        "io" => native_functions::io::initialize_io_module(module_id, ctx),
+        "math" => native_functions::math::initialize_math_module(module_id, ctx),
+        "uri" => native_functions::uri::initialize_uri_module(module_id, ctx),
+        _ => {}
+    }
+
+    Ok(())
 }
 
 pub fn module_from_path(path: impl Into<PathBuf> + AsRef<Path>) -> DiagResult<Module> {
