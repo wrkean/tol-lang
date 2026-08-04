@@ -38,6 +38,8 @@ impl Value {
     pub fn add(self, right: Self) -> Result<Self, ValueError> {
         match (self, right) {
             (Int(a), Int(b)) => Ok(Int(a.wrapping_add(b))),
+            (Int(a), Float(b)) => Ok(Float(a as f64 + b)),
+            (Float(a), Int(b)) => Ok(Float(a + b as f64)),
             (Float(a), Float(b)) => Ok(Float(a + b)),
             (l, r) => Err(ValueError::new(format!(
                 "hindi pwede ang `+` sa {l} at {r}"
@@ -48,6 +50,8 @@ impl Value {
     pub fn sub(self, right: Self) -> Result<Self, ValueError> {
         match (self, right) {
             (Int(a), Int(b)) => Ok(Int(a.wrapping_sub(b))),
+            (Int(a), Float(b)) => Ok(Float(a as f64 - b)),
+            (Float(a), Int(b)) => Ok(Float(a - b as f64)),
             (Float(a), Float(b)) => Ok(Float(a - b)),
             (l, r) => Err(ValueError::new(format!(
                 "hindi pwede ang `-` sa {l} at {r}"
@@ -58,6 +62,8 @@ impl Value {
     pub fn mult(self, right: Self) -> Result<Self, ValueError> {
         match (self, right) {
             (Int(a), Int(b)) => Ok(Int(a.wrapping_mul(b))),
+            (Int(a), Float(b)) => Ok(Float(a as f64 * b)),
+            (Float(a), Int(b)) => Ok(Float(a * b as f64)),
             (Float(a), Float(b)) => Ok(Float(a * b)),
             (l, r) => Err(ValueError::new(format!(
                 "hindi pwede ang `*` sa {l} at {r}"
@@ -71,6 +77,8 @@ impl Value {
                 Err(ValueError::new("bawal mag-\"divide\" gamit ang zero (0)"))
             }
             (Int(a), Int(b)) => Ok(Int(a.wrapping_div(b))),
+            (Int(a), Float(b)) => Ok(Float(a as f64 / b)),
+            (Float(a), Int(b)) => Ok(Float(a / b as f64)),
             (Float(a), Float(b)) => Ok(Float(a / b)),
             (l, r) => Err(ValueError::new(format!(
                 "hindi pwede ang `/` sa {l} at {r}"
@@ -84,6 +92,8 @@ impl Value {
                 Err(ValueError::new("bawal mag-\"modulo\" gamit ang zero (0)"))
             }
             (Int(a), Int(b)) => Ok(Int(a % b)),
+            (Int(a), Float(b)) => Ok(Float((a as f64) % b)),
+            (Float(a), Int(b)) => Ok(Float(a % b as f64)),
             (Float(a), Float(b)) => Ok(Float(a % b)),
             (l, r) => Err(ValueError::new(format!(
                 "hindi pwede ang `/` sa {l} at {r}"
@@ -94,6 +104,8 @@ impl Value {
     pub fn eqeq(self, right: Self) -> Result<Self, ValueError> {
         match (self, right) {
             (Int(a), Int(b)) => Ok(Bool(a == b)),
+            (Int(a), Float(b)) => Ok(Bool((a as f64) == b)),
+            (Float(a), Int(b)) => Ok(Bool(a == b as f64)),
             (Float(a), Float(b)) => Ok(Bool(a == b)),
             (Bool(a), Bool(b)) => Ok(Bool(a == b)),
             (Str(a), Str(b)) => Ok(Bool(a == b)),
@@ -106,6 +118,8 @@ impl Value {
     pub fn neq(self, right: Self) -> Result<Self, ValueError> {
         match (self, right) {
             (Int(a), Int(b)) => Ok(Bool(a != b)),
+            (Int(a), Float(b)) => Ok(Bool((a as f64) != b)),
+            (Float(a), Int(b)) => Ok(Bool(a != b as f64)),
             (Float(a), Float(b)) => Ok(Bool(a != b)),
             (Bool(a), Bool(b)) => Ok(Bool(a != b)),
             (Str(a), Str(b)) => Ok(Bool(a != b)),
@@ -118,6 +132,8 @@ impl Value {
     pub fn gt(self, right: Self) -> Result<Self, ValueError> {
         match (self, right) {
             (Int(a), Int(b)) => Ok(Bool(a > b)),
+            (Int(a), Float(b)) => Ok(Bool((a as f64) > b)),
+            (Float(a), Int(b)) => Ok(Bool(a > b as f64)),
             (Float(a), Float(b)) => Ok(Bool(a > b)),
             (l, r) => Err(ValueError::new(format!(
                 "hindi pwede ang `>` sa {l} at {r}"
@@ -128,6 +144,8 @@ impl Value {
     pub fn ge(self, right: Self) -> Result<Self, ValueError> {
         match (self, right) {
             (Int(a), Int(b)) => Ok(Bool(a >= b)),
+            (Int(a), Float(b)) => Ok(Bool((a as f64) >= b)),
+            (Float(a), Int(b)) => Ok(Bool(a >= b as f64)),
             (Float(a), Float(b)) => Ok(Bool(a >= b)),
             (l, r) => Err(ValueError::new(format!(
                 "hindi pwede ang `>=` sa {l} at {r}"
@@ -138,6 +156,8 @@ impl Value {
     pub fn lt(self, right: Self) -> Result<Self, ValueError> {
         match (self, right) {
             (Int(a), Int(b)) => Ok(Bool(a < b)),
+            (Int(a), Float(b)) => Ok(Bool((a as f64) < b)),
+            (Float(a), Int(b)) => Ok(Bool(a < b as f64)),
             (Float(a), Float(b)) => Ok(Bool(a < b)),
             (l, r) => Err(ValueError::new(format!(
                 "hindi pwede ang `<` sa {l} at {r}"
@@ -148,6 +168,8 @@ impl Value {
     pub fn le(self, right: Self) -> Result<Self, ValueError> {
         match (self, right) {
             (Int(a), Int(b)) => Ok(Bool(a <= b)),
+            (Int(a), Float(b)) => Ok(Bool((a as f64) <= b)),
+            (Float(a), Int(b)) => Ok(Bool(a <= b as f64)),
             (Float(a), Float(b)) => Ok(Bool(a <= b)),
             (l, r) => Err(ValueError::new(format!(
                 "hindi pwede ang `<=` sa {l} at {r}"

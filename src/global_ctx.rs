@@ -84,9 +84,7 @@ impl GlobalContext {
             Commands::Run(args) => args.input,
         };
 
-        let stdlib_path = stdlib_path
-            .canonicalize()
-            .unwrap_or(stdlib_path);
+        let stdlib_path = stdlib_path.canonicalize().unwrap_or(stdlib_path);
 
         Self {
             entry_point,
@@ -182,6 +180,8 @@ impl GlobalContext {
     }
 
     pub fn module_is_stdlib(&self, module_id: ModuleId) -> bool {
-        self.modules[module_id].path().starts_with(&self.stdlib_path)
+        self.modules[module_id]
+            .path()
+            .starts_with(&self.stdlib_path)
     }
 }

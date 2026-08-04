@@ -104,9 +104,10 @@ pub fn native_anong_uri(vm: &mut VM, args: &[Value]) -> Result<Value, Box<Runtim
         Value::ClassDef(def) => def.name.clone(),
         Value::ClassInstance(inst) => inst.borrow().def.name.clone(),
         Value::ModuleObj(module_obj) => module_obj.borrow().name.clone(),
-        Value::Function(_) | Value::Closure(_) | Value::NativeFunction(_) | Value::BoundMethod(_) => {
-            "Paraan".to_string()
-        }
+        Value::Function(_)
+        | Value::Closure(_)
+        | Value::NativeFunction(_)
+        | Value::BoundMethod(_) => "Paraan".to_string(),
         Value::Null => "Wala".to_string(),
     };
 

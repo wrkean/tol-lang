@@ -299,9 +299,7 @@ impl<'gctx> BytecodeCompiler<'gctx> {
             unreachable!()
         };
 
-        let iter_var = iterator_var
-            .clone()
-            .expect("iterator_var must be resolved");
+        let iter_var = iterator_var.clone().expect("iterator_var must be resolved");
 
         self.compile_expression(iterable);
 
