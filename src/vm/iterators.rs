@@ -2,7 +2,12 @@ use std::{cell::RefCell, rc::Rc};
 
 use phf::Map;
 
-use crate::vm::{VM, list::List, range::Range, value::Value};
+use crate::vm::{
+    VM,
+    list::List,
+    range::{Range, RangeNumber},
+    value::Value,
+};
 
 /// Built-in iterator
 pub trait NativeIterator: std::fmt::Debug {
@@ -33,9 +38,9 @@ impl NativeIterator for ListIterator {
 
 #[derive(Debug)]
 pub struct RangeIterator {
-    current: i64,
-    end: i64,
-    step: i64,
+    current: RangeNumber,
+    end: RangeNumber,
+    step: RangeNumber,
     inclusive: bool,
     exhausted: bool,
 }
@@ -43,9 +48,9 @@ pub struct RangeIterator {
 impl RangeIterator {
     pub fn new(range: &Range) -> Self {
         Self {
-            current: range.start,
-            end: range.end,
-            step: range.step,
+            current: range.start.clone(),
+            end: range.end.clone(),
+            step: range.step.clone(),
             inclusive: range.inclusive,
             exhausted: false,
         }
@@ -58,36 +63,73 @@ impl NativeIterator for RangeIterator {
             return None;
         }
 
-        let in_bounds = if self.step > 0 {
-            if self.inclusive {
-                self.current <= self.end
-            } else {
-                self.current < self.end
+        match (&mut self.current, &self.end, &self.step) {
+            (RangeNumber::Int(current), RangeNumber::Int(end), RangeNumber::Int(step)) => {
+                let in_bounds = if *step > 0 {
+                    if self.inclusive {
+                        *current <= *end
+                    } else {
+                        *current < *end
+                    }
+                } else if *step < 0 {
+                    if self.inclusive {
+                        *current >= *end
+                    } else {
+                        *current > *end
+                    }
+                } else {
+                    vm.runtime_error("range step ay hindi dapat 0", vm.current_ip());
+                    return None;
+                };
+
+                if !in_bounds {
+                    self.exhausted = true;
+                    return None;
+                }
+
+                let value = *current;
+                *current += *step;
+
+                if (*step > 0 && *current < value) || (*step < 0 && *current > value) {
+                    self.exhausted = true;
+                }
+
+                Some(Value::Int(value))
             }
-        } else if self.step < 0 {
-            if self.inclusive {
-                self.current >= self.end
-            } else {
-                self.current > self.end
+            (RangeNumber::Float(current), RangeNumber::Float(end), RangeNumber::Float(step)) => {
+                let in_bounds = if *step > 0.0 {
+                    if self.inclusive {
+                        *current <= *end
+                    } else {
+                        *current < *end
+                    }
+                } else if *step < 0.0 {
+                    if self.inclusive {
+                        *current >= *end
+                    } else {
+                        *current > *end
+                    }
+                } else {
+                    vm.runtime_error("range step ay hindi dapat 0", vm.current_ip());
+                    return None;
+                };
+
+                if !in_bounds {
+                    self.exhausted = true;
+                    return None;
+                }
+
+                let value = *current;
+                *current += *step;
+
+                if (*step > 0.0 && *current < value) || (*step < 0.0 && *current > value) {
+                    self.exhausted = true;
+                }
+
+                Some(Value::Float(value))
             }
-        } else {
-            vm.runtime_error("range step ay hindi dapat 0", vm.current_ip());
-            return None;
-        };
-
-        if !in_bounds {
-            self.exhausted = true;
-            return None;
+            _ => unreachable!("range variants should stay consistent"),
         }
-
-        let value = self.current;
-        self.current += self.step;
-
-        if (self.step > 0 && self.current < value) || (self.step < 0 && self.current > value) {
-            self.exhausted = true;
-        }
-
-        Some(Value::Int(value))
     }
 }
 

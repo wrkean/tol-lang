@@ -525,22 +525,20 @@ impl VM {
                 let start = self.pop();
                 let inclusive = self.read_byte() == 1;
 
-                let (start, end) = match (start, end) {
-                    (Value::Int(s), Value::Int(e)) => (s, e),
-                    _ => {
-                        self.runtime_error(
-                            "maaaring mga numero lamang ang operand ng `..` at `..=`",
-                            self.current_ip(),
-                        );
-                        return;
-                    }
+                let step = if matches!(start, Value::Float(_)) || matches!(end, Value::Float(_)) {
+                    Value::Float(1.0)
+                } else {
+                    Value::Int(1)
                 };
-                let range = Range {
-                    start,
-                    end,
-                    step: 1,
-                    inclusive,
+
+                let Some(range) = Range::from_values(&start, &end, &step, inclusive) else {
+                    self.runtime_error(
+                        "maaaring mga numero lamang ang operand ng `..` at `..=`",
+                        self.current_ip(),
+                    );
+                    return;
                 };
+
                 self.push(Value::Range(Rc::new(range)));
             }
             _ => println!("bug: unknown opcode {:#X}", opcode),
